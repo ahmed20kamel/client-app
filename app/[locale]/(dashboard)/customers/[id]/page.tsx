@@ -230,7 +230,7 @@ export default function CustomerDetailsPage() {
   return (
     <div className="max-w-5xl mx-auto animate-fade-in">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6 lg:mb-8">
         <div className="flex items-center gap-3 min-w-0">
           <h1 className="text-3xl font-bold tracking-tight truncate">{customer.fullName}</h1>
           <Badge className={`shrink-0 ${STATUS_COLORS[customer.status] || ''}`}>

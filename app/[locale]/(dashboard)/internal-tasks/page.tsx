@@ -188,9 +188,9 @@ export default function InternalTasksPage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('internalTasks.title')}</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('internalTasks.title')}</h1>
           <p className="text-muted-foreground mt-1">
             {meta.total} {t('common.results')}
           </p>

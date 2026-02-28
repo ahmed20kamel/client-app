@@ -157,13 +157,13 @@ export default function EmployeePerformancePage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => router.push(`/${locale}/performance`)}>
             <ArrowLeft className="size-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{data.user.fullName}</h1>
+            <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{data.user.fullName}</h1>
             {data.user.jobTitle && (
               <p className="text-muted-foreground mt-0.5 flex items-center gap-1.5">
                 <User className="size-3.5" />
@@ -175,7 +175,7 @@ export default function EmployeePerformancePage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 lg:mb-8">
         <Card className="shadow-premium">
           <CardContent className="p-5">
             <div className="flex items-center gap-3">

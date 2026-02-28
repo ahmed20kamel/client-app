@@ -462,13 +462,13 @@ export default function InternalTaskDetailPage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => router.push(`/${locale}/internal-tasks`)}>
             <ArrowLeft className="size-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{task.title}</h1>
+            <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{task.title}</h1>
             {task.department && (
               <p className="text-muted-foreground mt-0.5 flex items-center gap-1">
                 <Building2 className="size-3.5" />

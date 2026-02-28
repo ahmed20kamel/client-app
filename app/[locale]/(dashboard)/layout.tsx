@@ -20,6 +20,7 @@ import {
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { LogoutButton } from '@/components/LogoutButton';
+import { MobileSidebar } from '@/components/MobileSidebar';
 
 export default async function DashboardLayout({
   children,
@@ -57,6 +58,19 @@ export default async function DashboardLayout({
     );
   }
 
+  // Serialize nav items for the client component (icons as string names)
+  const mobileNavItems = navItems.map((item) => ({
+    href: item.href,
+    label: item.label,
+    icon: item.icon.displayName || item.icon.name || 'LayoutDashboard',
+  }));
+
+  const mobileAdminItems = adminItems.map((item) => ({
+    href: item.href,
+    label: item.label,
+    icon: item.icon.displayName || item.icon.name || 'Building2',
+  }));
+
   // Get user initials for avatar
   const initials = session.user?.name
     ?.split(' ')
@@ -67,29 +81,29 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-background" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
-      {/* Sidebar */}
-      <aside className="fixed top-0 start-0 z-40 w-72 h-screen">
+      {/* Desktop Sidebar - hidden on mobile */}
+      <aside className="hidden lg:block fixed top-0 start-0 z-40 w-72 h-screen">
         <div className="h-full flex flex-col bg-sidebar text-sidebar-foreground">
           {/* Logo */}
-          <div className="h-20 flex items-center px-6 border-b border-sidebar-border">
+          <div className="h-16 flex items-center px-6 border-b border-sidebar-border">
             <div className="flex items-center gap-3">
-              <Image src="/logo.svg" alt="Logo" width={40} height={40} />
+              <Image src="/logo.svg" alt="Logo" width={36} height={36} />
               <div>
                 <h1 className="text-lg font-bold text-sidebar-foreground">CRM Pro</h1>
-                <p className="text-xs text-sidebar-foreground/60">Enterprise Edition</p>
+                <p className="text-[10px] text-sidebar-foreground/50 font-medium tracking-wider uppercase">Enterprise</p>
               </div>
             </div>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
+          <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200 group"
+                  className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200 group"
                 >
                   <Icon className="w-5 h-5 text-sidebar-foreground/60 group-hover:text-sidebar-primary transition-colors" />
                   <span>{item.label}</span>
@@ -101,9 +115,9 @@ export default async function DashboardLayout({
             {/* Settings Section (Admin) */}
             {adminItems.length > 0 && (
               <>
-                <div className="pt-4 pb-2 px-4">
-                  <p className="text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider flex items-center gap-2">
-                    <Settings className="w-3.5 h-3.5" />
+                <div className="pt-4 pb-2 px-3.5">
+                  <p className="text-[11px] font-semibold text-sidebar-foreground/35 uppercase tracking-wider flex items-center gap-1.5">
+                    <Settings className="w-3 h-3" />
                     {t('navigation.settings')}
                   </p>
                 </div>
@@ -113,7 +127,7 @@ export default async function DashboardLayout({
                     <Link
                       key={item.href}
                       href={item.href}
-                      className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200 group"
+                      className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200 group"
                     >
                       <Icon className="w-5 h-5 text-sidebar-foreground/60 group-hover:text-sidebar-primary transition-colors" />
                       <span>{item.label}</span>
@@ -126,16 +140,16 @@ export default async function DashboardLayout({
           </nav>
 
           {/* User Section */}
-          <div className="p-4 border-t border-sidebar-border">
+          <div className="p-3 border-t border-sidebar-border">
             <div className="flex items-center gap-3 p-3 rounded-xl bg-sidebar-accent/50">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-semibold text-primary">
+              <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-sm font-semibold text-primary shrink-0">
                 {initials}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-sidebar-foreground truncate">
                   {session.user?.name}
                 </p>
-                <p className="text-xs text-sidebar-foreground/60 truncate">
+                <p className="text-xs text-sidebar-foreground/50 truncate">
                   {session.user?.role}
                 </p>
               </div>
@@ -143,7 +157,7 @@ export default async function DashboardLayout({
             </div>
 
             {/* Language Switcher */}
-            <div className="flex items-center gap-2 mt-3">
+            <div className="flex items-center gap-2 mt-2.5">
               <LanguageSwitcher locale={locale} />
             </div>
           </div>
@@ -151,11 +165,25 @@ export default async function DashboardLayout({
       </aside>
 
       {/* Main Content Area */}
-      <div className="ms-72 min-h-screen flex flex-col">
+      <div className="lg:ms-72 min-h-screen flex flex-col">
         {/* Top Header */}
-        <header className="sticky top-0 z-30 h-16 bg-background/80 backdrop-blur-lg border-b border-border flex items-center justify-between px-8">
-          {/* Search */}
-          <div className="flex items-center gap-3 flex-1 max-w-md">
+        <header className="sticky top-0 z-30 h-14 lg:h-16 bg-background/80 backdrop-blur-lg border-b border-border flex items-center justify-between px-4 lg:px-8 gap-3">
+          {/* Mobile: Hamburger + Logo */}
+          <div className="flex items-center gap-3 lg:hidden">
+            <MobileSidebar
+              locale={locale}
+              navItems={mobileNavItems}
+              adminItems={mobileAdminItems}
+              settingsLabel={t('navigation.settings')}
+              userName={session.user?.name || ''}
+              userRole={session.user?.role || ''}
+              initials={initials}
+            />
+            <Image src="/logo.svg" alt="Logo" width={28} height={28} className="lg:hidden" />
+          </div>
+
+          {/* Search - hidden on small mobile, visible from sm */}
+          <div className="hidden sm:flex items-center gap-3 flex-1 max-w-md">
             <div className="relative w-full">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
@@ -167,24 +195,24 @@ export default async function DashboardLayout({
           </div>
 
           {/* Right Side - Notifications & User */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 ms-auto">
             <NotificationCenter />
 
             {/* User Info & Avatar */}
-            <div className="flex items-center gap-3">
-              <div className="text-end hidden sm:block">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="text-end hidden md:block">
                 <p className="text-sm font-medium text-foreground">{session.user?.name}</p>
                 <p className="text-xs text-muted-foreground">{session.user?.role}</p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-semibold text-primary shadow-lg shadow-primary/20">
+              <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-primary/20 flex items-center justify-center text-xs lg:text-sm font-semibold text-primary shadow-lg shadow-primary/20">
                 {initials}
               </div>
             </div>
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 p-8">
+        {/* Page Content - responsive padding */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
           {children}
         </main>
       </div>

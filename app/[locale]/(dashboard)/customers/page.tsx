@@ -208,17 +208,18 @@ export default function CustomersPage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6 lg:mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('customers.title')}</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('customers.title')}</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             {meta.total} {t('customers.title')}
           </p>
         </div>
         <Link href={`/${locale}/customers/new`}>
-          <Button className="btn-premium">
-            <Plus className="size-4 me-2" />
-            {t('customers.create')}
+          <Button className="btn-premium" size="sm">
+            <Plus className="size-4 me-1 sm:me-2" />
+            <span className="hidden sm:inline">{t('customers.create')}</span>
+            <span className="sm:hidden">{t('common.new')}</span>
           </Button>
         </Link>
       </div>

@@ -190,9 +190,9 @@ export default function DashboardPage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">{t('dashboard.title')}</h1>
-        <p className="text-muted-foreground mt-1">
+      <div className="mb-6 lg:mb-8">
+        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('dashboard.title')}</h1>
+        <p className="text-sm lg:text-base text-muted-foreground mt-1">
           {t('dashboard.welcome')}
           {data.stats.openTasks > 0 && (
             <span> — {data.stats.openTasks} {t('dashboard.openTasksSuffix')}</span>
@@ -201,7 +201,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4 mb-6 lg:mb-8">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -211,14 +211,14 @@ export default function DashboardPage() {
                 stat.alert ? 'ring-2 ring-red-500/20' : ''
               }`}
             >
-              <CardContent className="pt-6 pb-5">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2.5 rounded-xl ${stat.iconBg} shrink-0`}>
-                    <Icon className={`size-5 ${stat.iconColor}`} />
+              <CardContent className="pt-4 pb-4 lg:pt-6 lg:pb-5">
+                <div className="flex items-center gap-2 lg:gap-3">
+                  <div className={`p-2 lg:p-2.5 rounded-xl ${stat.iconBg} shrink-0`}>
+                    <Icon className={`size-4 lg:size-5 ${stat.iconColor}`} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground truncate">{stat.label}</p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
+                    <p className="text-[11px] lg:text-xs text-muted-foreground truncate">{stat.label}</p>
+                    <p className="text-xl lg:text-2xl font-bold">{stat.value}</p>
                   </div>
                 </div>
               </CardContent>
@@ -227,7 +227,7 @@ export default function DashboardPage() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         {/* Issues Section */}
         <Card className="shadow-premium">
           <CardHeader>
@@ -381,7 +381,7 @@ export default function DashboardPage() {
 
       {/* Employee Distribution (Admin only) */}
       {data.employeeDistribution.length > 0 && (
-        <Card className="mt-6 shadow-premium">
+        <Card className="mt-4 lg:mt-6 shadow-premium">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="size-5 text-indigo-600" />
@@ -389,18 +389,18 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-hidden rounded-xl border border-border">
+            <div className="overflow-x-auto rounded-xl border border-border">
               <table className="w-full">
                 <thead>
                   <tr className="bg-muted/30">
-                    <th className="text-start py-3.5 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('users.fullName')}</th>
-                    <th className="text-end py-3.5 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('customers.title')}</th>
+                    <th className="text-start py-3.5 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('users.fullName')}</th>
+                    <th className="text-end py-3.5 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('customers.title')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {data.employeeDistribution.map((emp) => (
                     <tr key={emp.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="py-3.5 px-6">
+                      <td className="py-3.5 px-4 lg:px-6">
                         <div className="flex items-center gap-3">
                           <div className="size-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-xs font-semibold shrink-0">
                             {emp.fullName.charAt(0)}
@@ -408,7 +408,7 @@ export default function DashboardPage() {
                           <span className="font-medium text-sm">{emp.fullName}</span>
                         </div>
                       </td>
-                      <td className="text-end py-3.5 px-6">
+                      <td className="text-end py-3.5 px-4 lg:px-6">
                         <Badge variant="secondary" className="bg-primary/10 text-primary font-bold">
                           {emp.customerCount}
                         </Badge>

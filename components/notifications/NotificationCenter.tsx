@@ -227,7 +227,7 @@ export function NotificationCenter() {
       {/* Bell Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2.5 rounded-xl bg-sidebar-accent/50 hover:bg-sidebar-accent text-sidebar-foreground transition-all duration-200 group"
+        className="relative p-2.5 rounded-xl bg-secondary/50 hover:bg-secondary text-foreground transition-all duration-200 group"
         aria-label="Notifications"
       >
         {unreadCount > 0 ? (

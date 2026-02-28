@@ -187,7 +187,7 @@ export default function ReportsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('reports.title')}</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('reports.title')}</h1>
           <p className="text-muted-foreground mt-1">{t('reports.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -203,7 +203,7 @@ export default function ReportsPage() {
       </div>
 
       {/* Report Tabs */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible sm:pb-0">
         {reportTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeReport === tab.id;
@@ -211,7 +211,7 @@ export default function ReportsPage() {
             <button
               key={tab.id}
               onClick={() => setActiveReport(tab.id as ReportType)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
                 isActive
                   ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
                   : 'bg-white border border-border text-muted-foreground hover:text-foreground hover:border-primary/30'
@@ -337,7 +337,7 @@ export default function ReportsPage() {
                           <div className="size-3 rounded-full" style={{ backgroundColor: color }} />
                           <span className="text-xs text-muted-foreground font-medium">{item?.percentage?.toFixed(0) || 0}%</span>
                         </div>
-                        <p className="text-3xl font-bold">{count}</p>
+                        <p className="text-2xl lg:text-3xl font-bold">{count}</p>
                         <p className="text-sm text-muted-foreground mt-1">
                           {t(STATUS_TRANSLATION_KEYS[status] || status)}
                         </p>
@@ -348,7 +348,7 @@ export default function ReportsPage() {
               </div>
 
               {/* Charts */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                 {/* Pie Chart */}
                 <Card className="shadow-premium">
                   <CardHeader>
@@ -497,17 +497,17 @@ export default function ReportsPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b bg-muted/30">
-                        <th className="text-start py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('users.fullName')}</th>
-                        <th className="text-center py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('reports.total')}</th>
-                        <th className="text-center py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('reports.completedLabel')}</th>
-                        <th className="text-center py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('reports.onTimeLabel')}</th>
-                        <th className="text-center py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('reports.rateLabel')}</th>
+                        <th className="text-start py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('users.fullName')}</th>
+                        <th className="text-center py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('reports.total')}</th>
+                        <th className="text-center py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('reports.completedLabel')}</th>
+                        <th className="text-center py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('reports.onTimeLabel')}</th>
+                        <th className="text-center py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('reports.rateLabel')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {reportData.map((stat: any, idx: number) => (
                         <tr key={stat.user?.id || idx} className="hover:bg-muted/20 transition-colors">
-                          <td className="py-3.5 px-6">
+                          <td className="py-3.5 px-4 lg:px-6">
                             <div className="flex items-center gap-3">
                               <div className="size-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-xs font-semibold shrink-0">
                                 {stat.user?.fullName?.charAt(0) || '?'}
@@ -515,10 +515,10 @@ export default function ReportsPage() {
                               <span className="font-medium text-sm">{stat.user?.fullName || '-'}</span>
                             </div>
                           </td>
-                          <td className="py-3.5 px-6 text-center text-sm">{stat.total}</td>
-                          <td className="py-3.5 px-6 text-center text-sm">{stat.completed}</td>
-                          <td className="py-3.5 px-6 text-center text-sm">{stat.completedOnTime}</td>
-                          <td className="py-3.5 px-6 text-center">
+                          <td className="py-3.5 px-4 lg:px-6 text-center text-sm">{stat.total}</td>
+                          <td className="py-3.5 px-4 lg:px-6 text-center text-sm">{stat.completed}</td>
+                          <td className="py-3.5 px-4 lg:px-6 text-center text-sm">{stat.completedOnTime}</td>
+                          <td className="py-3.5 px-4 lg:px-6 text-center">
                             <Badge variant={stat.completionRate >= 80 ? 'default' : stat.completionRate >= 50 ? 'secondary' : 'destructive'}
                               className={stat.completionRate >= 80 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : ''}>
                               {stat.completionRate}%
@@ -537,12 +537,12 @@ export default function ReportsPage() {
           {activeReport === 'newCustomers' && reportData.summary && (
             <>
               <Card className="shadow-premium bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-                <CardContent className="p-6 flex items-center gap-4">
-                  <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                    <Users className="size-7 text-primary" />
+                <CardContent className="p-4 lg:p-6 flex items-center gap-4">
+                  <div className="size-12 lg:size-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Users className="size-6 lg:size-7 text-primary" />
                   </div>
                   <div>
-                    <p className="text-4xl font-bold">{reportData.customers?.length || 0}</p>
+                    <p className="text-3xl lg:text-4xl font-bold">{reportData.customers?.length || 0}</p>
                     <p className="text-sm text-muted-foreground">{t('reports.totalNewCustomers')}</p>
                   </div>
                 </CardContent>
@@ -597,28 +597,28 @@ export default function ReportsPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b bg-muted/30">
-                        <th className="text-start py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('tasks.taskTitle')}</th>
-                        <th className="text-start py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('tasks.customer')}</th>
-                        <th className="text-start py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('tasks.priority')}</th>
-                        <th className="text-start py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('tasks.dueDate')}</th>
+                        <th className="text-start py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('tasks.taskTitle')}</th>
+                        <th className="text-start py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('tasks.customer')}</th>
+                        <th className="text-start py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('tasks.priority')}</th>
+                        <th className="text-start py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('tasks.dueDate')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {reportData.map((task: any) => (
                         <tr key={task.id} className="hover:bg-muted/20 transition-colors">
-                          <td className="py-3.5 px-6">
+                          <td className="py-3.5 px-4 lg:px-6">
                             <Link href={`/${locale}/tasks/${task.id}`} className="text-primary hover:underline font-medium text-sm">
                               {task.title}
                             </Link>
                           </td>
-                          <td className="py-3.5 px-6 text-sm">{task.customer?.fullName || '-'}</td>
-                          <td className="py-3.5 px-6">
+                          <td className="py-3.5 px-4 lg:px-6 text-sm">{task.customer?.fullName || '-'}</td>
+                          <td className="py-3.5 px-4 lg:px-6">
                             <Badge variant={task.priority === 'HIGH' ? 'destructive' : 'secondary'}
                               className={task.priority === 'MEDIUM' ? 'bg-amber-50 text-amber-700 border border-amber-200' : task.priority === 'LOW' ? 'bg-blue-50 text-blue-700 border border-blue-200' : ''}>
                               {task.priority === 'HIGH' ? t('tasks.priorityHigh') : task.priority === 'MEDIUM' ? t('tasks.priorityMedium') : t('tasks.priorityLow')}
                             </Badge>
                           </td>
-                          <td className="py-3.5 px-6 text-sm text-red-500 font-medium">
+                          <td className="py-3.5 px-4 lg:px-6 text-sm text-red-500 font-medium">
                             {new Date(task.dueAt).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE')}
                           </td>
                         </tr>
@@ -654,21 +654,21 @@ export default function ReportsPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b bg-muted/30">
-                        <th className="text-start py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('customers.fullName')}</th>
-                        <th className="text-start py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('customers.owner')}</th>
-                        <th className="text-start py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('customers.customerType')}</th>
+                        <th className="text-start py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('customers.fullName')}</th>
+                        <th className="text-start py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('customers.owner')}</th>
+                        <th className="text-start py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('customers.customerType')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {reportData.map((customer: any) => (
                         <tr key={customer.id} className="hover:bg-muted/20 transition-colors">
-                          <td className="py-3.5 px-6">
+                          <td className="py-3.5 px-4 lg:px-6">
                             <Link href={`/${locale}/customers/${customer.id}`} className="text-primary hover:underline font-medium text-sm">
                               {customer.fullName}
                             </Link>
                           </td>
-                          <td className="py-3.5 px-6 text-sm">{customer.owner?.fullName || '-'}</td>
-                          <td className="py-3.5 px-6">
+                          <td className="py-3.5 px-4 lg:px-6 text-sm">{customer.owner?.fullName || '-'}</td>
+                          <td className="py-3.5 px-4 lg:px-6">
                             <Badge variant="secondary">{customer.customerType}</Badge>
                           </td>
                         </tr>

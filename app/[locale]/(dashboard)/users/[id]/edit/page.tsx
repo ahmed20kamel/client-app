@@ -165,9 +165,9 @@ export default function EditUserPage() {
   return (
     <div className="max-w-3xl mx-auto animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6 lg:mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('users.edit')}</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('users.edit')}</h1>
           <p className="text-muted-foreground mt-1">{form.getValues('fullName')}</p>
         </div>
         <Button

@@ -134,14 +134,14 @@ export default function EditDepartmentPage() {
   return (
     <div className="animate-fade-in max-w-2xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
+      <div className="flex items-center gap-4 mb-6 lg:mb-8">
         <Link href={`/${locale}/departments`}>
           <Button variant="ghost" size="icon" className="size-10 rounded-xl">
             <ArrowLeft className="size-5" />
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('departments.edit')}</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('departments.edit')}</h1>
         </div>
       </div>
 
