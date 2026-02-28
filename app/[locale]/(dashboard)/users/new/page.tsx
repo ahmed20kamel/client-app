@@ -19,6 +19,7 @@ import {
   Lock,
   Shield,
   Briefcase,
+  Building2,
   ArrowLeft,
   Save,
   Loader2,
@@ -38,6 +39,7 @@ const createUserSchema = z.object({
     ),
   roleId: z.string().min(1, 'Role is required'),
   status: z.enum(['ACTIVE', 'DISABLED']),
+  departmentId: z.string().optional(),
 });
 
 type CreateUserForm = z.infer<typeof createUserSchema>;
@@ -48,6 +50,12 @@ interface Role {
   description: string | null;
 }
 
+interface Department {
+  id: string;
+  name: string;
+  nameAr: string | null;
+}
+
 export default function CreateUserPage() {
   const t = useTranslations();
   const router = useRouter();
@@ -55,6 +63,7 @@ export default function CreateUserPage() {
   const locale = params.locale as string;
   const [isLoading, setIsLoading] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
 
   const form = useForm<CreateUserForm>({
     resolver: zodResolver(createUserSchema),
@@ -66,13 +75,19 @@ export default function CreateUserPage() {
       phone: '',
       password: '',
       roleId: '',
+      departmentId: '',
     },
   });
 
   useEffect(() => {
-    fetch('/api/roles')
-      .then((res) => res.json())
-      .then((data) => setRoles(data.data))
+    Promise.all([
+      fetch('/api/roles').then((res) => res.json()),
+      fetch('/api/departments').then((res) => res.json()),
+    ])
+      .then(([rolesData, deptsData]) => {
+        setRoles(rolesData.data);
+        setDepartments(deptsData.data);
+      })
       .catch(() => toast.error(t('common.error')));
   }, []);
 
@@ -283,6 +298,36 @@ export default function CreateUserPage() {
                         <SelectContent>
                           <SelectItem value="ACTIVE">{t('users.statusActive')}</SelectItem>
                           <SelectItem value="DISABLED">{t('users.statusDisabled')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Department */}
+                <FormField
+                  control={form.control}
+                  name="departmentId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('tasks.department')}</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={isLoading}>
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <div className="flex items-center gap-2">
+                              <Building2 className="size-4 text-muted-foreground" />
+                              <SelectValue placeholder={t('common.select')} />
+                            </div>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="NONE">-</SelectItem>
+                          {departments.map((dept) => (
+                            <SelectItem key={dept.id} value={dept.id}>
+                              {locale === 'ar' && dept.nameAr ? dept.nameAr : dept.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />

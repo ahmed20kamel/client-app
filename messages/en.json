@@ -344,7 +344,10 @@
     "sales": "Sales",
     "engineering": "Engineering",
     "support": "Support",
-    "management": "Management"
+    "management": "Management",
+    "tasks": "Tasks",
+    "deleteConfirm": "Are you sure you want to delete this department?",
+    "cannotDelete": "Cannot delete this department"
   },
   "escalation": {
     "rules": "Escalation Rules",

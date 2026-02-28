@@ -15,6 +15,8 @@ import {
   ClipboardList,
   CheckCircle2,
   TrendingUp,
+  Building2,
+  Settings,
 } from 'lucide-react';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -45,10 +47,14 @@ export default async function DashboardLayout({
     { href: `/${locale}/reports`, label: t('navigation.reports'), icon: BarChart3 },
   ];
 
+  const adminItems: typeof navItems = [];
   if (session.user?.role === 'Admin') {
     navItems.push(
       { href: `/${locale}/users`, label: t('navigation.users'), icon: UserCog },
       { href: `/${locale}/performance`, label: t('navigation.performance'), icon: TrendingUp },
+    );
+    adminItems.push(
+      { href: `/${locale}/departments`, label: t('navigation.departments'), icon: Building2 },
     );
   }
 
@@ -94,6 +100,32 @@ export default async function DashboardLayout({
                 </Link>
               );
             })}
+
+            {/* Settings Section (Admin) */}
+            {adminItems.length > 0 && (
+              <>
+                <div className="pt-4 pb-2 px-4">
+                  <p className="text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider flex items-center gap-2">
+                    <Settings className="w-3.5 h-3.5" />
+                    {t('navigation.settings')}
+                  </p>
+                </div>
+                {adminItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200 group"
+                    >
+                      <Icon className="w-5 h-5 text-sidebar-foreground/60 group-hover:text-sidebar-primary transition-colors" />
+                      <span>{item.label}</span>
+                      <ChevronRight className="w-4 h-4 ms-auto opacity-0 rtl:rotate-180 -translate-x-2 rtl:translate-x-2 group-hover:translate-x-0 group-hover:opacity-100 transition-all" />
+                    </Link>
+                  );
+                })}
+              </>
+            )}
           </nav>
 
           {/* User Section */}

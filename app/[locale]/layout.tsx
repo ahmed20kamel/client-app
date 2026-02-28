@@ -2,6 +2,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { Providers } from '@/components/providers';
+import { DirectionSetter } from '@/components/DirectionSetter';
 
 const locales = ['en', 'ar'];
 
@@ -23,6 +24,7 @@ export default async function LocaleLayout({
 
   return (
     <Providers>
+      <DirectionSetter locale={locale} />
       <NextIntlClientProvider messages={messages}>
         {children}
       </NextIntlClientProvider>

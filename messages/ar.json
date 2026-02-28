@@ -344,7 +344,10 @@
     "sales": "المبيعات",
     "engineering": "الهندسة",
     "support": "الدعم الفني",
-    "management": "الإدارة"
+    "management": "الإدارة",
+    "tasks": "المهام",
+    "deleteConfirm": "هل أنت متأكد من حذف هذا القسم؟",
+    "cannotDelete": "لا يمكن حذف هذا القسم"
   },
   "escalation": {
     "rules": "قواعد التصعيد",

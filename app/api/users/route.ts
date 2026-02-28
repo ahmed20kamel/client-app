@@ -128,6 +128,9 @@ export async function POST(request: NextRequest) {
     // Hash password
     const passwordHash = await hash(validatedData.password, 10);
 
+    // Extract departmentId (not part of Prisma User schema)
+    const { departmentId, ...userData } = validatedData as any;
+
     // Create user with role
     const user = await prisma.user.create({
       data: {
@@ -156,6 +159,17 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Assign department if provided
+    if (departmentId && departmentId !== 'NONE') {
+      await prisma.userDepartment.create({
+        data: {
+          userId: user.id,
+          departmentId,
+          isPrimary: true,
+        },
+      });
+    }
 
     // Remove passwordHash from response
     const { passwordHash: _, ...sanitizedUser } = user;

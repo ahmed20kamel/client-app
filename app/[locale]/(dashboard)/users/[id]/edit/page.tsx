@@ -19,6 +19,7 @@ import {
   Lock,
   Shield,
   Briefcase,
+  Building2,
   ArrowLeft,
   Save,
   Loader2,
@@ -50,6 +51,12 @@ interface Role {
   description: string | null;
 }
 
+interface Department {
+  id: string;
+  name: string;
+  nameAr: string | null;
+}
+
 interface UserData {
   id: string;
   email: string;
@@ -60,6 +67,11 @@ interface UserData {
   role: {
     id: string;
     name: string;
+  } | null;
+  department: {
+    id: string;
+    name: string;
+    nameAr: string | null;
   } | null;
 }
 
@@ -72,24 +84,26 @@ export default function EditUserPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [selectedDeptId, setSelectedDeptId] = useState('');
 
   const form = useForm<UpdateUserForm>({
     resolver: zodResolver(updateUserSchema),
   });
 
   useEffect(() => {
-    fetch('/api/roles')
-      .then((res) => res.json())
-      .then((data) => setRoles(data.data))
-      .catch(() => toast.error(t('common.error')));
-
-    fetch(`/api/users/${userId}`)
-      .then((res) => {
+    Promise.all([
+      fetch('/api/roles').then((res) => res.json()),
+      fetch('/api/departments').then((res) => res.json()),
+      fetch(`/api/users/${userId}`).then((res) => {
         if (!res.ok) throw new Error('Failed to fetch user');
         return res.json();
-      })
-      .then((data) => {
-        const user: UserData = data.data;
+      }),
+    ])
+      .then(([rolesData, deptsData, userData]) => {
+        setRoles(rolesData.data);
+        setDepartments(deptsData.data);
+        const user: UserData = userData.data;
         form.reset({
           email: user.email,
           fullName: user.fullName,
@@ -99,6 +113,7 @@ export default function EditUserPage() {
           status: user.status,
           password: '',
         });
+        setSelectedDeptId(user.department?.id || '');
         setLoadingUser(false);
       })
       .catch(() => {
@@ -114,6 +129,7 @@ export default function EditUserPage() {
       if (!submitData.password) {
         delete submitData.password;
       }
+      submitData.departmentId = selectedDeptId || null;
 
       const response = await fetch(`/api/users/${userId}`, {
         method: 'PATCH',
@@ -335,6 +351,33 @@ export default function EditUserPage() {
                     </FormItem>
                   )}
                 />
+
+                {/* Department */}
+                <FormItem>
+                  <FormLabel>{t('departments.title')}</FormLabel>
+                  <Select
+                    value={selectedDeptId || 'NONE'}
+                    onValueChange={(val) => setSelectedDeptId(val === 'NONE' ? '' : val)}
+                    disabled={isLoading}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="size-4 text-muted-foreground" />
+                          <SelectValue placeholder={t('common.select')} />
+                        </div>
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="NONE">-</SelectItem>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {locale === 'ar' && dept.nameAr ? dept.nameAr : dept.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormItem>
               </div>
             </CardContent>
           </Card>

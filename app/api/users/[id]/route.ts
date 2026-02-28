@@ -39,6 +39,15 @@ export async function GET(
             },
           },
         },
+        departments: {
+          where: { isPrimary: true },
+          include: {
+            department: {
+              select: { id: true, name: true, nameAr: true },
+            },
+          },
+          take: 1,
+        },
       },
     });
 
@@ -53,6 +62,7 @@ export async function GET(
       data: {
         ...sanitizedUser,
         role: user.roles[0]?.role || null,
+        department: user.departments[0]?.department || null,
       },
     });
   } catch (error) {
@@ -100,7 +110,27 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const validatedData = updateUserSchema.parse(body);
+    const { departmentId, ...updateBody } = body;
+    const validatedData = updateUserSchema.parse(updateBody);
+
+    // Update department if provided
+    if (departmentId !== undefined) {
+      // Remove existing primary department
+      await prisma.userDepartment.deleteMany({
+        where: { userId: id, isPrimary: true },
+      });
+
+      // Assign new department if not empty
+      if (departmentId && departmentId !== 'NONE') {
+        await prisma.userDepartment.create({
+          data: {
+            userId: id,
+            departmentId,
+            isPrimary: true,
+          },
+        });
+      }
+    }
 
     // Check if email is being updated and if it already exists
     if (validatedData.email && validatedData.email !== existingUser.email) {
