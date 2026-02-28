@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { LogIn, Mail, Lock, Loader2, Building2, Users, BarChart3, Globe, Eye, EyeOff, Sparkles, ShieldCheck, Zap } from 'lucide-react';
+import { LogIn, Mail, Lock, Loader2, Building2, Users, BarChart3, Globe, Eye, EyeOff, ShieldCheck, Zap } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -90,8 +90,8 @@ export default function LoginPage() {
         <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 text-white w-full">
           {/* Top - Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center">
-              <Sparkles className="size-5 text-emerald-400" />
+            <div className="w-11 h-11 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center p-1.5">
+              <Image src="/logo.svg" alt="Logo" width={28} height={28} className="brightness-0 invert" />
             </div>
             <div>
               <h2 className="text-lg font-bold tracking-tight">CRM Pro</h2>
@@ -192,8 +192,8 @@ export default function LoginPage() {
         <div className="w-full max-w-[400px] animate-fade-in">
           {/* Logo & Title */}
           <div className="flex flex-col items-center mb-10">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center shadow-lg shadow-slate-900/20 mb-5">
-              <Sparkles className="size-7 text-emerald-400" />
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center shadow-lg shadow-slate-900/20 mb-5 p-2.5">
+              <Image src="/logo.svg" alt="Logo" width={40} height={40} className="brightness-0 invert" />
             </div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
               {t('auth.login')}
