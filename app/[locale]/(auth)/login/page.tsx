@@ -269,7 +269,7 @@ export default function LoginPage() {
               {/* Submit */}
               <Button
                 type="submit"
-                className="w-full h-12 rounded-xl text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800 shadow-sm shadow-slate-900/10 transition-all duration-200"
+                className="w-full h-12 rounded-xl text-sm font-semibold gradient-primary text-white hover:opacity-90 shadow-md shadow-primary/20 transition-all duration-200 btn-premium"
                 disabled={isLoading}
               >
                 {isLoading ? (
