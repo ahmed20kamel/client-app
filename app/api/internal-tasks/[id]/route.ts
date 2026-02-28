@@ -115,9 +115,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    // Only creator or admin can update
+    // Creator, assignee, or admin can update
     const isAdmin = await hasRole(session.user.id, 'Admin');
-    if (existingTask.createdById !== session.user.id && !isAdmin) {
+    const isCreator = existingTask.createdById === session.user.id;
+    const isAssignee = existingTask.assignedToId === session.user.id;
+    if (!isCreator && !isAssignee && !isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
