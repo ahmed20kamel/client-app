@@ -7,7 +7,7 @@ export const createTaskSchema = z.object({
   description: z.string().optional(),
   dueAt: z.string().min(1, 'Due date is required'),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH']),
-  status: z.enum(['OPEN', 'DONE', 'OVERDUE', 'CANCELED']),
+  status: z.enum(['OPEN', 'DONE', 'OVERDUE', 'CANCELED']).default('OPEN'),
   categoryId: z.string().uuid('Invalid category ID').optional().nullable(),
   departmentId: z.string().uuid('Invalid department ID').optional().nullable(),
   slaDeadline: z.string().optional().nullable(),
@@ -43,7 +43,7 @@ export const escalateTaskSchema = z.object({
   reason: z.string().min(1, 'Escalation reason is required'),
 });
 
-export type CreateTaskInput = z.infer<typeof createTaskSchema>;
+export type CreateTaskInput = z.input<typeof createTaskSchema>;
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
 export type TaskCommentInput = z.infer<typeof taskCommentSchema>;
 export type ReassignTaskInput = z.infer<typeof reassignTaskSchema>;

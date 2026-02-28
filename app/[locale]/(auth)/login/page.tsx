@@ -293,7 +293,7 @@ export default function LoginPage() {
               {t('auth.demo_credentials')}
             </p>
             <p className="text-xs text-slate-400 font-mono">
-              admin@crm.com / Admin@123!
+              admin@example.com / Admin123!
             </p>
           </div>
 

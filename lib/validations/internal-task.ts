@@ -17,6 +17,7 @@ export const updateInternalTaskSchema = z.object({
   departmentId: z.string().uuid('Invalid department ID').optional().nullable(),
   categoryId: z.string().uuid('Invalid category ID').optional().nullable(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
+  status: z.enum(['OPEN', 'IN_PROGRESS', 'SUBMITTED', 'APPROVED', 'REJECTED', 'DONE']).optional(),
   dueAt: z.string().optional().nullable(),
 });
 
