@@ -1,0 +1,415 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+model User {
+  id                  String               @id @default(uuid())
+  clerkId             String?              @unique
+  email               String               @unique
+  fullName            String
+  jobTitle            String?
+  phone               String?
+  passwordHash        String               @default("")
+  status              String               @default("ACTIVE")
+  lastLoginAt         DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  auditLogs           AuditLog[]
+  createdCustomers    Customer[]           @relation("CustomerCreator")
+  ownedCustomers      Customer[]           @relation("CustomerOwner")
+  passwordResetTokens PasswordResetToken[]
+  assignedTasks       Task[]               @relation("TaskAssignee")
+  createdTasks        Task[]               @relation("TaskCreator")
+  roles               UserRole[]
+  notifications       Notification[]
+  departments         UserDepartment[]
+  taskComments        TaskComment[]
+  managedDepartments  Department[]         @relation("DepartmentManager")
+  // Internal Task relations
+  assignedInternalTasks  InternalTask[]       @relation("InternalTaskAssignee")
+  createdInternalTasks   InternalTask[]       @relation("InternalTaskCreator")
+  approvedInternalTasks  InternalTask[]       @relation("InternalTaskApprover")
+  internalTaskComments   InternalTaskComment[]
+  ratingsGiven           TaskRating[]         @relation("RatingGiver")
+  ratingsReceived        TaskRating[]         @relation("RatingReceiver")
+  performanceReviews     PerformanceReview[]  @relation("ReviewSubject")
+  reviewsWritten         PerformanceReview[]  @relation("ReviewWriter")
+}
+
+model Role {
+  id          String           @id @default(uuid())
+  name        String           @unique
+  description String?
+  isSystem    Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  permissions RolePermission[]
+  users       UserRole[]
+}
+
+model Permission {
+  id          String           @id @default(uuid())
+  name        String           @unique
+  resource    String
+  action      String
+  scope       String?
+  description String?
+  roles       RolePermission[]
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+}
+
+model Customer {
+  id              String         @id @default(uuid())
+  fullName        String
+  nationalId      String?        @unique
+  phone           String
+  email           String?
+  company         String?
+  contactPerson   String?
+  customerType    String
+  status          String         @default("NEW_INQUIRY")
+  emirate         String?
+  projectType     String?
+  productType     String?
+  leadSource      String?
+  estimatedValue  Float?
+  probability     Int?           @default(10)
+  weightedValue   Float?         @default(0)
+  consultant      String?
+  paymentTerms    String?
+  projectSize     Float?
+  notes           String?
+  lastFollowUp    DateTime?
+  nextFollowUp    DateTime?
+  ownerId         String
+  createdById     String
+  deletedAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  createdBy       User           @relation("CustomerCreator", fields: [createdById], references: [id])
+  owner           User           @relation("CustomerOwner", fields: [ownerId], references: [id])
+  tasks           Task[]
+
+  @@index([ownerId])
+  @@index([phone])
+  @@index([customerType])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([createdAt])
+  @@index([leadSource])
+  @@index([emirate])
+}
+
+// ==========================================
+// Department & Team Management
+// ==========================================
+
+model Department {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  nameAr          String?
+  description     String?
+  parentId        String?
+  managerId       String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  parent          Department?      @relation("DepartmentHierarchy", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  children        Department[]     @relation("DepartmentHierarchy")
+  manager         User?            @relation("DepartmentManager", fields: [managerId], references: [id])
+  users           UserDepartment[]
+  tasks           Task[]
+  internalTasks   InternalTask[]
+  escalationRules EscalationRule[]
+
+  @@index([parentId])
+  @@index([managerId])
+}
+
+model UserDepartment {
+  id           String     @id @default(uuid())
+  userId       String
+  departmentId String
+  isPrimary    Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([userId, departmentId])
+  @@index([userId])
+  @@index([departmentId])
+}
+
+// ==========================================
+// Task Management & Escalation
+// ==========================================
+
+model TaskCategory {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  nameAr      String?
+  color       String   @default("#6366f1")
+  icon        String?
+  createdAt   DateTime @default(now())
+
+  tasks         Task[]
+  internalTasks InternalTask[]
+}
+
+model Task {
+  id              String        @id @default(uuid())
+  customerId      String
+  assignedToId    String
+  title           String
+  description     String?
+  dueAt           DateTime
+  status          String        @default("OPEN")    // OPEN, DONE, OVERDUE, CANCELED
+  priority        String        @default("MEDIUM")  // LOW, MEDIUM, HIGH
+  completedAt     DateTime?
+  createdById     String
+  categoryId      String?
+  departmentId    String?
+  escalationLevel Int           @default(0)         // 0=normal, 1=escalated, 2=critical
+  slaDeadline     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  assignedTo      User          @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  createdBy       User          @relation("TaskCreator", fields: [createdById], references: [id])
+  customer        Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  category        TaskCategory? @relation(fields: [categoryId], references: [id])
+  department      Department?   @relation(fields: [departmentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  comments        TaskComment[]
+
+  @@index([assignedToId])
+  @@index([customerId])
+  @@index([status])
+  @@index([dueAt])
+  @@index([createdAt])
+  @@index([categoryId])
+  @@index([departmentId])
+  @@index([escalationLevel])
+}
+
+model TaskComment {
+  id        String   @id @default(uuid())
+  taskId    String
+  userId    String
+  content   String
+  type      String   @default("COMMENT")  // COMMENT, STATUS_CHANGE, REASSIGNMENT, ESCALATION, SYSTEM
+  metadata  String?  // JSON string for extra data
+  createdAt DateTime @default(now())
+
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model EscalationRule {
+  id              String      @id @default(uuid())
+  departmentId    String?
+  name            String
+  description     String?
+  triggerType     String      // OVERDUE_HOURS, OVERDUE_DAYS
+  triggerValue    Int         // number of hours/days
+  action          String      // NOTIFY_MANAGER, ESCALATE_PRIORITY, REASSIGN, NOTIFY_TEAM
+  targetPriority  String?     // target priority if action is ESCALATE_PRIORITY
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  department      Department? @relation(fields: [departmentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([departmentId])
+  @@index([isActive])
+}
+
+// ==========================================
+// Internal Task Management & Performance
+// ==========================================
+
+model InternalTask {
+  id              String               @id @default(uuid())
+  title           String
+  description     String?
+  assignedToId    String
+  createdById     String
+  departmentId    String?
+  categoryId      String?
+  status          String               @default("OPEN")     // OPEN, IN_PROGRESS, SUBMITTED, APPROVED, REJECTED, DONE
+  priority        String               @default("MEDIUM")   // LOW, MEDIUM, HIGH, URGENT
+  dueAt           DateTime?
+  completedAt     DateTime?
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+  approvedById    String?
+  rejectionReason String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  assignedTo      User                 @relation("InternalTaskAssignee", fields: [assignedToId], references: [id])
+  createdBy       User                 @relation("InternalTaskCreator", fields: [createdById], references: [id])
+  approvedBy      User?                @relation("InternalTaskApprover", fields: [approvedById], references: [id])
+  department      Department?          @relation(fields: [departmentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  category        TaskCategory?        @relation(fields: [categoryId], references: [id])
+  comments        InternalTaskComment[]
+  rating          TaskRating?
+
+  @@index([assignedToId])
+  @@index([createdById])
+  @@index([approvedById])
+  @@index([departmentId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([priority])
+  @@index([dueAt])
+  @@index([createdAt])
+}
+
+model InternalTaskComment {
+  id             String       @id @default(uuid())
+  internalTaskId String
+  userId         String
+  content        String
+  type           String       @default("COMMENT")  // COMMENT, STATUS_CHANGE, SUBMISSION, APPROVAL, REJECTION, SYSTEM
+  createdAt      DateTime     @default(now())
+
+  internalTask   InternalTask @relation(fields: [internalTaskId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@index([internalTaskId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model TaskRating {
+  id             String       @id @default(uuid())
+  internalTaskId String       @unique
+  ratedById      String
+  ratedUserId    String
+  rating         Int                              // 1-5 stars
+  comment        String?
+  createdAt      DateTime     @default(now())
+
+  internalTask   InternalTask @relation(fields: [internalTaskId], references: [id], onDelete: Cascade)
+  ratedBy        User         @relation("RatingGiver", fields: [ratedById], references: [id])
+  ratedUser      User         @relation("RatingReceiver", fields: [ratedUserId], references: [id])
+
+  @@index([ratedById])
+  @@index([ratedUserId])
+  @@index([createdAt])
+}
+
+model PerformanceReview {
+  id             String   @id @default(uuid())
+  userId         String
+  reviewerId     String
+  period         String                           // MONTHLY, QUARTERLY, ANNUAL
+  periodStart    DateTime
+  periodEnd      DateTime
+  overallRating  Int                              // 1-5 stars
+  strengths      String?
+  improvements   String?
+  notes          String?
+  tasksCompleted Int      @default(0)
+  tasksOnTime    Int      @default(0)
+  averageRating  Float    @default(0)
+  status         String   @default("DRAFT")       // DRAFT, PUBLISHED
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User     @relation("ReviewSubject", fields: [userId], references: [id])
+  reviewer       User     @relation("ReviewWriter", fields: [reviewerId], references: [id])
+
+  @@index([userId])
+  @@index([reviewerId])
+  @@index([period])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ==========================================
+// Audit & Security
+// ==========================================
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorUserId String
+  action      String
+  entityType  String
+  entityId    String
+  before      String?
+  after       String?
+  createdAt   DateTime @default(now())
+  actor       User     @relation(fields: [actorUserId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([actorUserId])
+  @@index([createdAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  type      String    // TASK_ASSIGNED, TASK_DUE, CUSTOMER_UPDATED, SYSTEM, TASK_ESCALATED, TASK_REASSIGNED, TASK_COMMENT, SLA_WARNING
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
