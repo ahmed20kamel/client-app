@@ -9,6 +9,19 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useSelection } from '@/hooks/use-selection';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import {
   Users,
@@ -97,6 +110,10 @@ export default function CustomersPage() {
     total: 0,
     totalPages: 0,
   });
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
+  const { selectedIds, toggleOne, toggleAll, clearSelection, isAllSelected, isSomeSelected, selectedCount, isSelected } = useSelection(customers);
 
   const fetchCustomers = async () => {
     try {
@@ -123,6 +140,7 @@ export default function CustomersPage() {
       const data = await response.json();
       setCustomers(data.data);
       setMeta(data.meta);
+      clearSelection();
     } catch (error) {
       toast.error(t('common.error'));
     } finally {
@@ -135,22 +153,27 @@ export default function CustomersPage() {
   }, [page, search, customerType, status, leadSource, emirate, showDeleted]);
 
   const handleDeleteCustomer = async (id: string) => {
-    if (!confirm(t('customers.delete') + '?')) return;
-
     try {
-      const response = await fetch(`/api/customers/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete customer');
-      }
-
+      const response = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed');
       toast.success(t('messages.deleteSuccess', { entity: t('customers.title') }));
+      setDeleteTarget(null);
       fetchCustomers();
-    } catch (error) {
-      toast.error(t('common.error'));
-    }
+    } catch { toast.error(t('common.error')); }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map((id) =>
+          fetch(`/api/customers/${id}`, { method: 'DELETE' })
+        )
+      );
+      toast.success(t('messages.deleteSuccess', { entity: t('customers.title') }));
+      clearSelection();
+      setBulkDeleteOpen(false);
+      fetchCustomers();
+    } catch { toast.error(t('common.error')); }
   };
 
   const handleRestoreCustomer = async (id: string) => {
@@ -316,6 +339,40 @@ export default function CustomersPage() {
         </CardContent>
       </Card>
 
+      {/* Bulk Actions */}
+      {selectedCount > 0 && (
+        <div className="mb-4 p-3 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-between animate-slide-down">
+          <span className="text-sm font-medium text-primary">
+            {t('common.selected', { count: selectedCount })}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={clearSelection}>
+              {t('common.deselectAll')}
+            </Button>
+            <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="size-3.5 me-1" />
+                  {t('common.deleteSelected')}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('common.bulkDeleteConfirm', { count: selectedCount })}</AlertDialogTitle>
+                  <AlertDialogDescription>{t('common.bulkDeleteConfirmDesc')}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-white hover:bg-destructive/90">
+                    {t('common.delete')}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       {loading ? (
         <Card className="shadow-premium">
@@ -337,6 +394,12 @@ export default function CustomersPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b bg-muted/30">
+                    <th className="px-4 py-3 w-12">
+                      <Checkbox
+                        checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false}
+                        onCheckedChange={toggleAll}
+                      />
+                    </th>
                     <th className="px-4 py-3 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {t('customers.fullName')}
                     </th>
@@ -383,6 +446,12 @@ export default function CustomersPage() {
                     const statusConf = STATUS_CONFIG[customer.status] || STATUS_CONFIG.NEW_INQUIRY;
                     return (
                       <tr key={customer.id} className={`hover:bg-muted/20 transition-colors ${customer.deletedAt ? 'opacity-50' : ''}`}>
+                        <td className="px-4 py-3.5">
+                          <Checkbox
+                            checked={isSelected(customer.id)}
+                            onCheckedChange={() => toggleOne(customer.id)}
+                          />
+                        </td>
                         <td className="px-4 py-3.5">
                           <Link
                             href={`/${locale}/customers/${customer.id}`}
@@ -467,14 +536,25 @@ export default function CustomersPage() {
                                   <Pencil className="size-3.5" />
                                 </Button>
                               </Link>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteCustomer(customer.id)}
-                                className="size-8 text-muted-foreground hover:text-destructive"
-                              >
-                                <Trash2 className="size-3.5" />
-                              </Button>
+                              <AlertDialog open={deleteTarget === customer.id} onOpenChange={(open) => setDeleteTarget(open ? customer.id : null)}>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive">
+                                    <Trash2 className="size-3.5" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>{t('common.deleteConfirm')}</AlertDialogTitle>
+                                    <AlertDialogDescription>{t('common.deleteConfirmDesc')}</AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteCustomer(customer.id)} className="bg-destructive text-white hover:bg-destructive/90">
+                                      {t('common.delete')}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </div>
                           )}
                         </td>

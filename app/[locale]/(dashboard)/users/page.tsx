@@ -9,7 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import { useSelection } from '@/hooks/use-selection';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import {
   UserCog,
   Plus,
@@ -68,6 +74,10 @@ export default function UsersPage() {
     totalPages: 0,
   });
 
+  const { selectedIds, toggleOne, toggleAll, clearSelection, isAllSelected, isSomeSelected, selectedCount, isSelected } = useSelection(users);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
   const fetchUsers = async () => {
     try {
       setLoading(true);
@@ -101,22 +111,23 @@ export default function UsersPage() {
   }, [page, search, status]);
 
   const handleDisableUser = async (id: string) => {
-    if (!confirm(t('users.delete') + '?')) return;
-
     try {
-      const response = await fetch(`/api/users/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to disable user');
-      }
-
+      const response = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed');
       toast.success(t('messages.updateSuccess', { entity: t('users.title') }));
+      setDeleteTarget(null);
       fetchUsers();
-    } catch (error) {
-      toast.error(t('common.error'));
-    }
+    } catch { toast.error(t('common.error')); }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      await Promise.all(Array.from(selectedIds).map((id) => fetch(`/api/users/${id}`, { method: 'DELETE' })));
+      toast.success(t('messages.updateSuccess', { entity: t('users.title') }));
+      clearSelection();
+      setBulkDeleteOpen(false);
+      fetchUsers();
+    } catch { toast.error(t('common.error')); }
   };
 
   return (
@@ -176,6 +187,33 @@ export default function UsersPage() {
         </CardContent>
       </Card>
 
+      {/* Bulk Action Bar */}
+      {selectedCount > 0 && (
+        <div className="mb-4 p-3 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-between animate-slide-down">
+          <span className="text-sm font-medium text-primary">
+            {t('common.selected', { count: selectedCount })}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={clearSelection}>{t('common.deselectAll')}</Button>
+            <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm"><Trash2 className="size-3.5 me-1" />{t('common.deleteSelected')}</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('common.bulkDeleteConfirm', { count: selectedCount })}</AlertDialogTitle>
+                  <AlertDialogDescription>{t('common.bulkDeleteConfirmDesc')}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-white hover:bg-destructive/90">{t('common.delete')}</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       {loading ? (
         <Card className="shadow-premium">
@@ -197,6 +235,9 @@ export default function UsersPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b bg-muted/30">
+                    <th className="px-6 py-3 w-12">
+                      <Checkbox checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false} onCheckedChange={toggleAll} />
+                    </th>
                     <th className="px-6 py-3 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {t('users.fullName')}
                     </th>
@@ -229,6 +270,9 @@ export default function UsersPage() {
                 <tbody className="divide-y divide-border">
                   {users.map((user) => (
                     <tr key={user.id} className="hover:bg-muted/20 transition-colors">
+                      <td className="px-6 py-4">
+                        <Checkbox checked={isSelected(user.id)} onCheckedChange={() => toggleOne(user.id)} />
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="size-9 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-semibold text-sm shrink-0">
@@ -273,14 +317,21 @@ export default function UsersPage() {
                             </Button>
                           </Link>
                           {user.status === 'ACTIVE' && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDisableUser(user.id)}
-                              className="size-8 text-muted-foreground hover:text-destructive"
-                            >
-                              <Trash2 className="size-3.5" />
-                            </Button>
+                            <AlertDialog open={deleteTarget === user.id} onOpenChange={(open) => setDeleteTarget(open ? user.id : null)}>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive"><Trash2 className="size-3.5" /></Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>{t('common.deleteConfirm')}</AlertDialogTitle>
+                                  <AlertDialogDescription>{t('common.deleteConfirmDesc')}</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDisableUser(user.id)} className="bg-destructive text-white hover:bg-destructive/90">{t('common.delete')}</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           )}
                         </div>
                       </td>

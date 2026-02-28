@@ -8,7 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { useSelection } from '@/hooks/use-selection';
 import {
   Building2,
   Plus,
@@ -42,6 +48,10 @@ export default function DepartmentsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
+  const { selectedIds, toggleOne, toggleAll, clearSelection, isAllSelected, isSomeSelected, selectedCount, isSelected } = useSelection(departments);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
   const fetchDepartments = async () => {
     try {
       setLoading(true);
@@ -69,24 +79,34 @@ export default function DepartmentsPage() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('departments.deleteConfirm'))) return;
-
     try {
-      const response = await fetch(`/api/departments/${id}`, {
-        method: 'DELETE',
-      });
-
+      const response = await fetch(`/api/departments/${id}`, { method: 'DELETE' });
       if (!response.ok) {
         const data = await response.json();
         toast.error(data.error || t('common.error'));
         return;
       }
-
       toast.success(t('messages.deleteSuccess', { entity: t('departments.title') }));
+      setDeleteTarget(null);
       fetchDepartments();
-    } catch {
-      toast.error(t('common.error'));
-    }
+    } catch { toast.error(t('common.error')); }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      const results = await Promise.all(
+        Array.from(selectedIds).map((id) => fetch(`/api/departments/${id}`, { method: 'DELETE' }))
+      );
+      const failures = results.filter((r) => !r.ok);
+      if (failures.length > 0) {
+        toast.error(t('departments.cannotDelete'));
+      } else {
+        toast.success(t('messages.deleteSuccess', { entity: t('departments.title') }));
+      }
+      clearSelection();
+      setBulkDeleteOpen(false);
+      fetchDepartments();
+    } catch { toast.error(t('common.error')); }
   };
 
   const filteredDepartments = departments.filter((dept) => {
@@ -142,6 +162,33 @@ export default function DepartmentsPage() {
         </CardContent>
       </Card>
 
+      {/* Bulk Actions */}
+      {selectedCount > 0 && (
+        <div className="mb-4 p-3 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-between animate-slide-down">
+          <span className="text-sm font-medium text-primary">
+            {t('common.selected', { count: selectedCount })}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={clearSelection}>{t('common.deselectAll')}</Button>
+            <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm"><Trash2 className="size-3.5 me-1" />{t('common.deleteSelected')}</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('common.bulkDeleteConfirm', { count: selectedCount })}</AlertDialogTitle>
+                  <AlertDialogDescription>{t('common.bulkDeleteConfirmDesc')}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-white hover:bg-destructive/90">{t('common.delete')}</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       {loading ? (
         <Card className="shadow-premium">
@@ -162,6 +209,9 @@ export default function DepartmentsPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b bg-muted/30">
+                  <th className="px-4 py-3 w-12">
+                    <Checkbox checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false} onCheckedChange={toggleAll} />
+                  </th>
                   <th className="px-6 py-3 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     <div className="flex items-center gap-1">
                       <Building2 className="size-3" />
@@ -197,6 +247,9 @@ export default function DepartmentsPage() {
               <tbody className="divide-y divide-border">
                 {filteredDepartments.map((dept) => (
                   <tr key={dept.id} className="hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-3">
+                      <Checkbox checked={isSelected(dept.id)} onCheckedChange={() => toggleOne(dept.id)} />
+                    </td>
                     <td className="px-6 py-4">
                       <div>
                         <p className="text-sm font-medium text-foreground">{getDeptName(dept)}</p>
@@ -244,14 +297,21 @@ export default function DepartmentsPage() {
                             <Pencil className="size-3.5" />
                           </Button>
                         </Link>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(dept.id)}
-                          className="size-8 text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
+                        <AlertDialog open={deleteTarget === dept.id} onOpenChange={(open) => setDeleteTarget(open ? dept.id : null)}>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive"><Trash2 className="size-3.5" /></Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>{t('common.deleteConfirm')}</AlertDialogTitle>
+                              <AlertDialogDescription>{t('common.deleteConfirmDesc')}</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(dept.id)} className="bg-destructive text-white hover:bg-destructive/90">{t('common.delete')}</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </td>
                   </tr>

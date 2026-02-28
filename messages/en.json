@@ -43,7 +43,16 @@
     "type": "Type",
     "active": "Active",
     "inactive": "Inactive",
-    "passwordKeepCurrent": "Leave blank to keep current password"
+    "passwordKeepCurrent": "Leave blank to keep current password",
+    "selected": "{count} selected",
+    "deleteSelected": "Delete Selected",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "deleteConfirm": "Are you sure?",
+    "deleteConfirmDesc": "This action cannot be undone.",
+    "bulkDeleteConfirm": "Delete {count} items?",
+    "bulkDeleteConfirmDesc": "This will permanently delete the selected items.",
+    "clear": "Clear"
   },
   "auth": {
     "login": "Login",

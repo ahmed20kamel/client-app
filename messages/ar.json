@@ -43,7 +43,16 @@
     "type": "النوع",
     "active": "نشط",
     "inactive": "غير نشط",
-    "passwordKeepCurrent": "اتركها فارغة للاحتفاظ بكلمة المرور الحالية"
+    "passwordKeepCurrent": "اتركها فارغة للاحتفاظ بكلمة المرور الحالية",
+    "selected": "{count} محدد",
+    "deleteSelected": "حذف المحدد",
+    "selectAll": "تحديد الكل",
+    "deselectAll": "إلغاء التحديد",
+    "deleteConfirm": "هل أنت متأكد؟",
+    "deleteConfirmDesc": "لا يمكن التراجع عن هذا الإجراء.",
+    "bulkDeleteConfirm": "حذف {count} عناصر؟",
+    "bulkDeleteConfirmDesc": "سيتم حذف العناصر المحددة نهائياً.",
+    "clear": "مسح"
   },
   "auth": {
     "login": "تسجيل الدخول",

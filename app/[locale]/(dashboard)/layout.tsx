@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Toaster } from 'sonner';
 import {
   LayoutDashboard,
   Users,
@@ -68,8 +67,6 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-background" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
-      <Toaster position={locale === 'ar' ? 'top-left' : 'top-right'} richColors />
-
       {/* Sidebar */}
       <aside className="fixed top-0 start-0 z-40 w-72 h-screen">
         <div className="h-full flex flex-col bg-sidebar text-sidebar-foreground">
