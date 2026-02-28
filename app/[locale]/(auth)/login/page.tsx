@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Toaster, toast } from 'sonner';
-import { LogIn, Mail, Lock, Building2, Shield, BarChart3, Users } from 'lucide-react';
+import { LogIn, Mail, Lock } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -67,161 +67,89 @@ export default function LoginPage() {
     }
   };
 
-  const features = [
-    { icon: Users, label: isRtl ? 'إدارة العملاء' : 'Client Management' },
-    { icon: BarChart3, label: isRtl ? 'التقارير والتحليلات' : 'Reports & Analytics' },
-    { icon: Shield, label: isRtl ? 'أمان متقدم' : 'Advanced Security' },
-    { icon: Building2, label: isRtl ? 'إدارة الأقسام' : 'Department Management' },
-  ];
-
   return (
     <div
-      className="min-h-screen flex"
+      className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary/20 to-background p-4"
       dir={isRtl ? 'rtl' : 'ltr'}
     >
       <Toaster position={isRtl ? 'top-left' : 'top-right'} richColors />
 
-      {/* Left Side - Hero */}
-      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden">
-        {/* Background Image */}
-        <div className="absolute inset-0">
-          <Image
-            src="/login-bg.jpg"
-            alt="Background"
-            fill
-            className="object-cover"
-            priority
-          />
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-primary/80 to-primary/70" />
+      <div className="w-full max-w-[400px] animate-fade-in">
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center shadow-lg shadow-primary/25 mb-4">
+            <Image src="/logo.svg" alt="Logo" width={30} height={30} />
+          </div>
+          <h1 className="text-xl font-bold text-foreground">CRM Pro</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Enterprise Edition</p>
         </div>
 
-        {/* Content */}
-        <div className="relative z-10 flex flex-col justify-between p-12 text-white w-full">
-          {/* Top - Logo */}
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
-              <Image src="/logo.svg" alt="Logo" width={32} height={32} />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">CRM Pro</h1>
-              <p className="text-xs text-white/60">Enterprise Edition</p>
-            </div>
-          </div>
-
-          {/* Center - Hero Text */}
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <h2 className="text-4xl xl:text-5xl font-bold leading-tight">
-                {t('auth.hero_title')}
-              </h2>
-              <p className="text-lg text-white/80 max-w-md">
-                {t('auth.hero_subtitle')}
-              </p>
-            </div>
-
-            {/* Features Grid */}
-            <div className="grid grid-cols-2 gap-3 max-w-md">
-              {features.map((feature) => {
-                const Icon = feature.icon;
-                return (
-                  <div
-                    key={feature.label}
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 backdrop-blur-sm"
-                  >
-                    <Icon className="w-5 h-5 text-white/80 shrink-0" />
-                    <span className="text-sm text-white/90">{feature.label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Bottom */}
-          <p className="text-sm text-white/40">
-            &copy; 2026 CRM Pro. All rights reserved.
-          </p>
-        </div>
-      </div>
-
-      {/* Right Side - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 bg-background">
-        <div className="w-full max-w-[420px] animate-fade-in">
-          {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-10">
-            <div className="w-11 h-11 rounded-xl gradient-primary flex items-center justify-center">
-              <Image src="/logo.svg" alt="Logo" width={28} height={28} />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-foreground">CRM Pro</h1>
-              <p className="text-xs text-muted-foreground">Enterprise Edition</p>
-            </div>
-          </div>
-
+        {/* Card */}
+        <div className="bg-card rounded-2xl shadow-premium border border-border/50 p-7">
           {/* Header */}
-          <div className="space-y-2 mb-8">
-            <h2 className="text-3xl font-bold text-foreground">{t('auth.login')}</h2>
-            <p className="text-muted-foreground">{t('auth.login_subtitle')}</p>
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-semibold text-foreground">{t('auth.login')}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{t('auth.login_subtitle')}</p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Email */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="email" className="text-sm font-medium">
                 {t('auth.email')}
               </Label>
               <div className="relative">
-                <Mail className="absolute start-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-muted-foreground/60" />
+                <Mail className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
                 <Input
                   id="email"
                   type="email"
                   autoComplete="email"
                   disabled={isLoading}
-                  className="h-12 ps-11 pe-4 rounded-xl border-border/60 bg-secondary/30 text-sm placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                  className="h-11 ps-10 pe-4 rounded-xl border-border bg-background text-sm placeholder:text-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                   placeholder="name@company.com"
                   {...register('email')}
                 />
               </div>
               {errors.email && (
-                <p className="text-xs text-destructive mt-1">{errors.email.message}</p>
+                <p className="text-xs text-destructive">{errors.email.message}</p>
               )}
             </div>
 
             {/* Password */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password" className="text-sm font-medium">
                   {t('auth.password')}
                 </Label>
                 <Link
                   href={`/${locale}/forgot-password`}
-                  className="text-xs text-primary hover:text-primary/80 hover:underline transition-colors"
+                  className="text-xs text-primary hover:underline"
                 >
                   {t('auth.forgot_password')}
                 </Link>
               </div>
               <div className="relative">
-                <Lock className="absolute start-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-muted-foreground/60" />
+                <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
                 <Input
                   id="password"
                   type="password"
                   autoComplete="current-password"
                   disabled={isLoading}
-                  className="h-12 ps-11 pe-4 rounded-xl border-border/60 bg-secondary/30 text-sm placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                  className="h-11 ps-10 pe-4 rounded-xl border-border bg-background text-sm placeholder:text-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                   placeholder="••••••••"
                   {...register('password')}
                 />
               </div>
               {errors.password && (
-                <p className="text-xs text-destructive mt-1">{errors.password.message}</p>
+                <p className="text-xs text-destructive">{errors.password.message}</p>
               )}
             </div>
 
-            {/* Submit Button */}
+            {/* Submit */}
             <Button
               type="submit"
-              className="w-full h-12 rounded-xl text-sm font-semibold gradient-primary text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 btn-premium"
+              className="w-full h-11 rounded-xl text-sm font-semibold gradient-primary text-primary-foreground shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/25 transition-all duration-300 btn-premium mt-1"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -234,30 +162,18 @@ export default function LoginPage() {
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  <LogIn className="w-[18px] h-[18px]" />
+                  <LogIn className="w-4 h-4" />
                   {t('auth.signIn')}
                 </span>
               )}
             </Button>
           </form>
-
-          {/* Demo Credentials */}
-          <div className="mt-8 p-4 rounded-xl bg-secondary/50 border border-border/50">
-            <p className="text-xs font-medium text-muted-foreground mb-2">
-              {t('auth.demo_credentials')}
-            </p>
-            <div className="space-y-1.5 text-xs text-muted-foreground/80">
-              <div className="flex items-center justify-between">
-                <span>Admin:</span>
-                <code className="px-2 py-0.5 rounded bg-background text-foreground/80 font-mono">admin@example.com / Admin123!</code>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Employee:</span>
-                <code className="px-2 py-0.5 rounded bg-background text-foreground/80 font-mono">ali@example.com / Employee123!</code>
-              </div>
-            </div>
-          </div>
         </div>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-muted-foreground/50 mt-6">
+          &copy; 2026 CRM Pro. All rights reserved.
+        </p>
       </div>
     </div>
   );
