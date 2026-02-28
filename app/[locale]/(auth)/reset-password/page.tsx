@@ -51,7 +51,7 @@ function ResetPasswordContent() {
   useEffect(() => {
     if (!token) {
       toast.error(t('auth.invalid_reset_link'));
-      router.push(`/${locale}/sign-in`);
+      router.push(`/${locale}/login`);
     }
   }, [token, router, t]);
 
@@ -116,7 +116,7 @@ function ResetPasswordContent() {
               {t('auth.password_reset_success_message')}
             </p>
             <Link
-              href={`/${locale}/sign-in`}
+              href={`/${locale}/login`}
               className="inline-block mt-6"
             >
               <Button>{t('auth.login')}</Button>
@@ -185,7 +185,7 @@ function ResetPasswordContent() {
 
           <div className="text-center">
             <Link
-              href={`/${locale}/sign-in`}
+              href={`/${locale}/login`}
               className="text-sm text-primary hover:underline"
             >
               {t('auth.back_to_login')}

@@ -1,4 +1,4 @@
-import { auth, checkUserAuthorization } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { UserButton } from '@clerk/nextjs';
+import { LogoutButton } from '@/components/LogoutButton';
 
 export default async function DashboardLayout({
   children,
@@ -31,12 +31,7 @@ export default async function DashboardLayout({
   const session = await auth();
 
   if (!session) {
-    // Check if user is signed in to Clerk but not in our DB
-    const authStatus = await checkUserAuthorization();
-    if (authStatus.isSignedIn && !authStatus.isAuthorized) {
-      redirect(`/${locale}/unauthorized`);
-    }
-    redirect(`/${locale}/sign-in`);
+    redirect(`/${locale}/login`);
   }
 
   const t = await getTranslations();
@@ -56,6 +51,14 @@ export default async function DashboardLayout({
       { href: `/${locale}/performance`, label: t('navigation.performance'), icon: TrendingUp },
     );
   }
+
+  // Get user initials for avatar
+  const initials = session.user?.name
+    ?.split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || '??';
 
   return (
     <div className="min-h-screen bg-background" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
@@ -96,14 +99,9 @@ export default async function DashboardLayout({
           {/* User Section */}
           <div className="p-4 border-t border-sidebar-border">
             <div className="flex items-center gap-3 p-3 rounded-xl bg-sidebar-accent/50">
-              <UserButton
-                afterSignOutUrl={`/${locale}/sign-in`}
-                appearance={{
-                  elements: {
-                    avatarBox: 'w-10 h-10',
-                  },
-                }}
-              />
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-semibold text-primary">
+                {initials}
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-sidebar-foreground truncate">
                   {session.user?.name}
@@ -112,6 +110,7 @@ export default async function DashboardLayout({
                   {session.user?.role}
                 </p>
               </div>
+              <LogoutButton locale={locale} />
             </div>
 
             {/* Language Switcher */}
@@ -148,14 +147,9 @@ export default async function DashboardLayout({
                 <p className="text-sm font-medium text-foreground">{session.user?.name}</p>
                 <p className="text-xs text-muted-foreground">{session.user?.role}</p>
               </div>
-              <UserButton
-                afterSignOutUrl={`/${locale}/sign-in`}
-                appearance={{
-                  elements: {
-                    avatarBox: 'w-10 h-10 shadow-lg shadow-primary/20',
-                  },
-                }}
-              />
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-semibold text-primary shadow-lg shadow-primary/20">
+                {initials}
+              </div>
             </div>
           </div>
         </header>

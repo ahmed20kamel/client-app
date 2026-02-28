@@ -1,4 +1,3 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import createMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -9,23 +8,29 @@ const intlMiddleware = createMiddleware({
 });
 
 // Public routes that don't require authentication
-const isPublicRoute = createRouteMatcher([
-  '/',
-  '/:locale/sign-in(.*)',
-  '/:locale/sign-up(.*)',
-  '/:locale/login(.*)',
-  '/:locale/forgot-password(.*)',
-  '/:locale/reset-password(.*)',
-  '/:locale/unauthorized(.*)',
-  '/api/auth(.*)',
-  '/api/webhooks(.*)',
-]);
+const publicPaths = [
+  '/login',
+  '/forgot-password',
+  '/reset-password',
+];
 
-export default clerkMiddleware(async (auth, request: NextRequest) => {
+function isPublicPath(pathname: string): boolean {
+  // Root is public
+  if (pathname === '/') return true;
+
+  // Remove locale prefix to check the path
+  const pathWithoutLocale = pathname.replace(/^\/(en|ar)/, '') || '/';
+
+  // Check if it's a public path
+  return publicPaths.some((p) => pathWithoutLocale.startsWith(p));
+}
+
+export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip for static assets and internal Next.js routes
+  // Skip for API routes and static assets
   if (
+    pathname.startsWith('/api/') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/_vercel') ||
     pathname.includes('.')
@@ -33,28 +38,22 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
     return NextResponse.next();
   }
 
-  // Let API routes pass through (auth is handled per-route)
-  if (pathname.startsWith('/api/')) {
-    return NextResponse.next();
-  }
+  // Check authentication for protected routes
+  if (!isPublicPath(pathname)) {
+    const sessionCookie = request.cookies.get('crm-session');
 
-  // For protected routes, check if user is signed in
-  if (!isPublicRoute(request)) {
-    const { userId } = await auth();
-
-    if (!userId) {
+    if (!sessionCookie?.value) {
       // Determine locale from URL or default to 'en'
-      const localeMatch = pathname.match(/^\/(en|ar)\//);
+      const localeMatch = pathname.match(/^\/(en|ar)/);
       const locale = localeMatch ? localeMatch[1] : 'en';
-      const signInUrl = new URL(`/${locale}/sign-in`, request.url);
-      signInUrl.searchParams.set('redirect_url', pathname);
+      const signInUrl = new URL(`/${locale}/login`, request.url);
       return NextResponse.redirect(signInUrl);
     }
   }
 
   // Apply intl middleware for locale routing
   return intlMiddleware(request);
-});
+}
 
 export const config = {
   matcher: ['/((?!_next|_vercel|.*\\..*).*)'],

@@ -1,15 +1,20 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useParams } from 'next/navigation';
-import { useClerk } from '@clerk/nextjs';
+import { useParams, useRouter } from 'next/navigation';
 import { ShieldX, LogOut, Mail } from 'lucide-react';
 
 export default function UnauthorizedPage() {
   const t = useTranslations('unauthorized');
   const params = useParams();
+  const router = useRouter();
   const locale = (params?.locale as string) || 'en';
-  const { signOut } = useClerk();
+
+  const handleSignOut = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push(`/${locale}/login`);
+    router.refresh();
+  };
 
   return (
     <div
@@ -43,7 +48,7 @@ export default function UnauthorizedPage() {
 
           {/* Sign Out Button */}
           <button
-            onClick={() => signOut({ redirectUrl: `/${locale}/sign-in` })}
+            onClick={handleSignOut}
             className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium transition-all"
           >
             <LogOut className="w-4 h-4" />

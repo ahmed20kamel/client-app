@@ -1,4 +1,5 @@
-import { auth as clerkAuth, currentUser } from '@clerk/nextjs/server';
+import { cookies } from 'next/headers';
+import { SignJWT, jwtVerify } from 'jose';
 import { prisma } from './prisma';
 
 export interface SessionUser {
@@ -12,24 +13,75 @@ export interface Session {
   user: SessionUser;
 }
 
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'crm-pro-secret-key-change-in-production'
+);
+const COOKIE_NAME = 'crm-session';
+
 /**
- * Server-side auth function that wraps Clerk's auth.
- * Maps Clerk userId to our database User and returns a session.
- *
- * IMPORTANT: Only users who are pre-registered in the database can access the app.
- * If a Clerk user's email is not found in the DB, auth() returns null (unauthorized).
+ * Create a JWT token for the user
+ */
+export async function createSessionToken(user: {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}): Promise<string> {
+  return new SignJWT({
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .sign(JWT_SECRET);
+}
+
+/**
+ * Set the session cookie
+ */
+export async function setSessionCookie(token: string) {
+  const cookieStore = await cookies();
+  cookieStore.set(COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+    path: '/',
+  });
+}
+
+/**
+ * Clear the session cookie
+ */
+export async function clearSessionCookie() {
+  const cookieStore = await cookies();
+  cookieStore.delete(COOKIE_NAME);
+}
+
+/**
+ * Server-side auth function.
+ * Reads the JWT from cookies, verifies it, and returns the session.
  */
 export async function auth(): Promise<Session | null> {
   try {
-    const { userId } = await clerkAuth();
+    const cookieStore = await cookies();
+    const token = cookieStore.get(COOKIE_NAME)?.value;
 
-    if (!userId) {
+    if (!token) {
       return null;
     }
 
-    // Try to find user by clerkId first
-    let user = await prisma.user.findUnique({
-      where: { clerkId: userId },
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+
+    const userId = payload.id as string;
+    if (!userId) return null;
+
+    // Verify user still exists and is active
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
       include: {
         roles: {
           include: {
@@ -39,49 +91,9 @@ export async function auth(): Promise<Session | null> {
       },
     });
 
-    // If not found by clerkId, try to find by email and link them
-    if (!user) {
-      const clerkUser = await currentUser();
-      if (!clerkUser?.emailAddresses?.[0]?.emailAddress) {
-        return null;
-      }
-
-      const email = clerkUser.emailAddresses[0].emailAddress;
-      user = await prisma.user.findUnique({
-        where: { email },
-        include: {
-          roles: {
-            include: {
-              role: true,
-            },
-          },
-        },
-      });
-
-      if (user) {
-        // Link the existing DB user to Clerk
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            clerkId: userId,
-            lastLoginAt: new Date(),
-          },
-        });
-      } else {
-        // Email NOT found in DB → user is not authorized
-        return null;
-      }
-    }
-
-    if (user.status === 'DISABLED') {
+    if (!user || user.status === 'DISABLED') {
       return null;
     }
-
-    // Update last login
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    });
 
     return {
       user: {
@@ -91,52 +103,7 @@ export async function auth(): Promise<Session | null> {
         role: user.roles[0]?.role.name || 'Employee',
       },
     };
-  } catch (error) {
-    console.error('Auth error:', error);
-    return null;
-  }
-}
-
-/**
- * Check if a Clerk user is authorized (exists in our DB).
- * Used by the unauthorized page to determine the reason.
- */
-export async function checkUserAuthorization(): Promise<{
-  isSignedIn: boolean;
-  isAuthorized: boolean;
-  email: string | null;
-}> {
-  try {
-    const { userId } = await clerkAuth();
-
-    if (!userId) {
-      return { isSignedIn: false, isAuthorized: false, email: null };
-    }
-
-    const clerkUser = await currentUser();
-    const email = clerkUser?.emailAddresses?.[0]?.emailAddress || null;
-
-    if (!email) {
-      return { isSignedIn: true, isAuthorized: false, email: null };
-    }
-
-    // Check if user exists in DB by clerkId or email
-    const dbUser = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { clerkId: userId },
-          { email },
-        ],
-        status: 'ACTIVE',
-      },
-    });
-
-    return {
-      isSignedIn: true,
-      isAuthorized: !!dbUser,
-      email,
-    };
   } catch {
-    return { isSignedIn: false, isAuthorized: false, email: null };
+    return null;
   }
 }

@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
               {t('auth.reset_email_sent_message')}
             </p>
             <Link
-              href={`/${locale}/sign-in`}
+              href={`/${locale}/login`}
               className="inline-block mt-6 text-primary hover:underline"
             >
               {t('auth.back_to_login')}
@@ -134,7 +134,7 @@ export default function ForgotPasswordPage() {
 
           <div className="text-center">
             <Link
-              href={`/${locale}/sign-in`}
+              href={`/${locale}/login`}
               className="text-sm text-primary hover:underline"
             >
               {t('auth.back_to_login')}
