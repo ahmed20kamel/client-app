@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma';
 
 // Clerk webhook handler for user sync
 // Configure this webhook URL in Clerk Dashboard: https://your-domain.com/api/webhooks/clerk
+//
+// WHITELIST MODE: Only pre-registered users (added by admin in DB) can access the app.
+// The webhook will link existing DB users to Clerk but will NOT create new users.
 export async function POST(request: NextRequest) {
   try {
     const payload = await request.json();
@@ -13,34 +16,22 @@ export async function POST(request: NextRequest) {
         const email = data.email_addresses?.[0]?.email_address;
         if (!email) break;
 
-        // Check if user already exists by email
+        // Only link if user already exists in our DB (whitelist approach)
         const existingUser = await prisma.user.findUnique({
           where: { email },
         });
 
         if (existingUser) {
-          // Link existing user to Clerk
+          // Link existing DB user to Clerk
           await prisma.user.update({
             where: { email },
-            data: { clerkId: data.id },
-          });
-        } else {
-          // Create new user
-          const employeeRole = await prisma.role.findUnique({
-            where: { name: 'Employee' },
-          });
-
-          await prisma.user.create({
             data: {
               clerkId: data.id,
-              email,
-              fullName: `${data.first_name || ''} ${data.last_name || ''}`.trim() || email,
-              roles: employeeRole
-                ? { create: { roleId: employeeRole.id } }
-                : undefined,
+              lastLoginAt: new Date(),
             },
           });
         }
+        // If user doesn't exist in DB, do nothing — they won't have access
         break;
       }
 

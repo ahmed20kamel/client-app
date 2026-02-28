@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth';
+import { auth, checkUserAuthorization } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
@@ -27,10 +27,15 @@ export default async function DashboardLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
-  const session = await auth();
   const { locale } = await params;
+  const session = await auth();
 
   if (!session) {
+    // Check if user is signed in to Clerk but not in our DB
+    const authStatus = await checkUserAuthorization();
+    if (authStatus.isSignedIn && !authStatus.isAuthorized) {
+      redirect(`/${locale}/unauthorized`);
+    }
     redirect(`/${locale}/sign-in`);
   }
 

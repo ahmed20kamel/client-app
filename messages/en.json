@@ -514,5 +514,11 @@
     "ratingSuccess": "Rating submitted successfully",
     "reviewCreated": "Performance review created",
     "reviewUpdated": "Performance review updated"
+  },
+  "unauthorized": {
+    "title": "Access Denied",
+    "description": "Your email is not registered in the system. Only pre-registered employees can access this application. Please contact your administrator to be added.",
+    "contactAdmin": "Ask your admin to add your email to the system",
+    "signOut": "Sign out and try another account"
   }
 }
