@@ -35,6 +35,8 @@ export default async function DashboardLayout({
     { href: `/${locale}/internal-tasks`, label: t('navigation.internalTasks'), icon: 'ClipboardList' },
     { href: `/${locale}/approvals`, label: t('navigation.approvals'), icon: 'CheckCircle2' },
     { href: `/${locale}/reports`, label: t('navigation.reports'), icon: 'BarChart3' },
+    { href: `/${locale}/inventory`, label: t('navigation.inventory'), icon: 'Package' },
+    { href: `/${locale}/suppliers`, label: t('navigation.suppliers'), icon: 'Truck' },
   ];
 
   const adminItems: typeof navItems = [];

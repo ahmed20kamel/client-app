@@ -39,6 +39,9 @@ model User {
   ratingsReceived        TaskRating[]         @relation("RatingReceiver")
   performanceReviews     PerformanceReview[]  @relation("ReviewSubject")
   reviewsWritten         PerformanceReview[]  @relation("ReviewWriter")
+  // Inventory relations
+  createdProducts        Product[]            @relation("ProductCreator")
+  stockMovements         StockMovement[]      @relation("StockMovementCreator")
 }
 
 model Role {
@@ -393,6 +396,120 @@ model PerformanceReview {
   @@index([period])
   @@index([status])
   @@index([createdAt])
+}
+
+// ==========================================
+// Inventory Management
+// ==========================================
+
+model ProductCategory {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  nameAr    String?
+  color     String    @default("#6366f1")
+  parentId  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  parent    ProductCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  children  ProductCategory[] @relation("CategoryHierarchy")
+  products  Product[]
+
+  @@index([parentId])
+}
+
+model Product {
+  id              String          @id @default(uuid())
+  name            String
+  nameAr          String?
+  sku             String          @unique
+  barcode         String?         @unique
+  description     String?
+  descriptionAr   String?
+  categoryId      String?
+  unitOfMeasure   String          @default("PIECE") // PIECE, KG, METER, LITER, BOX, CARTON, PALLET
+  minStockLevel   Int             @default(0)
+  maxStockLevel   Int?
+  currentStock    Int             @default(0)
+  costPrice       Float?
+  sellingPrice    Float?
+  image           String?
+  datasheet       String?
+  location        String?
+  status          String          @default("ACTIVE") // ACTIVE, INACTIVE, DISCONTINUED
+  notes           String?
+  createdById     String
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  category        ProductCategory? @relation(fields: [categoryId], references: [id])
+  createdBy       User             @relation("ProductCreator", fields: [createdById], references: [id])
+  stockMovements  StockMovement[]
+  suppliers       ProductSupplier[]
+
+  @@index([categoryId])
+  @@index([createdById])
+  @@index([status])
+  @@index([sku])
+  @@index([barcode])
+  @@index([createdAt])
+}
+
+model StockMovement {
+  id            String   @id @default(uuid())
+  productId     String
+  type          String   // IN, OUT, ADJUSTMENT, RETURN, TRANSFER
+  quantity      Int
+  previousStock Int
+  newStock      Int
+  reason        String?
+  reference     String?
+  createdById   String
+  createdAt     DateTime @default(now())
+
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdBy     User     @relation("StockMovementCreator", fields: [createdById], references: [id])
+
+  @@index([productId])
+  @@index([createdById])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Supplier {
+  id            String   @id @default(uuid())
+  name          String
+  nameAr        String?
+  contactPerson String?
+  phone         String?
+  email         String?
+  address       String?
+  notes         String?
+  status        String   @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  products      ProductSupplier[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ProductSupplier {
+  id           String   @id @default(uuid())
+  productId    String
+  supplierId   String
+  supplierSku  String?
+  unitCost     Float?
+  leadTimeDays Int?
+  createdAt    DateTime @default(now())
+
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplier     Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, supplierId])
+  @@index([productId])
+  @@index([supplierId])
 }
 
 // ==========================================

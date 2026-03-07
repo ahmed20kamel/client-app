@@ -38,6 +38,8 @@ import {
   CheckCircle2,
   TrendingUp,
   Building2,
+  Package,
+  Truck,
 } from 'lucide-react';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -50,6 +52,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   CheckCircle2,
   TrendingUp,
   Building2,
+  Package,
+  Truck,
 };
 
 export function MobileSidebar({

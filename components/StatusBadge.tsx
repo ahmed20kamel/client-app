@@ -27,6 +27,15 @@ const DEFAULT_CONFIG: Record<string, { color: string; bg: string }> = {
   SUBMITTED: { color: 'text-purple-700', bg: 'bg-purple-50 border-purple-200' },
   APPROVED: { color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
   REJECTED: { color: 'text-red-700', bg: 'bg-red-50 border-red-200' },
+  // Inventory statuses
+  INACTIVE: { color: 'text-gray-700', bg: 'bg-gray-50 border-gray-200' },
+  DISCONTINUED: { color: 'text-red-700', bg: 'bg-red-50 border-red-200' },
+  // Stock movement types
+  IN: { color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
+  OUT: { color: 'text-red-700', bg: 'bg-red-50 border-red-200' },
+  ADJUSTMENT: { color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200' },
+  RETURN: { color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
+  TRANSFER: { color: 'text-purple-700', bg: 'bg-purple-50 border-purple-200' },
   // Priority levels
   LOW: { color: 'text-gray-700', bg: 'bg-gray-50 border-gray-200' },
   MEDIUM: { color: 'text-gray-800', bg: 'bg-gray-100 border-gray-300' },
