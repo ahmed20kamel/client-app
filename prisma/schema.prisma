@@ -13,6 +13,7 @@ model User {
   fullName            String
   jobTitle            String?
   phone               String?
+  profileImage        String?
   passwordHash        String               @default("")
   status              String               @default("ACTIVE")
   lastLoginAt         DateTime?
@@ -90,6 +91,7 @@ model RolePermission {
 model Customer {
   id              String         @id @default(uuid())
   fullName        String
+  fullNameAr      String?
   nationalId      String?        @unique
   phone           String
   email           String?
@@ -118,6 +120,7 @@ model Customer {
   createdBy       User           @relation("CustomerCreator", fields: [createdById], references: [id])
   owner           User           @relation("CustomerOwner", fields: [ownerId], references: [id])
   tasks           Task[]
+  attachments     Attachment[]
 
   @@index([ownerId])
   @@index([phone])
@@ -127,6 +130,32 @@ model Customer {
   @@index([createdAt])
   @@index([leadSource])
   @@index([emirate])
+}
+
+// ==========================================
+// Customer Attachments
+// ==========================================
+
+model Attachment {
+  id            String    @id @default(uuid())
+  customerId    String?
+  tempSessionId String?
+  category      String    // CLIENT_DOCS, DRAWINGS, QUOTATIONS
+  subcategory   String?   // e.g. ARCHITECTURAL, STRUCTURAL, HVAC, ID_CARD, LICENSE, etc.
+  fileName      String
+  originalName  String
+  fileSize      Int
+  mimeType      String
+  filePath      String
+  uploadedById  String
+  createdAt     DateTime  @default(now())
+
+  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([tempSessionId])
+  @@index([category])
+  @@index([createdAt])
 }
 
 // ==========================================

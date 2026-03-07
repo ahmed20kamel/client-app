@@ -18,7 +18,10 @@ import {
   Eye,
   Star,
   BarChart3,
+  Award,
 } from 'lucide-react';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
+import { PageHeader } from '@/components/PageHeader';
 
 interface PerformanceReview {
   id: string;
@@ -121,18 +124,19 @@ export default function PerformancePage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('performance.title')}</h1>
-          <p className="text-muted-foreground mt-1">{t('performance.subtitle')}</p>
-        </div>
-        <Link href={`/${locale}/performance/new`}>
-          <Button className="btn-premium">
-            <Plus className="size-4" />
-            {t('performance.createReview')}
-          </Button>
-        </Link>
-      </div>
+      <PageHeader
+        title={t('performance.title')}
+        icon={Award}
+        subtitle={t('performance.subtitle')}
+        actions={
+          <Link href={`/${locale}/performance/new`}>
+            <Button className="btn-premium">
+              <Plus className="size-4" />
+              {t('performance.createReview')}
+            </Button>
+          </Link>
+        }
+      />
 
       {/* Filters */}
       <Card className="shadow-premium mb-6">
@@ -166,10 +170,7 @@ export default function PerformancePage() {
 
       {/* Table */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-16">
-          <Loader2 className="size-8 animate-spin text-primary" />
-          <p className="text-muted-foreground mt-3">{t('common.loading')}</p>
-        </div>
+        <TableSkeleton rows={5} columns={5} />
       ) : reviews.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
           <AlertCircle className="size-12 mb-4 text-muted-foreground/40" />
@@ -238,7 +239,7 @@ export default function PerformancePage() {
                         {review.tasksCompleted}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`text-sm font-medium ${getOnTimePercentage(review) >= 80 ? 'text-emerald-600' : getOnTimePercentage(review) >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
+                        <span className={`text-sm font-medium ${getOnTimePercentage(review) >= 80 ? 'text-success' : getOnTimePercentage(review) >= 50 ? 'text-warning' : 'text-destructive'}`}>
                           {getOnTimePercentage(review)}%
                         </span>
                       </td>
@@ -277,7 +278,7 @@ export default function PerformancePage() {
                   variant="outline"
                   size="sm"
                 >
-                  <ChevronLeft className="size-4" />
+                  <ChevronLeft className="size-4 rtl:-scale-x-100" />
                   {t('common.previous')}
                 </Button>
                 <Button
@@ -287,7 +288,7 @@ export default function PerformancePage() {
                   size="sm"
                 >
                   {t('common.next')}
-                  <ChevronRight className="size-4" />
+                  <ChevronRight className="size-4 rtl:-scale-x-100" />
                 </Button>
               </div>
             </div>

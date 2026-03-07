@@ -20,7 +20,9 @@ import {
   Tag,
   Flag,
   Calendar,
+  PlusCircle,
 } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
 
 interface User {
   id: string;
@@ -136,16 +138,17 @@ export default function CreateInternalTaskPage() {
   return (
     <div className="max-w-3xl mx-auto animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 lg:mb-8">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('internalTasks.create')}</h1>
-          <p className="text-muted-foreground mt-1">{t('internalTasks.subtitle')}</p>
-        </div>
-        <Button variant="outline" onClick={() => router.push(`/${locale}/internal-tasks`)}>
-          <ArrowLeft className="size-4 me-2" />
-          {t('common.back')}
-        </Button>
-      </div>
+      <PageHeader
+        icon={PlusCircle}
+        title={t('internalTasks.create')}
+        subtitle={t('internalTasks.subtitle')}
+        actions={
+          <Button variant="outline" onClick={() => router.push(`/${locale}/internal-tasks`)}>
+            <ArrowLeft className="size-4 me-2 rtl:-scale-x-100" />
+            {t('common.back')}
+          </Button>
+        }
+      />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Task Details */}
@@ -198,7 +201,7 @@ export default function CreateInternalTaskPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserCheck className="size-5 text-primary" />
-              {t('internalTasks.assignTo')} & {t('internalTasks.dueDate')}
+              {t('internalTasks.assignTo')} {locale === 'ar' ? 'و' : '&'} {t('internalTasks.dueDate')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -302,7 +305,7 @@ export default function CreateInternalTaskPage() {
         </Card>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-6 border-t">
+        <div className="flex items-center justify-end gap-3 pt-6 border-t">
           <Button
             type="button"
             variant="outline"

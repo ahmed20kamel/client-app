@@ -289,14 +289,37 @@ export function NotificationCenter() {
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-border">
-                {notifications.map((notification) => (
+              <div>
+                {notifications.map((notification, index) => {
+                  const currentDate = new Date(notification.createdAt);
+                  const prevDate = index > 0 ? new Date(notifications[index - 1].createdAt) : null;
+                  const today = new Date();
+                  const yesterday = new Date(today);
+                  yesterday.setDate(yesterday.getDate() - 1);
+
+                  const isToday = currentDate.toDateString() === today.toDateString();
+                  const isYesterday = currentDate.toDateString() === yesterday.toDateString();
+
+                  const showDateHeader = index === 0 || (prevDate && currentDate.toDateString() !== prevDate.toDateString());
+
+                  const dateLabel = isToday
+                    ? t('notifications.today')
+                    : isYesterday
+                    ? t('notifications.yesterday')
+                    : currentDate.toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE');
+
+                  return (
+                    <div key={notification.id}>
+                      {showDateHeader && (
+                        <div className="px-4 py-2 bg-muted/30 border-b border-border">
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{dateLabel}</p>
+                        </div>
+                      )}
                   <div
-                    key={notification.id}
                     onClick={() => handleNotificationClick(notification)}
-                    className={`p-4 cursor-pointer transition-all duration-200 hover:bg-secondary/50 group ${
+                    className={`p-4 cursor-pointer transition-all duration-200 hover:bg-secondary/50 group border-b border-border last:border-0 ${
                       !notification.isRead ? 'bg-primary/5' : ''
-                    } ${isUrgentNotification(notification.type) && !notification.isRead ? 'border-s-2 border-s-red-500' : ''}`}
+                    } ${isUrgentNotification(notification.type) && !notification.isRead ? 'border-s-2 border-s-destructive' : ''}`}
                   >
                     <div className="flex gap-3">
                       {/* Icon */}
@@ -350,7 +373,9 @@ export function NotificationCenter() {
                       </div>
                     </div>
                   </div>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

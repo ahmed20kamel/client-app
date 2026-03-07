@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
-  Loader2,
   AlertCircle,
   Star,
   ClipboardCheck,
@@ -18,6 +17,7 @@ import {
   BarChart3,
   User,
 } from 'lucide-react';
+import { PageSkeleton, DetailSkeleton } from '@/components/ui/page-skeleton';
 
 interface UserData {
   id: string;
@@ -137,12 +137,7 @@ export default function EmployeePerformancePage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 animate-fade-in">
-        <Loader2 className="size-8 animate-spin text-primary" />
-        <p className="text-muted-foreground mt-3">{t('common.loading')}</p>
-      </div>
-    );
+    return <DetailSkeleton />;
   }
 
   if (!data) {
@@ -160,7 +155,7 @@ export default function EmployeePerformancePage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => router.push(`/${locale}/performance`)}>
-            <ArrowLeft className="size-4" />
+            <ArrowLeft className="size-4 rtl:-scale-x-100" />
           </Button>
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{data.user.fullName}</h1>

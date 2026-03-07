@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/form';
 import { toast } from 'sonner';
 import { Building2, ArrowLeft, Loader2 } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
+import { PageSkeleton, DetailSkeleton } from '@/components/ui/page-skeleton';
 import Link from 'next/link';
 import { updateDepartmentSchema, type UpdateDepartmentInput } from '@/lib/validations/escalation';
 
@@ -124,26 +126,23 @@ export default function EditDepartmentPage() {
   };
 
   if (fetching) {
-    return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <Loader2 className="size-8 animate-spin text-primary" />
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   return (
     <div className="animate-fade-in max-w-2xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6 lg:mb-8">
-        <Link href={`/${locale}/departments`}>
-          <Button variant="ghost" size="icon" className="size-10 rounded-xl">
-            <ArrowLeft className="size-5" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('departments.edit')}</h1>
-        </div>
-      </div>
+      <PageHeader
+        icon={Building2}
+        title={t('departments.edit')}
+        actions={
+          <Link href={`/${locale}/departments`}>
+            <Button variant="ghost" size="icon" className="size-10 rounded-xl">
+              <ArrowLeft className="size-5 rtl:-scale-x-100" />
+            </Button>
+          </Link>
+        }
+      />
 
       {/* Form */}
       <Card className="shadow-premium">
@@ -162,7 +161,7 @@ export default function EditDepartmentPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('departments.name')} (English) *</FormLabel>
+                    <FormLabel>{t('departments.nameEn')} *</FormLabel>
                     <FormControl>
                       <Input {...field} value={field.value || ''} disabled={isLoading} />
                     </FormControl>

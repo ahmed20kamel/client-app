@@ -41,28 +41,39 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Get overdue tasks
-    const tasks = await prisma.task.findMany({
-      where,
-      include: {
-        customer: {
-          select: {
-            id: true,
-            fullName: true,
-            customerType: true,
-          },
-        },
-        assignedTo: {
-          select: {
-            id: true,
-            fullName: true,
-          },
-        },
-      },
-      orderBy: { dueAt: 'asc' },
-    });
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
 
-    return NextResponse.json({ data: tasks });
+    // Get overdue tasks
+    const [tasks, total] = await Promise.all([
+      prisma.task.findMany({
+        where,
+        include: {
+          customer: {
+            select: {
+              id: true,
+              fullName: true,
+              customerType: true,
+            },
+          },
+          assignedTo: {
+            select: {
+              id: true,
+              fullName: true,
+            },
+          },
+        },
+        orderBy: { dueAt: 'asc' },
+        take: limit,
+        skip: (page - 1) * limit,
+      }),
+      prisma.task.count({ where }),
+    ]);
+
+    return NextResponse.json({
+      data: tasks,
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
   } catch (error) {
     console.error('Overdue tasks report error:', error);
     return NextResponse.json(

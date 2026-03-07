@@ -32,55 +32,65 @@ export async function GET(request: NextRequest) {
           },
         };
 
-    // Get all active users
-    const users = await prisma.user.findMany({
+    // Build task where clause based on permissions
+    const taskWhere: any = { ...dateFilter };
+    if (!canViewAll) {
+      taskWhere.assignedToId = session.user.id;
+    }
+
+    // Single aggregation query instead of N×3 queries
+    const [taskStats, users] = await Promise.all([
+      prisma.task.groupBy({
+        by: ['assignedToId', 'status'],
+        where: taskWhere,
+        _count: { id: true },
+      }),
+      prisma.user.findMany({
+        where: { status: 'ACTIVE' },
+        select: { id: true, fullName: true },
+      }),
+    ]);
+
+    // Also get on-time completion count
+    const onTimeStats = await prisma.task.groupBy({
+      by: ['assignedToId'],
       where: {
-        status: 'ACTIVE',
+        ...taskWhere,
+        status: 'DONE',
+        completedAt: { not: null },
       },
-      select: {
-        id: true,
-        fullName: true,
-      },
+      _count: { id: true },
     });
 
-    // Get task stats for each user
-    const stats = await Promise.all(
-      users.map(async (user) => {
-        const taskWhere = canViewAll
-          ? { assignedToId: user.id, ...dateFilter }
-          : session.user.id === user.id
-          ? { assignedToId: user.id, ...dateFilter }
-          : null;
+    // Build lookup maps
+    const userMap = new Map(users.map(u => [u.id, u]));
+    const onTimeMap = new Map(onTimeStats.map(s => [s.assignedToId, s._count.id]));
 
-        if (!taskWhere) {
-          return null;
-        }
+    // Aggregate stats per user
+    const userStatsMap = new Map<string, { total: number; completed: number }>();
+    for (const stat of taskStats) {
+      if (!stat.assignedToId) continue;
+      const existing = userStatsMap.get(stat.assignedToId) || { total: 0, completed: 0 };
+      existing.total += stat._count.id;
+      if (stat.status === 'DONE') {
+        existing.completed += stat._count.id;
+      }
+      userStatsMap.set(stat.assignedToId, existing);
+    }
 
-        const [total, completed, completedOnTime] = await Promise.all([
-          prisma.task.count({ where: taskWhere }),
-          prisma.task.count({
-            where: { ...taskWhere, status: 'DONE' },
-          }),
-          prisma.task.count({
-            where: {
-              ...taskWhere,
-              status: 'DONE',
-              completedAt: { not: null },
-              AND: [
-                { completedAt: { not: null } },
-              ],
-            },
-          }),
-        ]);
+    // Build results
+    const stats = Array.from(userStatsMap.entries())
+      .map(([userId, { total, completed }]) => {
+        const user = userMap.get(userId);
+        if (!user) return null;
+        if (!canViewAll && userId !== session.user.id) return null;
 
+        const completedOnTime = onTimeMap.get(userId) || 0;
         const completionRate = total > 0 ? (completed / total) * 100 : 0;
         const onTimeRate = completed > 0 ? (completedOnTime / completed) * 100 : 0;
 
         return {
-          user: {
-            id: user.id,
-            fullName: user.fullName,
-          },
+          user: { id: user.id, fullName: user.fullName },
           total,
           completed,
           completedOnTime,
@@ -89,14 +99,10 @@ export async function GET(request: NextRequest) {
           onTimeRate: Math.round(onTimeRate * 10) / 10,
         };
       })
-    );
-
-    // Filter out nulls and sort by completion rate
-    const validStats = stats
       .filter((s): s is NonNullable<typeof s> => s !== null)
       .sort((a, b) => b.completionRate - a.completionRate);
 
-    return NextResponse.json({ data: validStats });
+    return NextResponse.json({ data: stats });
   } catch (error) {
     console.error('Task completion report error:', error);
     return NextResponse.json(

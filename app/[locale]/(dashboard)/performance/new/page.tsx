@@ -18,7 +18,9 @@ import {
   Calendar,
   FileText,
   TrendingUp,
+  Award,
 } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
 
 interface UserOption {
   id: string;
@@ -129,16 +131,17 @@ export default function CreatePerformanceReviewPage() {
   return (
     <div className="max-w-3xl mx-auto animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 lg:mb-8">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('performance.createReview')}</h1>
-          <p className="text-muted-foreground mt-1">{t('performance.subtitle')}</p>
-        </div>
-        <Button variant="outline" onClick={() => router.push(`/${locale}/performance`)}>
-          <ArrowLeft className="size-4 me-2" />
-          {t('common.back')}
-        </Button>
-      </div>
+      <PageHeader
+        icon={Award}
+        title={t('performance.createReview')}
+        subtitle={t('performance.subtitle')}
+        actions={
+          <Button variant="outline" onClick={() => router.push(`/${locale}/performance`)}>
+            <ArrowLeft className="size-4 me-2 rtl:-scale-x-100" />
+            {t('common.back')}
+          </Button>
+        }
+      />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Employee & Period */}
@@ -247,7 +250,7 @@ export default function CreatePerformanceReviewPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="size-5 text-primary" />
-              {t('performance.strengths')} & {t('performance.improvements')}
+              {t('performance.strengths')} {locale === 'ar' ? 'و' : '&'} {t('performance.improvements')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -293,7 +296,7 @@ export default function CreatePerformanceReviewPage() {
         </Card>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-6 border-t">
+        <div className="flex items-center justify-end gap-3 pt-6 border-t">
           <Button
             type="button"
             variant="outline"

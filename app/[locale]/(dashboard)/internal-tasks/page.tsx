@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import {
   Plus,
@@ -20,7 +19,11 @@ import {
   ChevronRight,
   Star,
   Clock,
+  ClipboardList,
 } from 'lucide-react';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
+import { PageHeader } from '@/components/PageHeader';
+import { StatusBadge } from '@/components/StatusBadge';
 
 interface InternalTask {
   id: string;
@@ -63,22 +66,6 @@ interface Department {
   name: string;
   nameAr?: string | null;
 }
-
-const STATUS_BADGE: Record<string, string> = {
-  OPEN: 'bg-gray-50 border-gray-200 text-gray-700',
-  IN_PROGRESS: 'bg-blue-50 border-blue-200 text-blue-700',
-  SUBMITTED: 'bg-yellow-50 border-yellow-200 text-yellow-700',
-  APPROVED: 'bg-emerald-50 border-emerald-200 text-emerald-700',
-  REJECTED: 'bg-red-50 border-red-200 text-red-700',
-  DONE: 'bg-emerald-50 border-emerald-200 text-emerald-700',
-};
-
-const PRIORITY_BADGE: Record<string, string> = {
-  LOW: 'bg-gray-50 border-gray-200 text-gray-700',
-  MEDIUM: 'bg-gray-100 border-gray-300 text-gray-800',
-  HIGH: 'bg-orange-50 border-orange-200 text-orange-700',
-  URGENT: 'bg-red-50 border-red-200 text-red-700',
-};
 
 export default function InternalTasksPage() {
   const t = useTranslations();
@@ -188,20 +175,19 @@ export default function InternalTasksPage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('internalTasks.title')}</h1>
-          <p className="text-muted-foreground mt-1">
-            {meta.total} {t('common.results')}
-          </p>
-        </div>
-        <Link href={`/${locale}/internal-tasks/new`}>
-          <Button className="btn-premium">
-            <Plus className="size-4" />
-            {t('internalTasks.create')}
-          </Button>
-        </Link>
-      </div>
+      <PageHeader
+        title={t('internalTasks.title')}
+        subtitle={`${meta.total} ${t('common.results')}`}
+        icon={ClipboardList}
+        actions={
+          <Link href={`/${locale}/internal-tasks/new`}>
+            <Button className="btn-premium">
+              <Plus className="size-4" />
+              {t('internalTasks.create')}
+            </Button>
+          </Link>
+        }
+      />
 
       {/* Filters */}
       <Card className="shadow-premium mb-6">
@@ -267,10 +253,7 @@ export default function InternalTasksPage() {
 
       {/* Table */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-16">
-          <Loader2 className="size-8 animate-spin text-primary" />
-          <p className="text-muted-foreground mt-3">{t('common.loading')}</p>
-        </div>
+        <TableSkeleton rows={6} columns={6} />
       ) : tasks.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
           <AlertCircle className="size-12 mb-4 text-muted-foreground/40" />
@@ -278,7 +261,44 @@ export default function InternalTasksPage() {
         </div>
       ) : (
         <>
-          <Card className="shadow-premium overflow-hidden">
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-3">
+            {tasks.map((task) => (
+              <Card key={task.id} className="shadow-premium">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <Link href={`/${locale}/internal-tasks/${task.id}`} className="text-sm font-semibold text-primary hover:underline flex-1 min-w-0 truncate">
+                      {task.title}
+                    </Link>
+                    <span className="shrink-0 ms-2">
+                      <StatusBadge status={task.status} label={getStatusLabel(task.status)} size="sm" />
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mb-3">
+                    <div className="truncate">{task.assignedTo.fullName}</div>
+                    <StatusBadge status={task.priority} label={getPriorityLabel(task.priority)} size="sm" />
+                    {task.dueAt && (
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="size-3 shrink-0" />
+                        <span>{formatDate(task.dueAt)}</span>
+                      </div>
+                    )}
+                    {task.rating && <div>{renderStars(task.rating.rating)}</div>}
+                  </div>
+                  <div className="flex items-center justify-end border-t pt-2">
+                    <Link href={`/${locale}/internal-tasks/${task.id}`}>
+                      <Button variant="ghost" size="icon" className="size-11 text-muted-foreground hover:text-primary">
+                        <Eye className="size-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop Table */}
+          <Card className="shadow-premium overflow-hidden hidden md:block">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -286,19 +306,19 @@ export default function InternalTasksPage() {
                     <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {t('internalTasks.taskTitle')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-6 py-3.5 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {t('internalTasks.assignee')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-6 py-3.5 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {t('internalTasks.priority')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-6 py-3.5 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {t('common.status')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-6 py-3.5 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {t('internalTasks.dueDate')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-6 py-3.5 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {t('rating.stars')}
                     </th>
                     <th className="px-6 py-3.5 text-end text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -317,22 +337,18 @@ export default function InternalTasksPage() {
                           {task.title}
                         </Link>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground text-center">
                         {task.assignedTo.fullName}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant="outline" className={`${PRIORITY_BADGE[task.priority]} border`}>
-                          {getPriorityLabel(task.priority)}
-                        </Badge>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <StatusBadge status={task.priority} label={getPriorityLabel(task.priority)} />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant="outline" className={`${STATUS_BADGE[task.status]} border`}>
-                          {getStatusLabel(task.status)}
-                        </Badge>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <StatusBadge status={task.status} label={getStatusLabel(task.status)} />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
                         {task.dueAt ? (
-                          <div className="flex items-center gap-1.5 text-sm">
+                          <div className="flex items-center justify-center gap-1.5 text-sm">
                             <Clock className="size-3.5 text-muted-foreground" />
                             <span className="text-foreground">{formatDate(task.dueAt)}</span>
                           </div>
@@ -340,9 +356,9 @@ export default function InternalTasksPage() {
                           <span className="text-sm text-muted-foreground">-</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
                         {task.rating ? (
-                          renderStars(task.rating.rating)
+                          <div className="flex justify-center">{renderStars(task.rating.rating)}</div>
                         ) : (
                           <span className="text-sm text-muted-foreground">-</span>
                         )}
@@ -376,7 +392,7 @@ export default function InternalTasksPage() {
                   variant="outline"
                   size="sm"
                 >
-                  <ChevronLeft className="size-4" />
+                  <ChevronLeft className="size-4 rtl:-scale-x-100" />
                   {t('common.previous')}
                 </Button>
                 <Button
@@ -386,7 +402,7 @@ export default function InternalTasksPage() {
                   size="sm"
                 >
                   {t('common.next')}
-                  <ChevronRight className="size-4" />
+                  <ChevronRight className="size-4 rtl:-scale-x-100" />
                 </Button>
               </div>
             </div>

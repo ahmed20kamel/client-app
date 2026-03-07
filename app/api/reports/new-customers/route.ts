@@ -42,25 +42,33 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+
     // Get new customers
-    const customers = await prisma.customer.findMany({
-      where,
-      include: {
-        owner: {
-          select: {
-            id: true,
-            fullName: true,
+    const [customers, total] = await Promise.all([
+      prisma.customer.findMany({
+        where,
+        include: {
+          owner: {
+            select: {
+              id: true,
+              fullName: true,
+            },
+          },
+          createdBy: {
+            select: {
+              id: true,
+              fullName: true,
+            },
           },
         },
-        createdBy: {
-          select: {
-            id: true,
-            fullName: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: (page - 1) * limit,
+      }),
+      prisma.customer.count({ where }),
+    ]);
 
     // Group by date
     const grouped: Record<string, any[]> = {};
@@ -96,6 +104,7 @@ export async function GET(request: NextRequest) {
           count: grouped[date].length,
         })),
       },
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
   } catch (error) {
     console.error('New customers report error:', error);

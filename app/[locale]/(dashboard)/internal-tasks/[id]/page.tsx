@@ -30,6 +30,7 @@ import {
   AlertTriangle,
   RotateCcw,
 } from 'lucide-react';
+import { PageSkeleton, DetailSkeleton } from '@/components/ui/page-skeleton';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -442,12 +443,7 @@ export default function InternalTaskDetailPage() {
   // ─── Loading / Not Found ─────────────────────────────────────────────────
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 animate-fade-in">
-        <Loader2 className="size-8 animate-spin text-primary" />
-        <p className="text-muted-foreground mt-3">{t('common.loading')}</p>
-      </div>
-    );
+    return <DetailSkeleton />;
   }
 
   if (!task) {
@@ -465,7 +461,7 @@ export default function InternalTaskDetailPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => router.push(`/${locale}/internal-tasks`)}>
-            <ArrowLeft className="size-4" />
+            <ArrowLeft className="size-4 rtl:-scale-x-100" />
           </Button>
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{task.title}</h1>
@@ -522,7 +518,7 @@ export default function InternalTaskDetailPage() {
               <Button
                 onClick={handleApprove}
                 disabled={isActioning}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="bg-success hover:bg-success/90 text-white"
               >
                 {isActioning ? <Loader2 className="size-4 animate-spin" /> : <ThumbsUp className="size-4" />}
                 {t('internalTasks.approve')}
@@ -542,9 +538,9 @@ export default function InternalTaskDetailPage() {
 
       {/* Reject Form Panel */}
       {showRejectForm && (
-        <Card className="shadow-premium mb-6 border-red-200">
+        <Card className="shadow-premium mb-6 border-destructive/30">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2 text-red-600">
+            <CardTitle className="text-base flex items-center gap-2 text-destructive">
               <ThumbsDown className="size-4" />
               {t('internalTasks.reject')}
             </CardTitle>
@@ -619,13 +615,13 @@ export default function InternalTaskDetailPage() {
 
           {/* Rejection Reason Alert */}
           {task.status === 'REJECTED' && task.rejectionReason && (
-            <Card className="shadow-premium border-red-200 bg-red-50/50">
+            <Card className="shadow-premium border-destructive/30 bg-destructive/5">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <AlertTriangle className="size-5 text-red-500 shrink-0 mt-0.5" />
+                  <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-semibold text-red-700 mb-1">{t('internalTasks.rejectionReason')}</p>
-                    <p className="text-sm text-red-600">{task.rejectionReason}</p>
+                    <p className="text-sm font-semibold text-destructive mb-1">{t('internalTasks.rejectionReason')}</p>
+                    <p className="text-sm text-destructive/80">{task.rejectionReason}</p>
                   </div>
                 </div>
               </CardContent>

@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
     if (search) {
       where.OR = [
         { fullName: { contains: search, mode: 'insensitive' } },
+        { fullNameAr: { contains: search, mode: 'insensitive' } },
         { phone: { contains: search } },
         { nationalId: { contains: search } },
         { company: { contains: search, mode: 'insensitive' } },
@@ -180,6 +181,7 @@ export async function POST(request: NextRequest) {
     const customer = await prisma.customer.create({
       data: {
         fullName: validatedData.fullName,
+        fullNameAr: validatedData.fullNameAr || null,
         nationalId: validatedData.nationalId,
         phone: validatedData.phone,
         email: validatedData.email || null,

@@ -32,6 +32,7 @@ import {
   Building2,
   Tag,
 } from 'lucide-react';
+import { PageSkeleton, DetailSkeleton } from '@/components/ui/page-skeleton';
 
 interface TaskComment {
   id: string;
@@ -315,12 +316,7 @@ export default function TaskDetailsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 animate-fade-in">
-        <Loader2 className="size-8 animate-spin text-primary" />
-        <p className="text-muted-foreground mt-3">{t('common.loading')}</p>
-      </div>
-    );
+    return <DetailSkeleton />;
   }
 
   if (!task) {
@@ -340,7 +336,7 @@ export default function TaskDetailsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => router.push(`/${locale}/tasks`)}>
-            <ArrowLeft className="size-4" />
+            <ArrowLeft className="size-4 rtl:-scale-x-100" />
           </Button>
           <div>
             <div className="flex items-center gap-2">
@@ -372,7 +368,7 @@ export default function TaskDetailsPage() {
                 {t('tasks.reassign')}
               </Button>
               {task.escalationLevel < 2 && (
-                <Button variant="outline" size="sm" onClick={() => setShowEscalate(!showEscalate)} className="text-amber-600 hover:text-amber-700 border-amber-200 hover:bg-amber-50">
+                <Button variant="outline" size="sm" onClick={() => setShowEscalate(!showEscalate)} className="text-warning hover:text-warning/80 border-warning/30 hover:bg-warning/10">
                   <ArrowUpCircle className="size-4" />
                   {t('tasks.escalate')}
                 </Button>

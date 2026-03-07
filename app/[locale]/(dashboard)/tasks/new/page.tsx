@@ -23,7 +23,9 @@ import {
   Save,
   Loader2,
   AlignLeft,
+  PlusCircle,
 } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
 
 interface Customer {
   id: string;
@@ -125,16 +127,17 @@ export default function CreateTaskPage() {
   return (
     <div className="max-w-3xl mx-auto animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 lg:mb-8">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('tasks.create')}</h1>
-          <p className="text-muted-foreground mt-1">{t('tasks.title')}</p>
-        </div>
-        <Button variant="outline" onClick={goBack}>
-          <ArrowLeft className="size-4 me-2" />
-          {t('common.back')}
-        </Button>
-      </div>
+      <PageHeader
+        icon={PlusCircle}
+        title={t('tasks.create')}
+        subtitle={t('tasks.title')}
+        actions={
+          <Button variant="outline" onClick={goBack}>
+            <ArrowLeft className="size-4 me-2 rtl:-scale-x-100" />
+            {t('common.back')}
+          </Button>
+        }
+      />
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -199,7 +202,7 @@ export default function CreateTaskPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="size-5 text-primary" />
-                {t('tasks.assignedTo')} & {t('tasks.dueDate')}
+                {t('tasks.assignedTo')} {locale === 'ar' ? 'و' : '&'} {t('tasks.dueDate')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -315,7 +318,7 @@ export default function CreateTaskPage() {
           </Card>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-6 border-t">
+          <div className="flex items-center justify-end gap-3 pt-6 border-t">
             <Button
               type="button"
               variant="outline"

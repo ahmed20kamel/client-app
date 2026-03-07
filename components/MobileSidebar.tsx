@@ -81,13 +81,13 @@ export function MobileSidebar({
         <SheetContent
           side={isRtl ? 'right' : 'left'}
           showCloseButton={false}
-          className="w-72 p-0 bg-sidebar text-sidebar-foreground border-none"
+          className="w-60 p-0 bg-sidebar text-sidebar-foreground border-none"
         >
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
           {/* Header */}
           <div className="h-16 flex items-center justify-between px-5 border-b border-sidebar-border">
             <div className="flex items-center gap-3">
-              <Image src="/logo.svg" alt="Logo" width={32} height={32} />
+              <Image src="/logo.svg" alt="Logo" width={32} height={32} className="brightness-0 invert" />
               <div>
                 <h2 className="text-base font-bold text-sidebar-foreground">CRM Pro</h2>
                 <p className="text-[10px] text-sidebar-foreground/50 font-medium">Enterprise</p>

@@ -69,7 +69,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex" dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen flex" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       {/* Hero Side */}
       <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden">
         {/* Background Image */}

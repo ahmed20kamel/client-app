@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { can } from '@/lib/permissions';
 import { processEscalations } from '@/lib/escalation';
+import { prisma } from '@/lib/prisma';
 
 // POST /api/cron/escalate - Run escalation engine
 // Can be triggered by cron job or manually by admin
@@ -12,7 +13,12 @@ export async function POST(request: NextRequest) {
     const expectedSecret = process.env.CRON_SECRET;
 
     if (cronSecret && expectedSecret && cronSecret === expectedSecret) {
-      // Authenticated via cron secret
+      // Mark overdue tasks
+      await prisma.task.updateMany({
+        where: { status: 'OPEN', dueAt: { lt: new Date() } },
+        data: { status: 'OVERDUE' },
+      });
+      // Run escalation engine
       const result = await processEscalations();
       return NextResponse.json({ data: result });
     }
@@ -28,6 +34,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    // Mark overdue tasks
+    await prisma.task.updateMany({
+      where: { status: 'OPEN', dueAt: { lt: new Date() } },
+      data: { status: 'OVERDUE' },
+    });
     const result = await processEscalations();
     return NextResponse.json({ data: result });
   } catch (error) {

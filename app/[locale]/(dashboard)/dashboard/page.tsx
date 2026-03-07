@@ -18,8 +18,10 @@ import {
   CheckCircle2,
   AlertCircle,
   BarChart3,
-  Loader2,
+  LayoutDashboard,
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/PageHeader';
 
 interface DashboardData {
   stats: {
@@ -113,8 +115,25 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <Loader2 className="size-8 animate-spin text-primary" />
+      <div className="animate-fade-in space-y-6">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Card key={i} className="shadow-premium">
+              <CardContent className="pt-6 space-y-3">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-8 w-16" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="shadow-premium"><CardContent className="pt-6 space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</CardContent></Card>
+          <Card className="shadow-premium"><CardContent className="pt-6 space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</CardContent></Card>
+        </div>
       </div>
     );
   }
@@ -190,15 +209,11 @@ export default function DashboardPage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div className="mb-6 lg:mb-8">
-        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('dashboard.title')}</h1>
-        <p className="text-sm lg:text-base text-muted-foreground mt-1">
-          {t('dashboard.welcome')}
-          {data.stats.openTasks > 0 && (
-            <span> — {data.stats.openTasks} {t('dashboard.openTasksSuffix')}</span>
-          )}
-        </p>
-      </div>
+      <PageHeader
+        title={t('dashboard.title')}
+        icon={LayoutDashboard}
+        subtitle={`${t('dashboard.welcome')}${data.stats.openTasks > 0 ? ` — ${data.stats.openTasks} ${t('dashboard.openTasksSuffix')}` : ''}`}
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4 mb-6 lg:mb-8">
@@ -363,7 +378,7 @@ export default function DashboardPage() {
                             onClick={() => handleMarkAsDone(task.id)}
                             variant="ghost"
                             size="sm"
-                            className="h-7 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                            className="h-7 text-xs text-success hover:text-success/80 hover:bg-success/10"
                           >
                             <CheckCircle2 className="size-3.5 me-1" />
                             {t('tasks.markAsDone')}

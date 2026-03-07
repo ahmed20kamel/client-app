@@ -7,6 +7,7 @@ export interface SessionUser {
   email: string;
   name: string;
   role: string;
+  profileImage?: string | null;
 }
 
 export interface Session {
@@ -101,6 +102,7 @@ export async function auth(): Promise<Session | null> {
         email: user.email,
         name: user.fullName,
         role: user.roles[0]?.role.name || 'Employee',
+        profileImage: user.profileImage,
       },
     };
   } catch {

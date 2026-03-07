@@ -45,50 +45,55 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Get count by status for all pipeline stages
-    const statusCounts = await Promise.all(
-      LEAD_STATUSES.map(async (status) => {
-        const count = await prisma.customer.count({ where: { ...where, status } });
-        return { status, count };
-      })
-    );
+    // Single groupBy query instead of N separate count queries
+    const [statusGroups, valueAggregates] = await Promise.all([
+      prisma.customer.groupBy({
+        by: ['status'],
+        where,
+        _count: { id: true },
+      }),
+      prisma.customer.groupBy({
+        by: ['status'],
+        where,
+        _sum: {
+          estimatedValue: true,
+          weightedValue: true,
+        },
+      }),
+    ]);
 
-    const total = statusCounts.reduce((sum, s) => sum + s.count, 0);
+    // Build lookup maps
+    const countMap = new Map(statusGroups.map(g => [g.status, g._count.id]));
+    const valueMap = new Map(valueAggregates.map(g => [g.status, {
+      estimatedTotal: g._sum.estimatedValue || 0,
+      weightedTotal: g._sum.weightedValue || 0,
+    }]));
+
+    const total = statusGroups.reduce((sum, g) => sum + g._count.id, 0);
 
     // Build funnel data
-    const funnel = statusCounts.map(({ status, count }) => ({
-      status,
-      count,
-      percentage: total > 0 ? Math.round((count / total) * 1000) / 10 : 0,
-      probability: STATUS_PROBABILITY_MAP[status],
-    }));
-
-    // Get value aggregates by status
-    const allCustomers = await prisma.customer.findMany({
-      where,
-      select: {
-        status: true,
-        estimatedValue: true,
-        weightedValue: true,
-      },
+    const funnel = LEAD_STATUSES.map((status) => {
+      const count = countMap.get(status) || 0;
+      return {
+        status,
+        count,
+        percentage: total > 0 ? Math.round((count / total) * 1000) / 10 : 0,
+        probability: STATUS_PROBABILITY_MAP[status],
+      };
     });
 
     const valueByStatus = LEAD_STATUSES.reduce((acc, status) => {
-      const customersInStatus = allCustomers.filter(c => c.status === status);
-      acc[status] = {
-        estimatedTotal: customersInStatus.reduce((sum, c) => sum + (c.estimatedValue || 0), 0),
-        weightedTotal: customersInStatus.reduce((sum, c) => sum + (c.weightedValue || 0), 0),
-      };
+      acc[status] = valueMap.get(status) || { estimatedTotal: 0, weightedTotal: 0 };
       return acc;
     }, {} as Record<string, { estimatedTotal: number; weightedTotal: number }>);
 
     // Calculate summary
-    const won = statusCounts.find(s => s.status === 'WON')?.count || 0;
-    const lost = statusCounts.find(s => s.status === 'LOST')?.count || 0;
+    const won = countMap.get('WON') || 0;
+    const lost = countMap.get('LOST') || 0;
     const successRate = (won + lost) > 0 ? (won / (won + lost)) * 100 : 0;
 
-    const totalEstimatedValue = allCustomers.reduce((sum, c) => sum + (c.estimatedValue || 0), 0);
-    const totalWeightedValue = allCustomers.reduce((sum, c) => sum + (c.weightedValue || 0), 0);
+    const totalEstimatedValue = valueAggregates.reduce((sum, g) => sum + (g._sum.estimatedValue || 0), 0);
+    const totalWeightedValue = valueAggregates.reduce((sum, g) => sum + (g._sum.weightedValue || 0), 0);
 
     return NextResponse.json({
       data: {

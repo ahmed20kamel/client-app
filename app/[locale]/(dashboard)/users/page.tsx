@@ -31,6 +31,9 @@ import {
   Clock,
   AlertCircle,
 } from 'lucide-react';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
+import { PageHeader } from '@/components/PageHeader';
+import { StatusBadge } from '@/components/StatusBadge';
 
 interface User {
   id: string;
@@ -133,27 +136,26 @@ export default function UsersPage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 lg:mb-8">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('users.title')}</h1>
-          <p className="text-muted-foreground mt-1">
-            {meta.total} {t('users.title')}
-          </p>
-        </div>
-        <Link href={`/${locale}/users/new`}>
-          <Button className="btn-premium">
-            <Plus className="size-4 me-2" />
-            {t('users.create')}
-          </Button>
-        </Link>
-      </div>
+      <PageHeader
+        title={t('users.title')}
+        subtitle={`${meta.total} ${t('users.title')}`}
+        icon={UserCog}
+        actions={
+          <Link href={`/${locale}/users/new`}>
+            <Button className="btn-premium">
+              <Plus className="size-4 me-2" />
+              {t('users.create')}
+            </Button>
+          </Link>
+        }
+      />
 
       {/* Filters */}
       <Card className="shadow-premium mb-6">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-base">
             <Filter className="size-4 text-primary" />
-            {t('common.search')} & {t('common.filter')}
+            {t('common.search')} {locale === 'ar' ? 'و' : '&'} {t('common.filter')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -216,11 +218,7 @@ export default function UsersPage() {
 
       {/* Table */}
       {loading ? (
-        <Card className="shadow-premium">
-          <CardContent className="flex items-center justify-center py-16">
-            <Loader2 className="size-8 animate-spin text-primary" />
-          </CardContent>
-        </Card>
+        <TableSkeleton rows={5} columns={5} />
       ) : users.length === 0 ? (
         <Card className="shadow-premium">
           <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -230,7 +228,57 @@ export default function UsersPage() {
         </Card>
       ) : (
         <>
-          <Card className="shadow-premium overflow-hidden">
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-3">
+            {users.map((user) => (
+              <Card key={user.id} className="shadow-premium">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="size-10 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-semibold text-sm shrink-0">
+                      {user.fullName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{user.fullName}</p>
+                      {user.jobTitle && <p className="text-xs text-muted-foreground">{user.jobTitle}</p>}
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Mail className="size-3 shrink-0" />
+                        <span className="truncate">{user.email}</span>
+                      </p>
+                    </div>
+                    <StatusBadge
+                      status={user.status}
+                      label={user.status === 'ACTIVE' ? t('users.statusActive') : t('users.statusDisabled')}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mb-3">
+                    <div className="flex items-center gap-1.5">
+                      <Shield className="size-3 shrink-0" />
+                      <span>{user.role?.name || 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="size-3 shrink-0" />
+                      <span>{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE') : t('common.never')}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end gap-1 border-t pt-2">
+                    <Link href={`/${locale}/users/${user.id}/edit`}>
+                      <Button variant="ghost" size="icon" className="size-11 text-muted-foreground hover:text-primary">
+                        <Pencil className="size-4" />
+                      </Button>
+                    </Link>
+                    {user.status === 'ACTIVE' && (
+                      <Button variant="ghost" size="icon" className="size-11 text-muted-foreground hover:text-destructive" onClick={() => setDeleteTarget(user.id)}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop Table */}
+          <Card className="shadow-premium overflow-hidden hidden md:block">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -241,23 +289,23 @@ export default function UsersPage() {
                     <th className="px-6 py-3 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {t('users.fullName')}
                     </th>
-                    <th className="px-6 py-3 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      <div className="flex items-center gap-1">
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <div className="flex items-center justify-center gap-1">
                         <Mail className="size-3" />
                         {t('common.email')}
                       </div>
                     </th>
-                    <th className="px-6 py-3 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      <div className="flex items-center gap-1">
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <div className="flex items-center justify-center gap-1">
                         <Shield className="size-3" />
                         {t('users.role')}
                       </div>
                     </th>
-                    <th className="px-6 py-3 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {t('common.status')}
                     </th>
-                    <th className="px-6 py-3 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      <div className="flex items-center gap-1">
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <div className="flex items-center justify-center gap-1">
                         <Clock className="size-3" />
                         {t('users.lastLogin')}
                       </div>
@@ -286,28 +334,26 @@ export default function UsersPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-foreground">
+                      <td className="px-6 py-4 text-sm text-foreground text-center">
                         {user.email}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-center">
                         <Badge variant="secondary" className="font-medium">
                           {user.role?.name || 'N/A'}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4">
-                        <Badge
-                          variant={user.status === 'ACTIVE' ? 'default' : 'destructive'}
-                          className={user.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : ''}
-                        >
-                          {user.status === 'ACTIVE'
+                      <td className="px-6 py-4 text-center">
+                        <StatusBadge
+                          status={user.status}
+                          label={user.status === 'ACTIVE'
                             ? t('users.statusActive')
                             : t('users.statusDisabled')}
-                        </Badge>
+                        />
                       </td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground">
+                      <td className="px-6 py-4 text-sm text-muted-foreground text-center">
                         {user.lastLoginAt
-                          ? new Date(user.lastLoginAt).toLocaleDateString()
-                          : 'Never'}
+                          ? new Date(user.lastLoginAt).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE')
+                          : t('common.never')}
                       </td>
                       <td className="px-6 py-4 text-end">
                         <div className="flex items-center justify-end gap-1">
@@ -355,7 +401,7 @@ export default function UsersPage() {
                   variant="outline"
                   size="sm"
                 >
-                  <ChevronLeft className="size-4 me-1" />
+                  <ChevronLeft className="size-4 me-1 rtl:-scale-x-100" />
                   {t('common.previous')}
                 </Button>
                 <div className="flex items-center gap-1 px-2">
@@ -370,7 +416,7 @@ export default function UsersPage() {
                   size="sm"
                 >
                   {t('common.next')}
-                  <ChevronRight className="size-4 ms-1" />
+                  <ChevronRight className="size-4 ms-1 rtl:-scale-x-100" />
                 </Button>
               </div>
             </div>

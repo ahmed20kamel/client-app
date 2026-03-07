@@ -16,7 +16,10 @@ import {
   Clock,
   User,
   Eye,
+  ShieldCheck,
 } from 'lucide-react';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
+import { PageHeader } from '@/components/PageHeader';
 
 interface InternalTask {
   id: string;
@@ -158,24 +161,22 @@ export default function ApprovalsPage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('approvals.title')}</h1>
-          <p className="text-muted-foreground mt-1">{t('approvals.subtitle')}</p>
-        </div>
-        {tasks.length > 0 && (
-          <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700 px-3 py-1 text-sm">
-            {t('approvals.pendingCount', { count: tasks.length })}
-          </Badge>
-        )}
-      </div>
+      <PageHeader
+        title={t('approvals.title')}
+        icon={ShieldCheck}
+        subtitle={t('approvals.subtitle')}
+        actions={
+          tasks.length > 0 ? (
+            <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700 px-3 py-1 text-sm">
+              {t('approvals.pendingCount', { count: tasks.length })}
+            </Badge>
+          ) : undefined
+        }
+      />
 
       {/* Content */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-16">
-          <Loader2 className="size-8 animate-spin text-primary" />
-          <p className="text-muted-foreground mt-3">{t('common.loading')}</p>
-        </div>
+        <TableSkeleton rows={4} columns={5} />
       ) : tasks.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
           <AlertCircle className="size-12 mb-4 text-muted-foreground/40" />
@@ -251,7 +252,7 @@ export default function ApprovalsPage() {
                     </Link>
                     <Button
                       size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      className="bg-success hover:bg-success/90 text-white"
                       onClick={() => handleApprove(task.id)}
                       disabled={processingId === task.id}
                     >

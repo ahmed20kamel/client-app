@@ -1,46 +1,68 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createCustomerSchema, CreateCustomerInput, STATUS_PROBABILITY_MAP, LeadStatus } from '@/lib/validations/customer';
+import { createCustomerSchema, CreateCustomerInput } from '@/lib/validations/customer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
+import { FileUploadZone } from '@/components/FileUploadZone';
+import { PhoneInput } from '@/components/PhoneInput';
+import { EmiratesIdInput } from '@/components/EmiratesIdInput';
+import { CustomerAutocomplete } from '@/components/CustomerAutocomplete';
 import {
   User,
   Building2,
   Phone,
   Mail,
   MapPin,
-  Briefcase,
-  DollarSign,
-  TrendingUp,
   Calendar,
   FileText,
   ArrowLeft,
   Save,
   Loader2,
-  Target,
-  Percent,
-  CreditCard,
-  Ruler,
-  Megaphone,
   UserCheck,
   Hash,
+  Briefcase,
+  Target,
+  Ruler,
+  DollarSign,
+  Percent,
+  CreditCard,
+  Megaphone,
+  TrendingUp,
+  Paperclip,
+  FolderOpen,
+  FileSpreadsheet,
+  Languages,
+  UserPlus,
 } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
 
 interface SystemUser {
   id: string;
   fullName: string;
 }
+
+type LeadStatus = 'NEW_INQUIRY' | 'QUOTATION_SENT' | 'TECHNICAL_DISCUSSION' | 'NEGOTIATION' | 'FINAL_OFFER' | 'VERBAL_APPROVAL' | 'WON' | 'LOST';
+
+const STATUS_PROBABILITY_MAP: Record<LeadStatus, number> = {
+  NEW_INQUIRY: 10,
+  QUOTATION_SENT: 30,
+  TECHNICAL_DISCUSSION: 50,
+  NEGOTIATION: 70,
+  FINAL_OFFER: 85,
+  VERBAL_APPROVAL: 95,
+  WON: 100,
+  LOST: 0,
+};
 
 export default function CreateCustomerPage() {
   const t = useTranslations();
@@ -49,6 +71,11 @@ export default function CreateCustomerPage() {
   const locale = params.locale as string;
   const [isLoading, setIsLoading] = useState(false);
   const [users, setUsers] = useState<SystemUser[]>([]);
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState('basic');
+
+  // Generate a stable temp session ID for uploading attachments before customer is saved
+  const tempSessionId = useMemo(() => `temp_${crypto.randomUUID()}`, []);
 
   useEffect(() => {
     fetch('/api/users?limit=1000')
@@ -57,14 +84,22 @@ export default function CreateCustomerPage() {
       .catch(() => {});
   }, []);
 
+  const fetchAttachments = () => {
+    fetch(`/api/attachments/temp?sessionId=${tempSessionId}`)
+      .then(res => res.json())
+      .then(data => setAttachments(data.data || []))
+      .catch(() => {});
+  };
+
   const form = useForm<CreateCustomerInput>({
     resolver: zodResolver(createCustomerSchema),
     defaultValues: {
       status: 'NEW_INQUIRY',
-      customerType: 'TYPE_A',
+      customerType: 'NEW',
       probability: 10,
       fullName: '',
-      phone: '',
+      fullNameAr: '',
+      phone: '+971',
       email: '',
       company: '',
       contactPerson: '',
@@ -81,10 +116,30 @@ export default function CreateCustomerPage() {
     },
   });
 
+  const handleExistingCustomerSelect = (customer: any) => {
+    form.setValue('fullName', customer.fullName);
+    form.setValue('fullNameAr', customer.fullNameAr || '');
+    form.setValue('phone', customer.phone || '+971');
+    form.setValue('email', customer.email || '');
+    form.setValue('company', customer.company || '');
+    form.setValue('contactPerson', customer.contactPerson || '');
+    form.setValue('nationalId', customer.nationalId || '');
+    form.setValue('customerType', 'EXISTING');
+    form.setValue('emirate', customer.emirate || '');
+    form.setValue('projectType', customer.projectType || '');
+    form.setValue('productType', customer.productType || '');
+    form.setValue('leadSource', customer.leadSource || '');
+    form.setValue('consultant', customer.consultant || '');
+    form.setValue('paymentTerms', customer.paymentTerms || '');
+    if (customer.estimatedValue) form.setValue('estimatedValue', customer.estimatedValue);
+    if (customer.probability) form.setValue('probability', customer.probability);
+    if (customer.projectSize) form.setValue('projectSize', customer.projectSize);
+    toast.success(t('customers.customerDataLoaded'));
+  };
+
   const watchEstimatedValue = form.watch('estimatedValue');
   const watchProbability = form.watch('probability');
-
-  const weightedValue = (watchEstimatedValue || 0) * (watchProbability || 0) / 100;
+  const weightedValue = (Number(watchEstimatedValue) || 0) * (Number(watchProbability) || 0) / 100;
 
   const onSubmit = async (data: CreateCustomerInput) => {
     setIsLoading(true);
@@ -108,8 +163,19 @@ export default function CreateCustomerPage() {
         return;
       }
 
+      const { data: customer } = await response.json();
+
+      // Link any uploaded temp attachments to the new customer
+      if (attachments.length > 0) {
+        await fetch('/api/attachments/link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tempSessionId, customerId: customer.id }),
+        });
+      }
+
       toast.success(t('messages.createSuccess', { entity: t('customers.title') }));
-      router.push(`/${locale}/customers`);
+      router.push(`/${locale}/customers/${customer.id}`);
     } catch (error) {
       toast.error(t('common.error'));
     } finally {
@@ -120,57 +186,24 @@ export default function CreateCustomerPage() {
   return (
     <div className="max-w-5xl mx-auto animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 lg:mb-8">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('customers.create')}</h1>
-          <p className="text-muted-foreground mt-1">{t('customers.basicInfo')}</p>
-        </div>
-        <Button
-          variant="outline"
-          onClick={() => router.push(`/${locale}/customers`)}
-        >
-          <ArrowLeft className="size-4 me-2" />
-          {t('common.back')}
-        </Button>
-      </div>
-
-      {/* Weighted Value Summary Card */}
-      <Card className="mb-6 border-primary/20 shadow-premium">
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-primary/10">
-                <TrendingUp className="size-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t('customers.weightedValue')}</p>
-                <p className="text-2xl font-bold text-primary">
-                  AED {weightedValue.toLocaleString()}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-6">
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground">{t('customers.estimatedValue')}</p>
-                <p className="text-lg font-semibold">
-                  AED {(watchEstimatedValue || 0).toLocaleString()}
-                </p>
-              </div>
-              <div className="text-2xl text-muted-foreground/40 font-light">&times;</div>
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground">{t('customers.probability')}</p>
-                <Badge variant="secondary" className="text-base px-3 py-0.5">
-                  {watchProbability || 0}%
-                </Badge>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <PageHeader
+        icon={UserPlus}
+        title={t('customers.create')}
+        subtitle={t('customers.details')}
+        actions={
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/${locale}/customers`)}
+          >
+            <ArrowLeft className="size-4 me-2 rtl:-scale-x-100" />
+            {t('common.back')}
+          </Button>
+        }
+      />
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <Tabs defaultValue="basic" className="space-y-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="w-full justify-start" variant="line">
               <TabsTrigger value="basic">
                 <User className="size-4 me-1.5" />
@@ -188,33 +221,67 @@ export default function CreateCustomerPage() {
                 <Calendar className="size-4 me-1.5" />
                 {t('customers.followUpInfo')}
               </TabsTrigger>
+              <TabsTrigger value="attachments">
+                <Paperclip className="size-4 me-1.5" />
+                {t('attachments.title')}
+                {attachments.length > 0 && (
+                  <span className="ms-1.5 px-1.5 py-0.5 text-xs bg-primary/10 text-primary rounded-full">
+                    {attachments.length}
+                  </span>
+                )}
+              </TabsTrigger>
             </TabsList>
 
             {/* === Basic Information Tab === */}
             <TabsContent value="basic">
               <Card className="shadow-premium">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="size-5 text-primary" />
-                    {t('customers.basicInfo')}
-                  </CardTitle>
-                  <CardDescription>
-                    {t('customers.fullName')} &amp; {t('common.phone')}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Full Name */}
+                    {/* Full Name (English) - with autocomplete */}
                     <FormField
                       control={form.control}
                       name="fullName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('customers.fullName')} *</FormLabel>
+                          <FormLabel>{t('customers.fullNameEn')} *</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <User className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                              <Input {...field} disabled={isLoading} className="ps-10" placeholder={t('customers.fullName')} />
+                              <User className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground z-10" />
+                              <CustomerAutocomplete
+                                value={field.value}
+                                onChange={field.onChange}
+                                onSelect={handleExistingCustomerSelect}
+                                disabled={isLoading}
+                                className="ps-10"
+                                placeholder="Customer Name"
+                                dir="ltr"
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Full Name (Arabic) - with autocomplete */}
+                    <FormField
+                      control={form.control}
+                      name="fullNameAr"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('customers.fullNameAr')}</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Languages className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground z-10" />
+                              <CustomerAutocomplete
+                                value={field.value || ''}
+                                onChange={field.onChange}
+                                onSelect={handleExistingCustomerSelect}
+                                disabled={isLoading}
+                                className="ps-10"
+                                placeholder="اسم العميل"
+                                dir="rtl"
+                              />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -279,7 +346,12 @@ export default function CreateCustomerPage() {
                           <FormControl>
                             <div className="relative">
                               <Phone className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                              <Input {...field} disabled={isLoading} className="ps-10" placeholder="+971" />
+                              <PhoneInput
+                                value={field.value}
+                                onChange={field.onChange}
+                                disabled={isLoading}
+                                className="ps-10"
+                              />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -305,7 +377,7 @@ export default function CreateCustomerPage() {
                       )}
                     />
 
-                    {/* National ID */}
+                    {/* National ID (Emirates ID) */}
                     <FormField
                       control={form.control}
                       name="nationalId"
@@ -315,7 +387,12 @@ export default function CreateCustomerPage() {
                           <FormControl>
                             <div className="relative">
                               <Hash className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                              <Input {...field} value={field.value || ''} disabled={isLoading} className="ps-10" placeholder={t('customers.nationalId')} />
+                              <EmiratesIdInput
+                                value={field.value || ''}
+                                onChange={field.onChange}
+                                disabled={isLoading}
+                                className="ps-10"
+                              />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -369,9 +446,8 @@ export default function CreateCustomerPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="TYPE_A">{t('customers.typeA')}</SelectItem>
-                              <SelectItem value="TYPE_B">{t('customers.typeB')}</SelectItem>
-                              <SelectItem value="TYPE_C">{t('customers.typeC')}</SelectItem>
+                              <SelectItem value="NEW">{t('customers.typeNew')}</SelectItem>
+                              <SelectItem value="EXISTING">{t('customers.typeExisting')}</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -391,9 +467,6 @@ export default function CreateCustomerPage() {
                     <Briefcase className="size-5 text-primary" />
                     {t('customers.projectDetails')}
                   </CardTitle>
-                  <CardDescription>
-                    {t('customers.projectType')} &amp; {t('customers.productType')}
-                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -510,7 +583,7 @@ export default function CreateCustomerPage() {
                     {t('customers.leadInfo')}
                   </CardTitle>
                   <CardDescription>
-                    {t('customers.leadSource')} &amp; {t('customers.estimatedValue')}
+                    {t('customers.leadSource')} {locale === 'ar' ? 'و' : '&'} {t('customers.estimatedValue')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -602,7 +675,7 @@ export default function CreateCustomerPage() {
                                 onChange={e => field.onChange(e.target.value ? Number(e.target.value) : null)}
                                 disabled={isLoading}
                                 className="ps-10"
-                                placeholder="AED"
+                                placeholder={t('common.currency')}
                               />
                             </div>
                           </FormControl>
@@ -642,10 +715,10 @@ export default function CreateCustomerPage() {
                     {/* Weighted Value (calculated) */}
                     <div className="space-y-2">
                       <label className="text-sm font-medium">{t('customers.weightedValue')}</label>
-                      <div className="flex items-center gap-2 h-9 px-3 rounded-md border bg-muted/50">
-                        <TrendingUp className="size-4 text-green-600" />
-                        <span className="font-semibold text-green-600">
-                          AED {weightedValue.toLocaleString()}
+                      <div className="flex items-center gap-2 h-10 px-3 rounded-lg border bg-muted/50">
+                        <TrendingUp className="size-4 text-success" />
+                        <span className="font-semibold text-success">
+                          {t('common.currency')} {weightedValue.toLocaleString()}
                         </span>
                       </div>
                     </div>
@@ -676,16 +749,7 @@ export default function CreateCustomerPage() {
             <TabsContent value="followup">
               <div className="space-y-6">
                 <Card className="shadow-premium">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="size-5 text-primary" />
-                      {t('customers.followUpInfo')}
-                    </CardTitle>
-                    <CardDescription>
-                      {t('customers.lastFollowUp')} &amp; {t('customers.nextFollowUp')}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Last Follow-Up */}
                       <FormField
@@ -758,10 +822,91 @@ export default function CreateCustomerPage() {
                 </Card>
               </div>
             </TabsContent>
+
+            {/* === Attachments Tab === */}
+            <TabsContent value="attachments">
+              <div className="space-y-4">
+                {/* Client Documents & Quotations side by side */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card className="shadow-premium">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <FileText className="size-4 text-primary" />
+                        {t('attachments.clientDocs')}
+                      </CardTitle>
+                      <CardDescription className="text-xs">{t('attachments.clientDocsDesc')}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <FileUploadZone
+                        tempSessionId={tempSessionId}
+                        category="CLIENT_DOCS"
+                        attachments={attachments}
+                        onUploadComplete={fetchAttachments}
+                      />
+                    </CardContent>
+                  </Card>
+
+                  <Card className="shadow-premium">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <FileSpreadsheet className="size-4 text-success" />
+                        {t('attachments.quotations')}
+                      </CardTitle>
+                      <CardDescription className="text-xs">{t('attachments.quotationsDesc')}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <FileUploadZone
+                        tempSessionId={tempSessionId}
+                        category="QUOTATIONS"
+                        attachments={attachments}
+                        onUploadComplete={fetchAttachments}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Drawings & Plans */}
+                <Card className="shadow-premium">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <FolderOpen className="size-4 text-info" />
+                      {t('attachments.drawings')}
+                    </CardTitle>
+                    <CardDescription className="text-xs">{t('attachments.drawingsDesc')}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                      {[
+                        { key: 'ARCHITECTURAL', label: t('attachments.subcategories.architectural') },
+                        { key: 'STRUCTURAL', label: t('attachments.subcategories.structural') },
+                        { key: 'HVAC', label: t('attachments.subcategories.hvac') },
+                        { key: 'ELECTRICAL', label: t('attachments.subcategories.electrical') },
+                        { key: 'PLUMBING', label: t('attachments.subcategories.plumbing') },
+                        { key: 'LANDSCAPE', label: t('attachments.subcategories.landscape') },
+                        { key: 'SHOP_DRAWING', label: t('attachments.subcategories.shopDrawing') },
+                        { key: 'OTHER_DRAWING', label: t('attachments.subcategories.otherDrawing') },
+                      ].map(sub => (
+                        <div key={sub.key}>
+                          <h4 className="text-xs font-semibold text-foreground mb-1.5">{sub.label}</h4>
+                          <FileUploadZone
+                            tempSessionId={tempSessionId}
+                            category="DRAWINGS"
+                            subcategory={sub.key}
+                            attachments={attachments}
+                            onUploadComplete={fetchAttachments}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+              </div>
+            </TabsContent>
           </Tabs>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t">
+          <div className="flex items-center justify-end gap-3 mt-8 pt-6 border-t">
             <Button
               type="button"
               variant="outline"
@@ -771,17 +916,17 @@ export default function CreateCustomerPage() {
               {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={isLoading} className="min-w-[140px] btn-premium">
-              {isLoading ? (
-                <>
-                  <Loader2 className="size-4 me-2 animate-spin" />
-                  {t('common.loading')}
-                </>
-              ) : (
-                <>
-                  <Save className="size-4 me-2" />
-                  {t('common.create')}
-                </>
-              )}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="size-4 me-2 animate-spin" />
+                    {t('common.loading')}
+                  </>
+                ) : (
+                  <>
+                    <Save className="size-4 me-2" />
+                    {t('common.create')}
+                  </>
+                )}
             </Button>
           </div>
         </form>

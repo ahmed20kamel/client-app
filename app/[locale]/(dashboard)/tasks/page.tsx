@@ -15,6 +15,7 @@ import {
   Search,
   Eye,
   CheckCircle2,
+  CheckSquare,
   Loader2,
   AlertCircle,
   ChevronLeft,
@@ -23,6 +24,8 @@ import {
   AlertTriangle,
   Clock,
 } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
 
 interface Task {
   id: string;
@@ -202,20 +205,19 @@ export default function TasksPage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('tasks.title')}</h1>
-          <p className="text-muted-foreground mt-1">
-            {meta.total} {t('common.results')}
-          </p>
-        </div>
-        <Link href={`/${locale}/tasks/new`}>
-          <Button className="btn-premium">
-            <Plus className="size-4" />
-            {t('tasks.create')}
-          </Button>
-        </Link>
-      </div>
+      <PageHeader
+        title={t('tasks.title')}
+        subtitle={`${meta.total} ${t('common.results')}`}
+        icon={CheckSquare}
+        actions={
+          <Link href={`/${locale}/tasks/new`}>
+            <Button className="btn-premium">
+              <Plus className="size-4" />
+              {t('tasks.create')}
+            </Button>
+          </Link>
+        }
+      />
 
       {/* Filters */}
       <Card className="shadow-premium mb-6">
@@ -292,10 +294,7 @@ export default function TasksPage() {
 
       {/* Table */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-16">
-          <Loader2 className="size-8 animate-spin text-primary" />
-          <p className="text-muted-foreground mt-3">{t('common.loading')}</p>
-        </div>
+        <TableSkeleton rows={6} columns={6} />
       ) : tasks.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
           <AlertCircle className="size-12 mb-4 text-muted-foreground/40" />
@@ -303,7 +302,61 @@ export default function TasksPage() {
         </div>
       ) : (
         <>
-          <Card className="shadow-premium overflow-hidden">
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-3">
+            {tasks.map((task) => (
+              <Card key={task.id} className="shadow-premium">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        {task.escalationLevel > 0 && (
+                          <AlertTriangle className={`size-3.5 shrink-0 ${task.escalationLevel === 2 ? 'text-destructive' : 'text-warning'}`} />
+                        )}
+                        <Link href={`/${locale}/tasks/${task.id}`} className="text-sm font-semibold text-primary hover:underline truncate">
+                          {task.title}
+                        </Link>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">{task.customer.fullName}</p>
+                    </div>
+                    <Badge variant="outline" className={`${STATUS_CONFIG[task.status]?.bg} ${STATUS_CONFIG[task.status]?.color} border shrink-0 text-[10px]`}>
+                      {t(`tasks.status${task.status.charAt(0) + task.status.slice(1).toLowerCase()}`)}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mb-3">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="size-3 shrink-0" />
+                      <span className={task.status === 'OVERDUE' ? 'text-destructive font-medium' : ''}>{formatDate(task.dueAt)}</span>
+                    </div>
+                    <div className="truncate">{task.assignedTo.fullName}</div>
+                    <Badge variant="outline" className={`${PRIORITY_CONFIG[task.priority]?.bg} ${PRIORITY_CONFIG[task.priority]?.color} border text-[10px] w-fit`}>
+                      {t(`tasks.priority${task.priority.charAt(0) + task.priority.slice(1).toLowerCase()}`)}
+                    </Badge>
+                    {task.category && (
+                      <span className="text-[10px] truncate" style={{ color: task.category.color }}>
+                        {locale === 'ar' && task.category.nameAr ? task.category.nameAr : task.category.name}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-end gap-1 border-t pt-2">
+                    {(task.status === 'OPEN' || task.status === 'OVERDUE') && (
+                      <Button variant="ghost" size="icon" className="size-11 text-success" onClick={() => handleMarkAsDone(task.id)}>
+                        <CheckCircle2 className="size-4" />
+                      </Button>
+                    )}
+                    <Link href={`/${locale}/tasks/${task.id}`}>
+                      <Button variant="ghost" size="icon" className="size-11 text-muted-foreground hover:text-primary">
+                        <Eye className="size-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop Table */}
+          <Card className="shadow-premium overflow-hidden hidden md:block">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -311,19 +364,19 @@ export default function TasksPage() {
                     <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {t('tasks.taskTitle')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-6 py-3.5 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {t('tasks.customer')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-6 py-3.5 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {t('tasks.assignedTo')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-6 py-3.5 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {t('tasks.priority')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-6 py-3.5 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {t('common.status')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-6 py-3.5 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {t('tasks.dueDate')}
                     </th>
                     <th className="px-6 py-3.5 text-end text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -367,7 +420,7 @@ export default function TasksPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
                         <Link
                           href={`/${locale}/customers/${task.customer.id}`}
                           className="text-sm text-primary hover:underline"
@@ -375,15 +428,15 @@ export default function TasksPage() {
                           {task.customer.fullName}
                         </Link>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-foreground">
                         {task.assignedTo.fullName}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
                         <Badge variant="outline" className={`${PRIORITY_CONFIG[task.priority]?.bg} ${PRIORITY_CONFIG[task.priority]?.color} border`}>
                           {t(`tasks.priority${task.priority.charAt(0) + task.priority.slice(1).toLowerCase()}`)}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
                         <Badge variant="outline" className={`${STATUS_CONFIG[task.status]?.bg} ${STATUS_CONFIG[task.status]?.color} border`}>
                           {t(`tasks.status${task.status.charAt(0) + task.status.slice(1).toLowerCase()}`)}
                         </Badge>
@@ -393,10 +446,10 @@ export default function TasksPage() {
                           </Badge>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5 text-sm">
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center gap-1.5 text-sm">
                           <Clock className="size-3.5 text-muted-foreground" />
-                          <span className={task.status === 'OVERDUE' ? 'text-red-600 font-medium' : 'text-foreground'}>
+                          <span className={task.status === 'OVERDUE' ? 'text-destructive font-medium' : 'text-foreground'}>
                             {formatDate(task.dueAt)}
                           </span>
                         </div>
@@ -408,7 +461,7 @@ export default function TasksPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleMarkAsDone(task.id)}
-                              className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                              className="text-success hover:text-success/80 hover:bg-success/10"
                             >
                               <CheckCircle2 className="size-4" />
                             </Button>
@@ -440,7 +493,7 @@ export default function TasksPage() {
                   variant="outline"
                   size="sm"
                 >
-                  <ChevronLeft className="size-4" />
+                  <ChevronLeft className="size-4 rtl:-scale-x-100" />
                   {t('common.previous')}
                 </Button>
                 <Button
@@ -450,7 +503,7 @@ export default function TasksPage() {
                   size="sm"
                 >
                   {t('common.next')}
-                  <ChevronRight className="size-4" />
+                  <ChevronRight className="size-4 rtl:-scale-x-100" />
                 </Button>
               </div>
             </div>

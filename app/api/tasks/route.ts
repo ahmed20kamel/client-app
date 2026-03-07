@@ -74,15 +74,6 @@ export async function GET(request: NextRequest) {
       where.escalationLevel = parseInt(escalationLevel);
     }
 
-    // Update overdue tasks
-    await prisma.task.updateMany({
-      where: {
-        status: 'OPEN',
-        dueAt: { lt: new Date() },
-      },
-      data: { status: 'OVERDUE' },
-    });
-
     // Get tasks with pagination
     const [tasks, total] = await Promise.all([
       prisma.task.findMany({

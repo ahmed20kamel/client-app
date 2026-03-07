@@ -28,6 +28,9 @@ import {
   CheckSquare,
   UserCog,
 } from 'lucide-react';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
+import { PageHeader } from '@/components/PageHeader';
+import { DualLanguageName } from '@/components/DualLanguageName';
 
 interface Department {
   id: string;
@@ -126,20 +129,19 @@ export default function DepartmentsPage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 lg:mb-8">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('departments.title')}</h1>
-          <p className="text-muted-foreground mt-1">
-            {departments.length} {t('departments.title')}
-          </p>
-        </div>
-        <Link href={`/${locale}/departments/new`}>
-          <Button className="btn-premium">
-            <Plus className="size-4 me-2" />
-            {t('departments.create')}
-          </Button>
-        </Link>
-      </div>
+      <PageHeader
+        title={t('departments.title')}
+        subtitle={`${departments.length} ${t('departments.title')}`}
+        icon={Building2}
+        actions={
+          <Link href={`/${locale}/departments/new`}>
+            <Button className="btn-premium">
+              <Plus className="size-4 me-2" />
+              {t('departments.create')}
+            </Button>
+          </Link>
+        }
+      />
 
       {/* Search */}
       <Card className="shadow-premium mb-6">
@@ -191,11 +193,7 @@ export default function DepartmentsPage() {
 
       {/* Table */}
       {loading ? (
-        <Card className="shadow-premium">
-          <CardContent className="flex items-center justify-center py-16">
-            <Loader2 className="size-8 animate-spin text-primary" />
-          </CardContent>
-        </Card>
+        <TableSkeleton rows={4} columns={5} />
       ) : filteredDepartments.length === 0 ? (
         <Card className="shadow-premium">
           <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -204,7 +202,56 @@ export default function DepartmentsPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="shadow-premium overflow-hidden">
+        <>
+        {/* Mobile Cards */}
+        <div className="md:hidden space-y-3">
+          {filteredDepartments.map((dept) => (
+            <Card key={dept.id} className="shadow-premium">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1 min-w-0">
+                    <DualLanguageName name={getDeptName(dept)} nameAr={locale === 'ar' ? dept.name : dept.nameAr} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mb-3">
+                  {dept.manager && (
+                    <div className="flex items-center gap-1.5">
+                      <UserCog className="size-3 shrink-0" />
+                      <span className="truncate">{dept.manager.fullName}</span>
+                    </div>
+                  )}
+                  {dept.parent && (
+                    <div className="flex items-center gap-1.5">
+                      <Building2 className="size-3 shrink-0" />
+                      <span className="truncate">{getDeptName(dept.parent)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1.5">
+                    <Users className="size-3 shrink-0" />
+                    <span>{dept._count.users} {t('departments.members')}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CheckSquare className="size-3 shrink-0" />
+                    <span>{dept._count.tasks} {t('tasks.title')}</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-1 border-t pt-2">
+                  <Link href={`/${locale}/departments/${dept.id}/edit`}>
+                    <Button variant="ghost" size="icon" className="size-11 text-muted-foreground hover:text-primary">
+                      <Pencil className="size-4" />
+                    </Button>
+                  </Link>
+                  <Button variant="ghost" size="icon" className="size-11 text-muted-foreground hover:text-destructive" onClick={() => setDeleteTarget(dept.id)}>
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Desktop Table */}
+        <Card className="shadow-premium overflow-hidden hidden md:block">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -218,23 +265,23 @@ export default function DepartmentsPage() {
                       {t('departments.name')}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     {t('departments.parent')}
                   </th>
-                  <th className="px-6 py-3 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    <div className="flex items-center gap-1">
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <div className="flex items-center justify-center gap-1">
                       <UserCog className="size-3" />
                       {t('departments.manager')}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    <div className="flex items-center gap-1">
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <div className="flex items-center justify-center gap-1">
                       <Users className="size-3" />
                       {t('departments.members')}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    <div className="flex items-center gap-1">
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <div className="flex items-center justify-center gap-1">
                       <CheckSquare className="size-3" />
                       {t('tasks.title')}
                     </div>
@@ -251,26 +298,18 @@ export default function DepartmentsPage() {
                       <Checkbox checked={isSelected(dept.id)} onCheckedChange={() => toggleOne(dept.id)} />
                     </td>
                     <td className="px-6 py-4">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{getDeptName(dept)}</p>
-                        {locale === 'ar' && dept.name && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{dept.name}</p>
-                        )}
-                        {locale !== 'ar' && dept.nameAr && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{dept.nameAr}</p>
-                        )}
-                      </div>
+                      <DualLanguageName name={getDeptName(dept)} nameAr={locale === 'ar' ? dept.name : dept.nameAr} />
                     </td>
-                    <td className="px-6 py-4 text-sm text-foreground">
+                    <td className="px-6 py-4 text-center text-sm text-foreground">
                       {dept.parent ? (
                         getDeptName(dept.parent)
                       ) : (
                         <span className="text-muted-foreground">{t('departments.noParent')}</span>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-center">
                       {dept.manager ? (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-center gap-2">
                           <div className="size-7 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-xs font-semibold shrink-0">
                             {dept.manager.fullName.charAt(0).toUpperCase()}
                           </div>
@@ -280,12 +319,12 @@ export default function DepartmentsPage() {
                         <span className="text-sm text-muted-foreground">-</span>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-center">
                       <Badge variant="secondary" className="bg-primary/10 text-primary font-bold">
                         {dept._count.users}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-center">
                       <Badge variant="secondary">
                         {dept._count.tasks}
                       </Badge>
@@ -320,6 +359,7 @@ export default function DepartmentsPage() {
             </table>
           </div>
         </Card>
+        </>
       )}
     </div>
   );

@@ -35,7 +35,15 @@ import {
   Megaphone,
   UserCheck,
   Hash,
+  Languages,
+  UserCog,
 } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
+import { PageSkeleton, DetailSkeleton } from '@/components/ui/page-skeleton';
+import { FileUploadZone } from '@/components/FileUploadZone';
+import { PhoneInput } from '@/components/PhoneInput';
+import { EmiratesIdInput } from '@/components/EmiratesIdInput';
+import { Paperclip, FolderOpen, FileSpreadsheet } from 'lucide-react';
 
 interface SystemUser {
   id: string;
@@ -51,6 +59,7 @@ export default function EditCustomerPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [users, setUsers] = useState<SystemUser[]>([]);
+  const [attachments, setAttachments] = useState<any[]>([]);
 
   useEffect(() => {
     fetch('/api/users?limit=1000')
@@ -58,6 +67,17 @@ export default function EditCustomerPage() {
       .then((data) => setUsers(data.data))
       .catch(() => {});
   }, []);
+
+  const fetchAttachments = () => {
+    fetch(`/api/customers/${id}/attachments`)
+      .then(res => res.json())
+      .then(data => setAttachments(data.data || []))
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchAttachments();
+  }, [id]);
 
   const form = useForm<UpdateCustomerInput>({
     resolver: zodResolver(updateCustomerSchema),
@@ -83,6 +103,7 @@ export default function EditCustomerPage() {
         const { data } = await response.json();
         form.reset({
           fullName: data.fullName,
+          fullNameAr: data.fullNameAr || '',
           phone: data.phone,
           email: data.email || '',
           company: data.company || '',
@@ -146,31 +167,26 @@ export default function EditCustomerPage() {
   };
 
   if (isFetching) {
-    return (
-      <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="size-8 animate-spin text-primary" />
-        </div>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   return (
     <div className="max-w-5xl mx-auto animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 lg:mb-8">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('customers.edit')}</h1>
-          <p className="text-muted-foreground mt-1">{form.getValues('fullName')}</p>
-        </div>
-        <Button
-          variant="outline"
-          onClick={() => router.push(`/${locale}/customers/${id}`)}
-        >
-          <ArrowLeft className="size-4 me-2" />
-          {t('common.back')}
-        </Button>
-      </div>
+      <PageHeader
+        icon={UserCog}
+        title={t('customers.edit')}
+        subtitle={form.getValues('fullName')}
+        actions={
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/${locale}/customers/${id}`)}
+          >
+            <ArrowLeft className="size-4 me-2 rtl:-scale-x-100" />
+            {t('common.back')}
+          </Button>
+        }
+      />
 
       {/* Weighted Value Summary Card */}
       <Card className="mb-6 border-primary/20 shadow-premium">
@@ -183,7 +199,7 @@ export default function EditCustomerPage() {
               <div>
                 <p className="text-sm text-muted-foreground">{t('customers.weightedValue')}</p>
                 <p className="text-2xl font-bold text-primary">
-                  AED {weightedValue.toLocaleString()}
+                  {t('common.currency')} {weightedValue.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -191,7 +207,7 @@ export default function EditCustomerPage() {
               <div className="text-center">
                 <p className="text-xs text-muted-foreground">{t('customers.estimatedValue')}</p>
                 <p className="text-lg font-semibold">
-                  AED {(watchEstimatedValue || 0).toLocaleString()}
+                  {t('common.currency')} {(watchEstimatedValue || 0).toLocaleString()}
                 </p>
               </div>
               <div className="text-2xl text-muted-foreground/40 font-light">&times;</div>
@@ -226,6 +242,15 @@ export default function EditCustomerPage() {
                 <Calendar className="size-4 me-1.5" />
                 {t('customers.followUpInfo')}
               </TabsTrigger>
+              <TabsTrigger value="attachments">
+                <Paperclip className="size-4 me-1.5" />
+                {t('attachments.title')}
+                {attachments.length > 0 && (
+                  <span className="ms-1.5 px-1.5 py-0.5 text-xs bg-primary/10 text-primary rounded-full">
+                    {attachments.length}
+                  </span>
+                )}
+              </TabsTrigger>
             </TabsList>
 
             {/* === Basic Information Tab === */}
@@ -237,22 +262,40 @@ export default function EditCustomerPage() {
                     {t('customers.basicInfo')}
                   </CardTitle>
                   <CardDescription>
-                    {t('customers.fullName')} &amp; {t('common.phone')}
+                    {t('customers.fullName')} {locale === 'ar' ? 'و' : '&'} {t('common.phone')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Full Name */}
+                    {/* Full Name (English) */}
                     <FormField
                       control={form.control}
                       name="fullName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('customers.fullName')} *</FormLabel>
+                          <FormLabel>{t('customers.fullNameEn')} *</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <User className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                              <Input {...field} disabled={isLoading} className="ps-10" placeholder={t('customers.fullName')} />
+                              <Input {...field} disabled={isLoading} className="ps-10" placeholder="Customer Name" dir="ltr" />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Full Name (Arabic) */}
+                    <FormField
+                      control={form.control}
+                      name="fullNameAr"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('customers.fullNameAr')}</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Languages className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                              <Input {...field} value={field.value || ''} disabled={isLoading} className="ps-10" placeholder="اسم العميل" dir="rtl" />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -317,7 +360,12 @@ export default function EditCustomerPage() {
                           <FormControl>
                             <div className="relative">
                               <Phone className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                              <Input {...field} disabled={isLoading} className="ps-10" placeholder="+971" />
+                              <PhoneInput
+                                value={field.value || ''}
+                                onChange={field.onChange}
+                                disabled={isLoading}
+                                className="ps-10"
+                              />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -343,7 +391,7 @@ export default function EditCustomerPage() {
                       )}
                     />
 
-                    {/* National ID */}
+                    {/* National ID (Emirates ID) */}
                     <FormField
                       control={form.control}
                       name="nationalId"
@@ -353,7 +401,12 @@ export default function EditCustomerPage() {
                           <FormControl>
                             <div className="relative">
                               <Hash className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                              <Input {...field} value={field.value || ''} disabled={isLoading} className="ps-10" placeholder={t('customers.nationalId')} />
+                              <EmiratesIdInput
+                                value={field.value || ''}
+                                onChange={field.onChange}
+                                disabled={isLoading}
+                                className="ps-10"
+                              />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -407,9 +460,8 @@ export default function EditCustomerPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="TYPE_A">{t('customers.typeA')}</SelectItem>
-                              <SelectItem value="TYPE_B">{t('customers.typeB')}</SelectItem>
-                              <SelectItem value="TYPE_C">{t('customers.typeC')}</SelectItem>
+                              <SelectItem value="NEW">{t('customers.typeNew')}</SelectItem>
+                              <SelectItem value="EXISTING">{t('customers.typeExisting')}</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -430,7 +482,7 @@ export default function EditCustomerPage() {
                     {t('customers.projectDetails')}
                   </CardTitle>
                   <CardDescription>
-                    {t('customers.projectType')} &amp; {t('customers.productType')}
+                    {t('customers.projectType')} {locale === 'ar' ? 'و' : '&'} {t('customers.productType')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -548,7 +600,7 @@ export default function EditCustomerPage() {
                     {t('customers.leadInfo')}
                   </CardTitle>
                   <CardDescription>
-                    {t('customers.leadSource')} &amp; {t('customers.estimatedValue')}
+                    {t('customers.leadSource')} {locale === 'ar' ? 'و' : '&'} {t('customers.estimatedValue')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -640,7 +692,7 @@ export default function EditCustomerPage() {
                                 onChange={e => field.onChange(e.target.value ? Number(e.target.value) : null)}
                                 disabled={isLoading}
                                 className="ps-10"
-                                placeholder="AED"
+                                placeholder={t('common.currency')}
                               />
                             </div>
                           </FormControl>
@@ -681,9 +733,9 @@ export default function EditCustomerPage() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium">{t('customers.weightedValue')}</label>
                       <div className="flex items-center gap-2 h-9 px-3 rounded-md border bg-muted/50">
-                        <TrendingUp className="size-4 text-green-600" />
-                        <span className="font-semibold text-green-600">
-                          AED {weightedValue.toLocaleString()}
+                        <TrendingUp className="size-4 text-success" />
+                        <span className="font-semibold text-success">
+                          {t('common.currency')} {weightedValue.toLocaleString()}
                         </span>
                       </div>
                     </div>
@@ -720,7 +772,7 @@ export default function EditCustomerPage() {
                       {t('customers.followUpInfo')}
                     </CardTitle>
                     <CardDescription>
-                      {t('customers.lastFollowUp')} &amp; {t('customers.nextFollowUp')}
+                      {t('customers.lastFollowUp')} {locale === 'ar' ? 'و' : '&'} {t('customers.nextFollowUp')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -796,10 +848,93 @@ export default function EditCustomerPage() {
                 </Card>
               </div>
             </TabsContent>
+
+            {/* === Attachments Tab === */}
+            <TabsContent value="attachments">
+              <div className="space-y-4">
+                {/* Client Documents & Quotations side by side */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card className="shadow-premium">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <FileText className="size-4 text-primary" />
+                        {t('attachments.clientDocs')}
+                      </CardTitle>
+                      <CardDescription className="text-xs">{t('attachments.clientDocsDesc')}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <FileUploadZone
+                        customerId={id}
+                        category="CLIENT_DOCS"
+                        attachments={attachments}
+                        onUploadComplete={fetchAttachments}
+                        disabled={isLoading}
+                      />
+                    </CardContent>
+                  </Card>
+
+                  <Card className="shadow-premium">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <FileSpreadsheet className="size-4 text-success" />
+                        {t('attachments.quotations')}
+                      </CardTitle>
+                      <CardDescription className="text-xs">{t('attachments.quotationsDesc')}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <FileUploadZone
+                        customerId={id}
+                        category="QUOTATIONS"
+                        attachments={attachments}
+                        onUploadComplete={fetchAttachments}
+                        disabled={isLoading}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Drawings & Plans */}
+                <Card className="shadow-premium">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <FolderOpen className="size-4 text-info" />
+                      {t('attachments.drawings')}
+                    </CardTitle>
+                    <CardDescription className="text-xs">{t('attachments.drawingsDesc')}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                      {[
+                        { key: 'ARCHITECTURAL', label: t('attachments.subcategories.architectural') },
+                        { key: 'STRUCTURAL', label: t('attachments.subcategories.structural') },
+                        { key: 'HVAC', label: t('attachments.subcategories.hvac') },
+                        { key: 'ELECTRICAL', label: t('attachments.subcategories.electrical') },
+                        { key: 'PLUMBING', label: t('attachments.subcategories.plumbing') },
+                        { key: 'LANDSCAPE', label: t('attachments.subcategories.landscape') },
+                        { key: 'SHOP_DRAWING', label: t('attachments.subcategories.shopDrawing') },
+                        { key: 'OTHER_DRAWING', label: t('attachments.subcategories.otherDrawing') },
+                      ].map(sub => (
+                        <div key={sub.key}>
+                          <h4 className="text-xs font-semibold text-foreground mb-1.5">{sub.label}</h4>
+                          <FileUploadZone
+                            customerId={id}
+                            category="DRAWINGS"
+                            subcategory={sub.key}
+                            attachments={attachments}
+                            onUploadComplete={fetchAttachments}
+                            disabled={isLoading}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
           </Tabs>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t">
+          <div className="flex items-center justify-end gap-3 mt-8 pt-6 border-t">
             <Button
               type="button"
               variant="outline"

@@ -23,7 +23,9 @@ import {
   ArrowLeft,
   Save,
   Loader2,
+  UserPlus,
 } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
 
 const createUserSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -118,19 +120,20 @@ export default function CreateUserPage() {
   return (
     <div className="max-w-3xl mx-auto animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 lg:mb-8">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('users.create')}</h1>
-          <p className="text-muted-foreground mt-1">{t('users.title')}</p>
-        </div>
-        <Button
-          variant="outline"
-          onClick={() => router.push(`/${locale}/users`)}
-        >
-          <ArrowLeft className="size-4 me-2" />
-          {t('common.back')}
-        </Button>
-      </div>
+      <PageHeader
+        icon={UserPlus}
+        title={t('users.create')}
+        subtitle={t('users.title')}
+        actions={
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/${locale}/users`)}
+          >
+            <ArrowLeft className="size-4 me-2 rtl:-scale-x-100" />
+            {t('common.back')}
+          </Button>
+        }
+      />
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -142,7 +145,7 @@ export default function CreateUserPage() {
                 {t('users.fullName')}
               </CardTitle>
               <CardDescription>
-                {t('common.email')} &amp; {t('common.phone')}
+                {t('common.email')} {locale === 'ar' ? 'و' : '&'} {t('common.phone')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -227,7 +230,7 @@ export default function CreateUserPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="size-5 text-primary" />
-                {t('users.role')} &amp; {t('auth.password')}
+                {t('users.role')} {locale === 'ar' ? 'و' : '&'} {t('auth.password')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -339,7 +342,7 @@ export default function CreateUserPage() {
           </Card>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-6 border-t">
+          <div className="flex items-center justify-end gap-3 pt-6 border-t">
             <Button
               type="button"
               variant="outline"

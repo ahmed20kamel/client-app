@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/form';
 import { toast } from 'sonner';
 import { Building2, ArrowLeft, Loader2 } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
 import Link from 'next/link';
 import { createDepartmentSchema, type CreateDepartmentInput } from '@/lib/validations/escalation';
 
@@ -104,16 +105,17 @@ export default function NewDepartmentPage() {
   return (
     <div className="animate-fade-in max-w-2xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6 lg:mb-8">
-        <Link href={`/${locale}/departments`}>
-          <Button variant="ghost" size="icon" className="size-10 rounded-xl">
-            <ArrowLeft className="size-5" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('departments.create')}</h1>
-        </div>
-      </div>
+      <PageHeader
+        icon={Building2}
+        title={t('departments.create')}
+        actions={
+          <Link href={`/${locale}/departments`}>
+            <Button variant="ghost" size="icon" className="size-10 rounded-xl">
+              <ArrowLeft className="size-5 rtl:-scale-x-100" />
+            </Button>
+          </Link>
+        }
+      />
 
       {/* Form */}
       <Card className="shadow-premium">
@@ -132,7 +134,7 @@ export default function NewDepartmentPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('departments.name')} (English) *</FormLabel>
+                    <FormLabel>{t('departments.nameEn')} *</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="e.g. Sales" disabled={isLoading} />
                     </FormControl>

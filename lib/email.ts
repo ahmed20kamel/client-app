@@ -67,12 +67,12 @@ function wrapInTemplate(content: string, locale: string = 'en') {
         .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
         .card { background: #fff; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .logo { text-align: center; margin-bottom: 24px; }
-        .logo h1 { color: #6366f1; font-size: 24px; margin: 0; }
+        .logo h1 { color: #0F4C3A; font-size: 24px; margin: 0; }
         h2 { color: #18181b; font-size: 20px; margin: 0 0 16px; }
         p { color: #52525b; font-size: 14px; line-height: 1.6; margin: 0 0 16px; }
         .button {
           display: inline-block;
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: linear-gradient(135deg, #0F4C3A, #0D9488);
           color: #ffffff !important; text-decoration: none;
           padding: 12px 32px; border-radius: 12px;
           font-weight: 600; font-size: 14px; margin: 16px 0;

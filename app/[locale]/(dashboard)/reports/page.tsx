@@ -42,15 +42,17 @@ import {
   Zap,
   Loader2,
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/PageHeader';
 
 type ReportType = 'overdue' | 'noFollowup' | 'newCustomers' | 'taskCompletion' | 'statusFunnel';
 
 const STATUS_COLORS: Record<string, string> = {
-  NEW: '#6366f1',
-  CONTACTED: '#8b5cf6',
-  IN_PROGRESS: '#f59e0b',
-  WON: '#22c55e',
-  LOST: '#ef4444',
+  NEW: '#0F4C3A',
+  CONTACTED: '#0D9488',
+  IN_PROGRESS: '#D97706',
+  WON: '#059669',
+  LOST: '#BE123C',
 };
 
 const STATUS_TRANSLATION_KEYS: Record<string, string> = {
@@ -185,22 +187,23 @@ export default function ReportsPage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{t('reports.title')}</h1>
-          <p className="text-muted-foreground mt-1">{t('reports.subtitle')}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={fetchReport} disabled={loading} size="sm">
-            <RefreshCw className={`size-4 me-1.5 ${loading ? 'animate-spin' : ''}`} />
-            {t('common.refresh')}
-          </Button>
-          <Button onClick={exportToCSV} disabled={!reportData || loading} size="sm" className="btn-premium">
-            <Download className="size-4 me-1.5" />
-            {t('common.export')}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title={t('reports.title')}
+        icon={BarChart3}
+        subtitle={t('reports.subtitle')}
+        actions={
+          <>
+            <Button variant="outline" onClick={fetchReport} disabled={loading} size="sm">
+              <RefreshCw className={`size-4 me-1.5 ${loading ? 'animate-spin' : ''}`} />
+              {t('common.refresh')}
+            </Button>
+            <Button onClick={exportToCSV} disabled={!reportData || loading} size="sm" className="btn-premium">
+              <Download className="size-4 me-1.5" />
+              {t('common.export')}
+            </Button>
+          </>
+        }
+      />
 
       {/* Report Tabs */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible sm:pb-0">
@@ -284,9 +287,8 @@ export default function ReportsPage() {
                   className="w-full h-11 px-4 rounded-xl border border-border/60 bg-secondary/30 text-sm"
                 >
                   <option value="">{t('common.all')}</option>
-                  <option value="TYPE_A">{t('customers.typeA')}</option>
-                  <option value="TYPE_B">{t('customers.typeB')}</option>
-                  <option value="TYPE_C">{t('customers.typeC')}</option>
+                  <option value="NEW">{t('customers.typeNew')}</option>
+                  <option value="EXISTING">{t('customers.typeExisting')}</option>
                 </select>
               </div>
             )}
@@ -303,8 +305,9 @@ export default function ReportsPage() {
       {/* Loading */}
       {loading && (
         <Card className="shadow-premium">
-          <CardContent className="flex items-center justify-center py-20">
-            <Loader2 className="size-8 animate-spin text-primary" />
+          <CardContent className="pt-6 space-y-4">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-[300px] w-full" />
           </CardContent>
         </Card>
       )}
@@ -481,7 +484,7 @@ export default function ReportsPage() {
                       <Tooltip content={<CustomTooltip />} />
                       <Legend />
                       <Bar yAxisId="left" dataKey="total" name={t('reports.total')} fill="#cbd5e1" radius={[4, 4, 0, 0]} barSize={18} />
-                      <Bar yAxisId="left" dataKey="completed" name={t('reports.completedLabel')} fill="#6366f1" radius={[4, 4, 0, 0]} barSize={18} />
+                      <Bar yAxisId="left" dataKey="completed" name={t('reports.completedLabel')} fill="#0F4C3A" radius={[4, 4, 0, 0]} barSize={18} />
                       <Line yAxisId="right" type="monotone" dataKey="completionRate" name={t('reports.rateLabel')} stroke="#22c55e" strokeWidth={2.5} dot={{ fill: '#22c55e', r: 4 }} />
                     </ComposedChart>
                   </ResponsiveContainer>
@@ -557,15 +560,15 @@ export default function ReportsPage() {
                     <AreaChart data={reportData.summary}>
                       <defs>
                         <linearGradient id="colorGrowth" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                          <stop offset="5%" stopColor="#0F4C3A" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#0F4C3A" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                       <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
                       <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Area type="monotone" dataKey="count" name={t('navigation.customers')} stroke="#6366f1" strokeWidth={2.5} fill="url(#colorGrowth)" />
+                      <Area type="monotone" dataKey="count" name={t('navigation.customers')} stroke="#0F4C3A" strokeWidth={2.5} fill="url(#colorGrowth)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -618,7 +621,7 @@ export default function ReportsPage() {
                               {task.priority === 'HIGH' ? t('tasks.priorityHigh') : task.priority === 'MEDIUM' ? t('tasks.priorityMedium') : t('tasks.priorityLow')}
                             </Badge>
                           </td>
-                          <td className="py-3.5 px-4 lg:px-6 text-sm text-red-500 font-medium">
+                          <td className="py-3.5 px-4 lg:px-6 text-sm text-destructive font-medium">
                             {new Date(task.dueAt).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE')}
                           </td>
                         </tr>
