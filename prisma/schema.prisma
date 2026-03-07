@@ -42,6 +42,11 @@ model User {
   // Inventory relations
   createdProducts        Product[]            @relation("ProductCreator")
   stockMovements         StockMovement[]      @relation("StockMovementCreator")
+  // Quotation, Invoice, Payment, PO relations
+  createdQuotations      Quotation[]          @relation("QuotationCreator")
+  createdInvoices        Invoice[]            @relation("InvoiceCreator")
+  createdPayments        Payment[]            @relation("PaymentCreator")
+  createdPurchaseOrders  PurchaseOrder[]      @relation("PurchaseOrderCreator")
 }
 
 model Role {
@@ -129,6 +134,8 @@ model Customer {
   owner           User           @relation("CustomerOwner", fields: [ownerId], references: [id])
   tasks           Task[]
   attachments     Attachment[]
+  quotations      Quotation[]
+  invoices        Invoice[]
 
   @@index([ownerId])
   @@index([phone])
@@ -446,6 +453,9 @@ model Product {
   createdBy       User             @relation("ProductCreator", fields: [createdById], references: [id])
   stockMovements  StockMovement[]
   suppliers       ProductSupplier[]
+  quotationItems  QuotationItem[]
+  invoiceItems    InvoiceItem[]
+  purchaseOrderItems PurchaseOrderItem[]
 
   @@index([categoryId])
   @@index([createdById])
@@ -489,7 +499,8 @@ model Supplier {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  products      ProductSupplier[]
+  products        ProductSupplier[]
+  purchaseOrders  PurchaseOrder[]
 
   @@index([status])
   @@index([createdAt])
@@ -510,6 +521,193 @@ model ProductSupplier {
   @@unique([productId, supplierId])
   @@index([productId])
   @@index([supplierId])
+}
+
+// ==========================================
+// Quotations & Invoices
+// ==========================================
+
+model Quotation {
+  id              String          @id @default(uuid())
+  quotationNumber String          @unique
+  customerId      String
+  subject         String?
+  notes           String?
+  terms           String?
+  validUntil      DateTime?
+  subtotal        Float           @default(0)
+  discountPercent Float           @default(0)
+  discountAmount  Float           @default(0)
+  taxPercent      Float           @default(5) // UAE VAT 5%
+  taxAmount       Float           @default(0)
+  total           Float           @default(0)
+  status          String          @default("DRAFT") // DRAFT, SENT, APPROVED, REJECTED, EXPIRED, CONVERTED
+  sentAt          DateTime?
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?
+  createdById     String
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  customer        Customer        @relation(fields: [customerId], references: [id])
+  createdBy       User            @relation("QuotationCreator", fields: [createdById], references: [id])
+  items           QuotationItem[]
+  invoices        Invoice[]
+
+  @@index([customerId])
+  @@index([createdById])
+  @@index([status])
+  @@index([createdAt])
+  @@index([quotationNumber])
+}
+
+model QuotationItem {
+  id          String    @id @default(uuid())
+  quotationId String
+  productId   String?
+  description String
+  quantity    Float     @default(1)
+  unitPrice   Float     @default(0)
+  discount    Float     @default(0) // per-line discount %
+  total       Float     @default(0)
+  sortOrder   Int       @default(0)
+
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  product     Product?  @relation(fields: [productId], references: [id])
+
+  @@index([quotationId])
+  @@index([productId])
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique
+  customerId    String
+  quotationId   String?
+  subject       String?
+  notes         String?
+  terms         String?
+  dueDate       DateTime?
+  subtotal      Float         @default(0)
+  discountPercent Float       @default(0)
+  discountAmount Float        @default(0)
+  taxPercent    Float         @default(5)
+  taxAmount     Float         @default(0)
+  total         Float         @default(0)
+  paidAmount    Float         @default(0)
+  status        String        @default("DRAFT") // DRAFT, SENT, PARTIALLY_PAID, PAID, OVERDUE, CANCELLED
+  sentAt        DateTime?
+  createdById   String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  quotation     Quotation?    @relation(fields: [quotationId], references: [id])
+  createdBy     User          @relation("InvoiceCreator", fields: [createdById], references: [id])
+  items         InvoiceItem[]
+  payments      Payment[]
+
+  @@index([customerId])
+  @@index([quotationId])
+  @@index([createdById])
+  @@index([status])
+  @@index([createdAt])
+  @@index([invoiceNumber])
+}
+
+model InvoiceItem {
+  id          String  @id @default(uuid())
+  invoiceId   String
+  productId   String?
+  description String
+  quantity    Float   @default(1)
+  unitPrice   Float   @default(0)
+  discount    Float   @default(0)
+  total       Float   @default(0)
+  sortOrder   Int     @default(0)
+
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id])
+
+  @@index([invoiceId])
+  @@index([productId])
+}
+
+model Payment {
+  id            String   @id @default(uuid())
+  paymentNumber String   @unique
+  invoiceId     String
+  amount        Float
+  method        String   @default("CASH") // CASH, BANK_TRANSFER, CHEQUE, ONLINE
+  reference     String?  // cheque number, transfer ref, etc.
+  notes         String?
+  paidAt        DateTime @default(now())
+  createdById   String
+  createdAt     DateTime @default(now())
+
+  invoice       Invoice  @relation(fields: [invoiceId], references: [id])
+  createdBy     User     @relation("PaymentCreator", fields: [createdById], references: [id])
+
+  @@index([invoiceId])
+  @@index([createdById])
+  @@index([paidAt])
+  @@index([paymentNumber])
+}
+
+// ==========================================
+// Purchase Orders
+// ==========================================
+
+model PurchaseOrder {
+  id              String              @id @default(uuid())
+  poNumber        String              @unique
+  supplierId      String
+  subject         String?
+  notes           String?
+  terms           String?
+  expectedDate    DateTime?
+  subtotal        Float               @default(0)
+  discountPercent Float               @default(0)
+  discountAmount  Float               @default(0)
+  taxPercent      Float               @default(5)
+  taxAmount       Float               @default(0)
+  total           Float               @default(0)
+  status          String              @default("DRAFT") // DRAFT, SENT, CONFIRMED, PARTIALLY_RECEIVED, RECEIVED, CANCELLED
+  sentAt          DateTime?
+  confirmedAt     DateTime?
+  receivedAt      DateTime?
+  createdById     String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  supplier        Supplier            @relation(fields: [supplierId], references: [id])
+  createdBy       User                @relation("PurchaseOrderCreator", fields: [createdById], references: [id])
+  items           PurchaseOrderItem[]
+
+  @@index([supplierId])
+  @@index([createdById])
+  @@index([status])
+  @@index([createdAt])
+  @@index([poNumber])
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(uuid())
+  purchaseOrderId String
+  productId       String?
+  description     String
+  quantity        Float         @default(1)
+  receivedQty     Float         @default(0)
+  unitPrice       Float         @default(0)
+  total           Float         @default(0)
+  sortOrder       Int           @default(0)
+
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product         Product?      @relation(fields: [productId], references: [id])
+
+  @@index([purchaseOrderId])
+  @@index([productId])
 }
 
 // ==========================================

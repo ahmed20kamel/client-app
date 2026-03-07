@@ -35,8 +35,12 @@ export default async function DashboardLayout({
     { href: `/${locale}/internal-tasks`, label: t('navigation.internalTasks'), icon: 'ClipboardList' },
     { href: `/${locale}/approvals`, label: t('navigation.approvals'), icon: 'CheckCircle2' },
     { href: `/${locale}/reports`, label: t('navigation.reports'), icon: 'BarChart3' },
+    { href: `/${locale}/quotations`, label: t('navigation.quotations'), icon: 'FileText' },
+    { href: `/${locale}/invoices`, label: t('navigation.invoices'), icon: 'Receipt' },
+    { href: `/${locale}/payments`, label: t('navigation.payments'), icon: 'CreditCard' },
     { href: `/${locale}/inventory`, label: t('navigation.inventory'), icon: 'Package' },
     { href: `/${locale}/suppliers`, label: t('navigation.suppliers'), icon: 'Truck' },
+    { href: `/${locale}/purchase-orders`, label: t('navigation.purchaseOrders'), icon: 'ShoppingCart' },
   ];
 
   const adminItems: typeof navItems = [];

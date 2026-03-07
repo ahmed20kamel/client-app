@@ -15,6 +15,10 @@ import {
   Building2,
   Package,
   Truck,
+  FileText,
+  Receipt,
+  CreditCard,
+  ShoppingCart,
 } from 'lucide-react';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -29,6 +33,10 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Building2,
   Package,
   Truck,
+  FileText,
+  Receipt,
+  CreditCard,
+  ShoppingCart,
 };
 
 interface SidebarLinkProps {

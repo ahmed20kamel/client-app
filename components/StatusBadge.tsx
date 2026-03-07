@@ -41,6 +41,17 @@ const DEFAULT_CONFIG: Record<string, { color: string; bg: string }> = {
   MEDIUM: { color: 'text-gray-800', bg: 'bg-gray-100 border-gray-300' },
   HIGH: { color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200' },
   URGENT: { color: 'text-red-700', bg: 'bg-red-50 border-red-200' },
+  // Quotation/Invoice/PO statuses
+  DRAFT: { color: 'text-gray-700', bg: 'bg-gray-50 border-gray-200' },
+  SENT: { color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200' },
+  EXPIRED: { color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200' },
+  CONVERTED: { color: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200' },
+  PARTIALLY_PAID: { color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
+  PAID: { color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
+  CANCELLED: { color: 'text-red-700', bg: 'bg-red-50 border-red-200' },
+  CONFIRMED: { color: 'text-teal-700', bg: 'bg-teal-50 border-teal-200' },
+  PARTIALLY_RECEIVED: { color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
+  RECEIVED: { color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
 };
 
 export function StatusBadge({ status, label, config, size = 'md' }: StatusBadgeProps) {
