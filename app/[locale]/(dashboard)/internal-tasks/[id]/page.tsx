@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 import {
   ArrowLeft,
   Loader2,
@@ -216,7 +217,7 @@ export default function InternalTaskDetailPage() {
       const { data } = await response.json();
       setTask(data);
     } catch (error) {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
       router.push(`/${locale}/internal-tasks`);
     } finally {
       setLoading(false);
@@ -240,14 +241,14 @@ export default function InternalTaskDetailPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        toast.error(error.error || t('common.error'));
+        toast.error(getApiErrorMessage(error.error || '', t));
         return;
       }
 
       toast.success(t('messages.updateSuccess', { entity: t('internalTasks.title') }));
       fetchTask();
     } catch (error) {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setIsActioning(false);
     }
@@ -264,14 +265,14 @@ export default function InternalTaskDetailPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        toast.error(error.error || t('common.error'));
+        toast.error(getApiErrorMessage(error.error || '', t));
         return;
       }
 
       toast.success(t('messages.submitSuccess'));
       fetchTask();
     } catch (error) {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setIsActioning(false);
     }
@@ -288,14 +289,14 @@ export default function InternalTaskDetailPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        toast.error(error.error || t('common.error'));
+        toast.error(getApiErrorMessage(error.error || '', t));
         return;
       }
 
       toast.success(t('messages.approveSuccess'));
       fetchTask();
     } catch (error) {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setIsActioning(false);
     }
@@ -313,7 +314,7 @@ export default function InternalTaskDetailPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        toast.error(error.error || t('common.error'));
+        toast.error(getApiErrorMessage(error.error || '', t));
         return;
       }
 
@@ -322,7 +323,7 @@ export default function InternalTaskDetailPage() {
       setRejectionReason('');
       fetchTask();
     } catch (error) {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setIsActioning(false);
     }
@@ -343,7 +344,7 @@ export default function InternalTaskDetailPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        toast.error(error.error || t('common.error'));
+        toast.error(getApiErrorMessage(error.error || '', t));
         return;
       }
 
@@ -352,7 +353,7 @@ export default function InternalTaskDetailPage() {
       setRatingComment('');
       fetchTask();
     } catch (error) {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setIsRating(false);
     }
@@ -374,7 +375,7 @@ export default function InternalTaskDetailPage() {
       setNewComment('');
       fetchTask();
     } catch (error) {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setIsSubmittingComment(false);
     }

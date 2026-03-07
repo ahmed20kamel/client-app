@@ -5,8 +5,11 @@ import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/PhoneInput';
+import { CopyablePhone } from '@/components/CopyablePhone';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 import {
   User,
   Mail,
@@ -72,7 +75,7 @@ export default function ProfilePage() {
         setJobTitle(data.data.jobTitle || '');
       }
     } catch {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setLoading(false);
     }
@@ -103,7 +106,7 @@ export default function ProfilePage() {
 
       if (!res.ok) {
         const error = await res.json();
-        toast.error(error.error || t('common.error'));
+        toast.error(getApiErrorMessage(error.error || '', t));
         return;
       }
 
@@ -111,7 +114,7 @@ export default function ProfilePage() {
       setProfile(prev => prev ? { ...prev, profileImage: data.data.profileImage } : null);
       toast.success(t('profile.imageUpdated'));
     } catch {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setUploadingImage(false);
     }
@@ -128,14 +131,14 @@ export default function ProfilePage() {
 
       if (!res.ok) {
         const error = await res.json();
-        toast.error(error.error || t('common.error'));
+        toast.error(getApiErrorMessage(error.error || '', t));
         return;
       }
 
       await fetchProfile();
       toast.success(t('profile.profileUpdated'));
     } catch {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setSaving(false);
     }
@@ -161,7 +164,7 @@ export default function ProfilePage() {
 
       if (!res.ok) {
         const error = await res.json();
-        toast.error(error.error || t('common.error'));
+        toast.error(getApiErrorMessage(error.error || '', t));
         return;
       }
 
@@ -170,7 +173,7 @@ export default function ProfilePage() {
       setConfirmPassword('');
       toast.success(t('profile.passwordChanged'));
     } catch {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setChangingPassword(false);
     }
@@ -269,7 +272,7 @@ export default function ProfilePage() {
                 {profile.phone && (
                   <div className="flex items-center gap-3 text-sm">
                     <Phone className="size-4 text-muted-foreground shrink-0" />
-                    <span dir="ltr">{profile.phone}</span>
+                    <CopyablePhone phone={profile.phone} />
                   </div>
                 )}
                 <div className="flex items-center gap-3 text-sm">
@@ -321,15 +324,10 @@ export default function ProfilePage() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">{t('common.phone')}</label>
-                  <div className="relative">
-                    <Phone className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                    <Input
-                      value={phone}
-                      onChange={e => setPhone(e.target.value)}
-                      className="ps-10"
-                      placeholder="+971"
-                    />
-                  </div>
+                  <PhoneInput
+                    value={phone || '+971'}
+                    onChange={setPhone}
+                  />
                 </div>
 
                 <div className="space-y-2">

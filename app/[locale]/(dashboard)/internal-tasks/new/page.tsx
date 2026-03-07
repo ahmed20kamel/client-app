@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 import {
   ArrowLeft,
   Save,
@@ -122,14 +123,14 @@ export default function CreateInternalTaskPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        toast.error(error.error || t('common.error'));
+        toast.error(getApiErrorMessage(error.error || '', t));
         return;
       }
 
       toast.success(t('messages.createSuccess', { entity: t('internalTasks.title') }));
       router.push(`/${locale}/internal-tasks`);
     } catch (error) {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setIsLoading(false);
     }

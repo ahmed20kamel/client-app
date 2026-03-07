@@ -13,9 +13,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { FileUploadZone } from '@/components/FileUploadZone';
 import { PhoneInput } from '@/components/PhoneInput';
 import { EmiratesIdInput } from '@/components/EmiratesIdInput';
+import { NumberInput } from '@/components/NumberInput';
 import { CustomerAutocomplete } from '@/components/CustomerAutocomplete';
 import {
   User,
@@ -159,7 +161,7 @@ export default function CreateCustomerPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        toast.error(error.error || t('common.error'));
+        toast.error(getApiErrorMessage(error.error || '', t));
         return;
       }
 
@@ -176,8 +178,8 @@ export default function CreateCustomerPage() {
 
       toast.success(t('messages.createSuccess', { entity: t('customers.title') }));
       router.push(`/${locale}/customers/${customer.id}`);
-    } catch (error) {
-      toast.error(t('common.error'));
+    } catch {
+      toast.error(t('errors.networkError'));
     } finally {
       setIsLoading(false);
     }
@@ -243,7 +245,7 @@ export default function CreateCustomerPage() {
                       name="fullName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('customers.fullNameEn')} *</FormLabel>
+                          <FormLabel>{t('customers.fullNameEn')}</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <User className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground z-10" />
@@ -342,12 +344,12 @@ export default function CreateCustomerPage() {
                       name="phone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('common.phone')} *</FormLabel>
+                          <FormLabel>{t('common.phone')}</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Phone className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                               <PhoneInput
-                                value={field.value}
+                                value={field.value || ''}
                                 onChange={field.onChange}
                                 disabled={isLoading}
                                 className="ps-10"
@@ -438,7 +440,7 @@ export default function CreateCustomerPage() {
                       name="customerType"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('customers.customerType')} *</FormLabel>
+                          <FormLabel>{t('customers.customerType')}</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
                             <FormControl>
                               <SelectTrigger className="w-full">
@@ -535,15 +537,15 @@ export default function CreateCustomerPage() {
                           <FormControl>
                             <div className="relative">
                               <Ruler className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                              <Input
-                                type="number"
-                                step="0.01"
-                                {...field}
-                                value={field.value ?? ''}
-                                onChange={e => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                              <NumberInput
+                                value={field.value}
+                                onChange={field.onChange}
                                 disabled={isLoading}
                                 className="ps-10"
                                 placeholder="m²"
+                                min={0}
+                                step={0.01}
+                                suffix="m²"
                               />
                             </div>
                           </FormControl>
@@ -667,15 +669,14 @@ export default function CreateCustomerPage() {
                           <FormControl>
                             <div className="relative">
                               <DollarSign className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                              <Input
-                                type="number"
-                                step="0.01"
-                                {...field}
-                                value={field.value ?? ''}
-                                onChange={e => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                              <NumberInput
+                                value={field.value}
+                                onChange={field.onChange}
                                 disabled={isLoading}
                                 className="ps-10"
                                 placeholder={t('common.currency')}
+                                min={0}
+                                step={0.01}
                               />
                             </div>
                           </FormControl>
@@ -694,16 +695,15 @@ export default function CreateCustomerPage() {
                           <FormControl>
                             <div className="relative">
                               <Percent className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                              <Input
-                                type="number"
-                                min={0}
-                                max={100}
-                                {...field}
-                                value={field.value ?? ''}
-                                onChange={e => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                              <NumberInput
+                                value={field.value}
+                                onChange={field.onChange}
                                 disabled={isLoading}
                                 className="ps-10"
                                 placeholder="%"
+                                min={0}
+                                max={100}
+                                suffix="%"
                               />
                             </div>
                           </FormControl>

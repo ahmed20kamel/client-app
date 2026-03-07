@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { Building2, ArrowLeft, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import Link from 'next/link';
@@ -89,14 +90,14 @@ export default function NewDepartmentPage() {
 
       if (!response.ok) {
         const result = await response.json();
-        toast.error(result.error || t('common.error'));
+        toast.error(getApiErrorMessage(result.error || '', t));
         return;
       }
 
       toast.success(t('messages.createSuccess', { entity: t('departments.title') }));
       router.push(`/${locale}/departments`);
     } catch {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setIsLoading(false);
     }

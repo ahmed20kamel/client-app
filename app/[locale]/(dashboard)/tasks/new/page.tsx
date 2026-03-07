@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 import {
   CheckSquare,
   Users,
@@ -98,7 +99,7 @@ export default function CreateTaskPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        toast.error(error.error || t('common.error'));
+        toast.error(getApiErrorMessage(error.error || '', t));
         return;
       }
 
@@ -110,7 +111,7 @@ export default function CreateTaskPage() {
         router.push(`/${locale}/tasks`);
       }
     } catch (error) {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setIsLoading(false);
     }

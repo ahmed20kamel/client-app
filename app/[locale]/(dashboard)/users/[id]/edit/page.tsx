@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/PhoneInput';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
@@ -26,13 +27,17 @@ import {
   UserCog,
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { PageSkeleton, DetailSkeleton } from '@/components/ui/page-skeleton';
 
 const updateUserSchema = z.object({
   email: z.string().email('Invalid email address'),
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
   jobTitle: z.string().optional(),
-  phone: z.string().optional(),
+  phone: z.string().optional().refine(
+    val => !val || val === '+971' || /^\+971[1-9]\d{7,8}$/.test(val),
+    { message: 'Phone must be a valid UAE number (+971XXXXXXXXX)' }
+  ),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
@@ -120,7 +125,7 @@ export default function EditUserPage() {
         setLoadingUser(false);
       })
       .catch(() => {
-        toast.error(t('common.error'));
+        toast.error(t('errors.networkError'));
         router.push(`/${locale}/users`);
       });
   }, [userId]);
@@ -142,14 +147,14 @@ export default function EditUserPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        toast.error(error.error || t('common.error'));
+        toast.error(getApiErrorMessage(error.error || '', t));
         return;
       }
 
       toast.success(t('messages.updateSuccess', { entity: t('users.title') }));
       router.push(`/${locale}/users`);
     } catch (error) {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setIsLoading(false);
     }
@@ -254,10 +259,11 @@ export default function EditUserPage() {
                     <FormItem>
                       <FormLabel>{t('common.phone')}</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Phone className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                          <Input {...field} disabled={isLoading} className="ps-10" placeholder="+971" />
-                        </div>
+                        <PhoneInput
+                          value={field.value || ''}
+                          onChange={field.onChange}
+                          disabled={isLoading}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

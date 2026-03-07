@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 import {
   User,
   Building2,
@@ -42,6 +43,7 @@ import {
   Image as ImageIcon,
 } from 'lucide-react';
 import { PageSkeleton, DetailSkeleton } from '@/components/ui/page-skeleton';
+import { CopyablePhone } from '@/components/CopyablePhone';
 
 interface Task {
   id: string;
@@ -220,7 +222,7 @@ export default function CustomerDetailsPage() {
         toast.success(t('messages.deleteSuccess', { entity: t('attachments.title') }));
       }
     } catch {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     }
   };
 
@@ -241,7 +243,7 @@ export default function CustomerDetailsPage() {
         const { data } = await response.json();
         setCustomer(data);
       } catch (error) {
-        toast.error(t('common.error'));
+        toast.error(t('errors.networkError'));
         router.push(`/${locale}/customers`);
       } finally {
         setLoading(false);
@@ -404,7 +406,17 @@ export default function CustomerDetailsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   <InfoItem icon={User} label={t('customers.fullNameEn')} value={customer.fullName} />
                   <InfoItem icon={User} label={t('customers.fullNameAr')} value={customer.fullNameAr} />
-                  <InfoItem icon={Phone} label={t('common.phone')} value={customer.phone} />
+                  {customer.phone && (
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-lg bg-muted/50 mt-0.5 shrink-0">
+                        <Phone className="size-4 text-muted-foreground" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground">{t('common.phone')}</p>
+                        <CopyablePhone phone={customer.phone} className="font-medium text-sm" />
+                      </div>
+                    </div>
+                  )}
                   <InfoItem icon={UserCheck} label={t('customers.contactPerson')} value={customer.contactPerson} />
                   <InfoItem icon={Mail} label={t('common.email')} value={customer.email} />
                   <InfoItem icon={Building2} label={t('customers.company')} value={customer.company} />

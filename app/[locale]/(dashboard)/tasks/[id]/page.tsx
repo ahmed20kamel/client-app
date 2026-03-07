@@ -9,11 +9,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { updateTaskSchema, UpdateTaskInput } from '@/lib/validations/task';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CopyablePhone } from '@/components/CopyablePhone';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 import {
   ArrowLeft,
   Pencil,
@@ -176,7 +178,7 @@ export default function TaskDetailsPage() {
         status: data.status,
       });
     } catch (error) {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
       router.push(`/${locale}/tasks`);
     } finally {
       setLoading(false);
@@ -211,7 +213,7 @@ export default function TaskDetailsPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        toast.error(error.error || t('common.error'));
+        toast.error(getApiErrorMessage(error.error || '', t));
         return;
       }
 
@@ -219,7 +221,7 @@ export default function TaskDetailsPage() {
       setIsEditing(false);
       fetchTask();
     } catch (error) {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setIsSaving(false);
     }
@@ -241,7 +243,7 @@ export default function TaskDetailsPage() {
       setNewComment('');
       fetchTask();
     } catch (error) {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setIsSubmittingComment(false);
     }
@@ -265,7 +267,7 @@ export default function TaskDetailsPage() {
       setReassignReason('');
       fetchTask();
     } catch (error) {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setIsReassigning(false);
     }
@@ -291,7 +293,7 @@ export default function TaskDetailsPage() {
       setEscalationReason('');
       fetchTask();
     } catch (error) {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setIsEscalating(false);
     }
@@ -661,10 +663,10 @@ export default function TaskDetailsPage() {
               >
                 {task.customer.fullName}
               </Link>
-              <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                <Phone className="size-3" />
-                {task.customer.phone}
-              </p>
+              <div className="flex items-center gap-1 mt-1">
+                <Phone className="size-3 text-muted-foreground" />
+                <CopyablePhone phone={task.customer.phone} className="text-sm" />
+              </div>
             </CardContent>
           </Card>
 

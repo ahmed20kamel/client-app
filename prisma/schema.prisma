@@ -93,7 +93,7 @@ model Customer {
   fullName        String
   fullNameAr      String?
   nationalId      String?        @unique
-  phone           String
+  phone           String?
   email           String?
   company         String?
   contactPerson   String?

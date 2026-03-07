@@ -43,6 +43,8 @@ import { PageSkeleton, DetailSkeleton } from '@/components/ui/page-skeleton';
 import { FileUploadZone } from '@/components/FileUploadZone';
 import { PhoneInput } from '@/components/PhoneInput';
 import { EmiratesIdInput } from '@/components/EmiratesIdInput';
+import { NumberInput } from '@/components/NumberInput';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { Paperclip, FolderOpen, FileSpreadsheet } from 'lucide-react';
 
 interface SystemUser {
@@ -95,7 +97,7 @@ export default function EditCustomerPage() {
 
         if (!response.ok) {
           const error = await response.json();
-          toast.error(error.error || t('common.error'));
+          toast.error(getApiErrorMessage(error.error || '', t));
           router.push(`/${locale}/customers`);
           return;
         }
@@ -125,7 +127,7 @@ export default function EditCustomerPage() {
           nextFollowUp: data.nextFollowUp ? data.nextFollowUp.split('T')[0] : '',
         });
       } catch (error) {
-        toast.error(t('common.error'));
+        toast.error(t('errors.networkError'));
         router.push(`/${locale}/customers`);
       } finally {
         setIsFetching(false);
@@ -153,14 +155,14 @@ export default function EditCustomerPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        toast.error(error.error || t('common.error'));
+        toast.error(getApiErrorMessage(error.error || '', t));
         return;
       }
 
       toast.success(t('messages.updateSuccess', { entity: t('customers.title') }));
       router.push(`/${locale}/customers/${id}`);
     } catch (error) {
-      toast.error(t('common.error'));
+      toast.error(t('errors.networkError'));
     } finally {
       setIsLoading(false);
     }
@@ -552,15 +554,15 @@ export default function EditCustomerPage() {
                           <FormControl>
                             <div className="relative">
                               <Ruler className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                              <Input
-                                type="number"
-                                step="0.01"
-                                {...field}
-                                value={field.value ?? ''}
-                                onChange={e => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                              <NumberInput
+                                value={field.value}
+                                onChange={field.onChange}
                                 disabled={isLoading}
                                 className="ps-10"
                                 placeholder="m²"
+                                min={0}
+                                step={0.01}
+                                suffix="m²"
                               />
                             </div>
                           </FormControl>
@@ -684,15 +686,14 @@ export default function EditCustomerPage() {
                           <FormControl>
                             <div className="relative">
                               <DollarSign className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                              <Input
-                                type="number"
-                                step="0.01"
-                                {...field}
-                                value={field.value ?? ''}
-                                onChange={e => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                              <NumberInput
+                                value={field.value}
+                                onChange={field.onChange}
                                 disabled={isLoading}
                                 className="ps-10"
                                 placeholder={t('common.currency')}
+                                min={0}
+                                step={0.01}
                               />
                             </div>
                           </FormControl>
@@ -711,16 +712,15 @@ export default function EditCustomerPage() {
                           <FormControl>
                             <div className="relative">
                               <Percent className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                              <Input
-                                type="number"
-                                min={0}
-                                max={100}
-                                {...field}
-                                value={field.value ?? ''}
-                                onChange={e => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                              <NumberInput
+                                value={field.value}
+                                onChange={field.onChange}
                                 disabled={isLoading}
                                 className="ps-10"
                                 placeholder="%"
+                                min={0}
+                                max={100}
+                                suffix="%"
                               />
                             </div>
                           </FormControl>

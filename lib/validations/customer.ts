@@ -80,23 +80,21 @@ export const LEAD_SOURCES = [
 ] as const;
 
 export const createCustomerSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+  fullName: z.string().min(1, 'Full name is required'),
   fullNameAr: z.string().optional(),
   nationalId: z.string().optional().refine(
     val => !val || /^\d{3}-\d{4}-\d{7}-\d{1}$/.test(val),
     { message: 'Emirates ID must be in format 784-XXXX-XXXXXXX-X' }
   ),
-  phone: z.string().min(1, 'Phone is required').refine(
-    val => /^\+971[1-9]\d{7,8}$/.test(val),
+  phone: z.string().optional().refine(
+    val => !val || val === '+971' || /^\+971[1-9]\d{7,8}$/.test(val),
     { message: 'Phone must be a valid UAE number (+971XXXXXXXXX)' }
   ),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
   company: z.string().optional(),
   contactPerson: z.string().optional(),
-  customerType: z.enum(['NEW', 'EXISTING'], {
-    message: 'Customer type is required',
-  }),
-  status: z.enum(LEAD_STATUSES),
+  customerType: z.enum(['NEW', 'EXISTING']).optional(),
+  status: z.enum(LEAD_STATUSES).optional(),
   emirate: z.string().optional(),
   projectType: z.string().optional(),
   productType: z.string().optional(),
