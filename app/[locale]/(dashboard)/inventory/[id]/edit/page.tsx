@@ -112,8 +112,8 @@ export default function EditProductPage() {
         setMaxStockLevel(String(data.maxStockLevel ?? 0));
         setCostPrice(String(data.costPrice ?? 0));
         setSellingPrice(String(data.sellingPrice ?? 0));
-        setImageUrl(data.imageUrl || null);
-        setDatasheetUrl(data.datasheetUrl || null);
+        setImageUrl(data.image || null);
+        setDatasheetUrl(data.datasheet || null);
       } catch {
         toast.error(t('common.error'));
         router.push(`/${locale}/inventory`);
@@ -222,7 +222,7 @@ export default function EditProductPage() {
         return;
       }
       const { data } = await response.json();
-      setImageUrl(data.imageUrl || null);
+      setImageUrl(data.image || null);
       toast.success(t('messages.updateSuccess', { entity: t('inventory.image') }));
     } catch {
       toast.error(t('common.error'));
@@ -246,7 +246,7 @@ export default function EditProductPage() {
         return;
       }
       const { data } = await response.json();
-      setDatasheetUrl(data.datasheetUrl || null);
+      setDatasheetUrl(data.datasheet || null);
       toast.success(t('messages.updateSuccess', { entity: t('inventory.datasheet') }));
     } catch {
       toast.error(t('common.error'));

@@ -62,7 +62,7 @@ interface StockMovement {
   reason: string | null;
   reference: string | null;
   createdAt: string;
-  user: {
+  createdBy: {
     id: string;
     fullName: string;
   };
@@ -92,18 +92,18 @@ interface Product {
   descriptionAr: string | null;
   currentStock: number;
   minStockLevel: number;
-  maxStockLevel: number;
-  costPrice: number;
-  sellingPrice: number;
+  maxStockLevel: number | null;
+  costPrice: number | null;
+  sellingPrice: number | null;
   status: string;
-  imageUrl: string | null;
-  datasheetUrl: string | null;
+  image: string | null;
+  datasheet: string | null;
   location: string | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
   stockMovements: StockMovement[];
-  supplierLinks: LinkedSupplier[];
+  suppliers: LinkedSupplier[];
 }
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string }> = {
@@ -323,8 +323,8 @@ export default function ProductDetailPage() {
     );
   }
 
-  const profit = product.sellingPrice - product.costPrice;
-  const margin = product.sellingPrice > 0 ? (profit / product.sellingPrice) * 100 : 0;
+  const profit = (product.sellingPrice ?? 0) - (product.costPrice ?? 0);
+  const margin = (product.sellingPrice ?? 0) > 0 ? (profit / (product.sellingPrice ?? 1)) * 100 : 0;
   const stockStatus = product.currentStock <= 0 ? 'out' : product.currentStock <= product.minStockLevel ? 'low' : 'ok';
 
   return (
@@ -387,10 +387,10 @@ export default function ProductDetailPage() {
               {/* Product Image */}
               <Card className="shadow-premium">
                 <CardContent className="pt-6 flex flex-col items-center text-center">
-                  {product.imageUrl ? (
+                  {product.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={product.imageUrl}
+                      src={product.image}
                       alt={product.name}
                       className="w-full max-w-[240px] h-auto rounded-xl object-cover mb-4"
                     />
@@ -518,14 +518,14 @@ export default function ProductDetailPage() {
                         <DollarSign className="size-3.5" />
                         {t('inventory.costPrice')}
                       </span>
-                      <span className="text-sm font-bold">{product.costPrice.toLocaleString()}</span>
+                      <span className="text-sm font-bold">{(product.costPrice ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground flex items-center gap-1.5">
                         <DollarSign className="size-3.5" />
                         {t('inventory.sellingPrice')}
                       </span>
-                      <span className="text-sm font-bold">{product.sellingPrice.toLocaleString()}</span>
+                      <span className="text-sm font-bold">{(product.sellingPrice ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground flex items-center gap-1.5">
@@ -553,9 +553,9 @@ export default function ProductDetailPage() {
                     <FileText className="size-4 text-primary" />
                     {t('inventory.datasheet')}
                   </h3>
-                  {product.datasheetUrl ? (
+                  {product.datasheet ? (
                     <a
-                      href={product.datasheetUrl}
+                      href={product.datasheet}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
@@ -754,7 +754,7 @@ export default function ProductDetailPage() {
                               )}
                               <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
                                 <User className="size-3" />
-                                {movement.user.fullName}
+                                {movement.createdBy.fullName}
                               </div>
                             </div>
                           );
@@ -817,7 +817,7 @@ export default function ProductDetailPage() {
                                     {new Date(movement.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE')}
                                   </td>
                                   <td className="px-4 py-3 text-start text-sm text-muted-foreground">
-                                    {movement.user.fullName}
+                                    {movement.createdBy.fullName}
                                   </td>
                                 </tr>
                               );
@@ -838,13 +838,13 @@ export default function ProductDetailPage() {
                     {t('inventory.supplierLinks')}
                   </h3>
 
-                  {product.supplierLinks.length === 0 ? (
+                  {product.suppliers.length === 0 ? (
                     <div className="text-center py-8">
                       <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {product.supplierLinks.map((link) => (
+                      {product.suppliers.map((link) => (
                         <div key={link.id} className="p-4 rounded-xl border border-border/60 hover:border-primary/30 transition-colors">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm font-bold">{link.supplier.name}</span>

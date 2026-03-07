@@ -42,10 +42,10 @@ interface Product {
   currentStock: number;
   minStockLevel: number;
   maxStockLevel: number;
-  costPrice: number;
-  sellingPrice: number;
+  costPrice: number | null;
+  sellingPrice: number | null;
   status: string;
-  imageUrl: string | null;
+  image: string | null;
   location: string | null;
   createdAt: string;
 }
@@ -249,10 +249,10 @@ export default function InventoryPage() {
                     <Card key={product.id} className="shadow-premium">
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3 mb-3">
-                          {product.imageUrl ? (
+                          {product.image ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
-                              src={product.imageUrl}
+                              src={product.image}
                               alt={product.name}
                               className="w-10 h-10 rounded-lg object-cover shrink-0"
                             />
@@ -282,8 +282,8 @@ export default function InventoryPage() {
                             {stockStatus === 'low' && <AlertTriangle className="size-3" />}
                             {product.currentStock} {t('inventory.currentStock')}
                           </div>
-                          <div>{t('inventory.costPrice')}: {product.costPrice.toLocaleString()}</div>
-                          <div>{t('inventory.sellingPrice')}: {product.sellingPrice.toLocaleString()}</div>
+                          <div>{t('inventory.costPrice')}: {(product.costPrice ?? 0).toLocaleString()}</div>
+                          <div>{t('inventory.sellingPrice')}: {(product.sellingPrice ?? 0).toLocaleString()}</div>
                         </div>
                         <div className="flex items-center justify-end gap-1 border-t pt-2">
                           <Link href={`/${locale}/inventory/${product.id}`}>
@@ -338,10 +338,10 @@ export default function InventoryPage() {
                           >
                             <td className="px-7 py-4 text-start">
                               <div className="flex items-center gap-3">
-                                {product.imageUrl ? (
+                                {product.image ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img
-                                    src={product.imageUrl}
+                                    src={product.image}
                                     alt={product.name}
                                     className="w-10 h-10 rounded-lg object-cover shrink-0"
                                   />
@@ -372,10 +372,10 @@ export default function InventoryPage() {
                               </div>
                             </td>
                             <td className="px-4 py-4 text-center text-sm text-muted-foreground">
-                              {product.costPrice.toLocaleString()}
+                              {(product.costPrice ?? 0).toLocaleString()}
                             </td>
                             <td className="px-4 py-4 text-center text-sm font-semibold">
-                              {product.sellingPrice.toLocaleString()}
+                              {(product.sellingPrice ?? 0).toLocaleString()}
                             </td>
                             <td className="px-4 py-4 text-center">
                               <StatusBadge
