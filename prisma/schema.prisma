@@ -100,14 +100,19 @@ model Customer {
   customerType    String
   status          String         @default("NEW_INQUIRY")
   emirate         String?
+  city            String?
+  area            String?
+  basin           String?
   projectType     String?
   productType     String?
   leadSource      String?
   estimatedValue  Float?
   probability     Int?           @default(10)
   weightedValue   Float?         @default(0)
-  consultant      String?
-  paymentTerms    String?
+  consultant              String?
+  consultantContactPerson String?
+  consultantPhone         String?
+  paymentTerms            String?
   projectSize     Float?
   notes           String?
   lastFollowUp    DateTime?

@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useCallback, useState } from 'react';
+import { forwardRef, useCallback, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 
 interface NumberInputProps {
@@ -15,8 +15,8 @@ interface NumberInputProps {
   suffix?: string;
 }
 
-function formatWithCommas(num: number): string {
-  const parts = num.toString().split('.');
+function formatWithCommas(str: string): string {
+  const parts = str.split('.');
   parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return parts.join('.');
 }
@@ -27,25 +27,33 @@ function stripCommas(str: string): string {
 
 export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
   ({ value, onChange, disabled, className, placeholder, min, max, step, suffix }, ref) => {
-    const [focused, setFocused] = useState(false);
+    const innerRef = useRef<HTMLInputElement>(null);
+    const inputRef = (ref as React.RefObject<HTMLInputElement>) || innerRef;
 
-    // When focused, show raw number for easy editing
-    // When blurred, show formatted with commas
     const displayValue = (() => {
       if (value === null || value === undefined) return '';
-      if (focused) return value.toString();
-      const formatted = formatWithCommas(value);
+      const formatted = formatWithCommas(value.toString());
       return suffix ? `${formatted} ${suffix}` : formatted;
     })();
 
     const handleChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
-        const raw = stripCommas(e.target.value);
+        const input = e.target;
+        const cursorPos = input.selectionStart ?? 0;
+        const oldVal = input.value;
+
+        // Count commas before cursor in old value
+        const commasBefore = (oldVal.slice(0, cursorPos).match(/,/g) || []).length;
+
+        const raw = stripCommas(oldVal);
 
         if (raw === '' || raw === '-') {
           onChange(null);
           return;
         }
+
+        // Only allow digits and decimal point
+        if (!/^-?\d*\.?\d*$/.test(raw)) return;
 
         const num = Number(raw);
         if (isNaN(num)) return;
@@ -54,23 +62,38 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
         if (max !== undefined && num > max) return;
 
         onChange(num);
-      },
-      [onChange, min, max]
-    );
 
-    const handleFocus = useCallback(() => setFocused(true), []);
-    const handleBlur = useCallback(() => setFocused(false), []);
+        // Restore cursor position after React re-renders the formatted value
+        requestAnimationFrame(() => {
+          const el = inputRef.current;
+          if (!el) return;
+
+          const newVal = el.value;
+          // Calculate new cursor: digits before cursor stayed the same,
+          // but comma count may have changed
+          const digitsBeforeCursor = cursorPos - commasBefore;
+          let newPos = 0;
+          let digitsSeen = 0;
+          for (let i = 0; i < newVal.length; i++) {
+            if (digitsSeen === digitsBeforeCursor) break;
+            if (newVal[i] !== ',') digitsSeen++;
+            newPos = i + 1;
+          }
+
+          el.setSelectionRange(newPos, newPos);
+        });
+      },
+      [onChange, min, max, inputRef]
+    );
 
     return (
       <Input
-        ref={ref}
+        ref={inputRef}
         type="text"
         inputMode="decimal"
         dir="ltr"
         value={displayValue}
         onChange={handleChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
         disabled={disabled}
         className={className}
         placeholder={placeholder}

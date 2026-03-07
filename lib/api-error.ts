@@ -37,6 +37,9 @@ const ERROR_MAP: Record<string, string> = {
   // Server errors
   'Internal server error': 'errors.serverError',
   'Internal Server Error': 'errors.serverError',
+  'Failed to update customer. Please try again.': 'errors.updateFailed',
+  'Failed to create customer. Please try again.': 'errors.createFailed',
+  'Please restart the server to apply database changes': 'errors.serverRestart',
 };
 
 // Patterns to match partial error messages

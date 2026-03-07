@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createCustomerSchema, CreateCustomerInput } from '@/lib/validations/customer';
+import { CITIES, CITY_AREAS, CITY_TRANSLATION_KEY, areaTranslationKey, type City } from '@/lib/locations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -107,16 +108,25 @@ export default function CreateCustomerPage() {
       contactPerson: '',
       nationalId: '',
       emirate: '',
+      city: '',
+      area: '',
+      basin: '',
       projectType: '',
       productType: '',
       leadSource: '',
       consultant: '',
+      consultantContactPerson: '',
+      consultantPhone: '',
       paymentTerms: '',
       notes: '',
       lastFollowUp: '',
       nextFollowUp: '',
     },
   });
+
+  // Watch city to cascade area options
+  const watchedCity = form.watch('city') as City | '';
+  const availableAreas = watchedCity && CITY_AREAS[watchedCity] ? CITY_AREAS[watchedCity] : [];
 
   const handleExistingCustomerSelect = (customer: any) => {
     form.setValue('fullName', customer.fullName);
@@ -434,6 +444,99 @@ export default function CreateCustomerPage() {
                       )}
                     />
 
+                    {/* City */}
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('customers.city')}</FormLabel>
+                          <Select
+                            onValueChange={(val) => {
+                              field.onChange(val);
+                              form.setValue('area', '');
+                            }}
+                            value={field.value || ''}
+                            disabled={isLoading}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="w-full">
+                                <div className="flex items-center gap-2">
+                                  <MapPin className="size-4 text-muted-foreground" />
+                                  <SelectValue placeholder={t('common.select')} />
+                                </div>
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {CITIES.map((city) => (
+                                <SelectItem key={city} value={city}>
+                                  {t(`customers.cities.${CITY_TRANSLATION_KEY[city]}`)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Area */}
+                    <FormField
+                      control={form.control}
+                      name="area"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('customers.area')}</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value || ''}
+                            disabled={isLoading || !watchedCity}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="w-full">
+                                <div className="flex items-center gap-2">
+                                  <MapPin className="size-4 text-muted-foreground" />
+                                  <SelectValue placeholder={t('common.select')} />
+                                </div>
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {availableAreas.map((area) => (
+                                <SelectItem key={area} value={area}>
+                                  {t(`customers.areas.${areaTranslationKey(area)}`)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Basin */}
+                    <FormField
+                      control={form.control}
+                      name="basin"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('customers.basin')}</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <MapPin className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                              <Input
+                                {...field}
+                                value={field.value || ''}
+                                disabled={isLoading}
+                                className="ps-10"
+                                placeholder={t('customers.basin')}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     {/* Customer Type */}
                     <FormField
                       control={form.control}
@@ -554,18 +657,69 @@ export default function CreateCustomerPage() {
                       )}
                     />
 
-                    {/* Consultant */}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Consultant Section */}
+              <Card className="shadow-premium mt-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserCheck className="size-5 text-primary" />
+                    {t('customers.consultantSection')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Consultant Name */}
                     <FormField
                       control={form.control}
                       name="consultant"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('customers.consultant')}</FormLabel>
+                          <FormLabel>{t('customers.consultantName')}</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <UserCheck className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                              <Input {...field} value={field.value || ''} disabled={isLoading} className="ps-10" placeholder={t('customers.consultant')} />
+                              <Input {...field} value={field.value || ''} disabled={isLoading} className="ps-10" placeholder={t('customers.consultantName')} />
                             </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Consultant Contact Person */}
+                    <FormField
+                      control={form.control}
+                      name="consultantContactPerson"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('customers.consultantContactPerson')}</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <User className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                              <Input {...field} value={field.value || ''} disabled={isLoading} className="ps-10" placeholder={t('customers.consultantContactPerson')} />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Consultant Phone */}
+                    <FormField
+                      control={form.control}
+                      name="consultantPhone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('customers.consultantPhone')}</FormLabel>
+                          <FormControl>
+                            <PhoneInput
+                              value={field.value || ''}
+                              onChange={field.onChange}
+                              disabled={isLoading}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

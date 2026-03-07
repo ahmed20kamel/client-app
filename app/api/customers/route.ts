@@ -190,6 +190,9 @@ export async function POST(request: NextRequest) {
         customerType: validatedData.customerType || 'NEW',
         status: statusValue,
         emirate: validatedData.emirate || null,
+        city: validatedData.city || null,
+        area: validatedData.area || null,
+        basin: validatedData.basin || null,
         projectType: validatedData.projectType || null,
         productType: validatedData.productType || null,
         leadSource: validatedData.leadSource || null,
@@ -197,6 +200,8 @@ export async function POST(request: NextRequest) {
         probability,
         weightedValue,
         consultant: validatedData.consultant || null,
+        consultantContactPerson: validatedData.consultantContactPerson || null,
+        consultantPhone: validatedData.consultantPhone && validatedData.consultantPhone !== '+971' ? validatedData.consultantPhone : null,
         paymentTerms: validatedData.paymentTerms || null,
         projectSize: validatedData.projectSize ?? null,
         notes: validatedData.notes,
@@ -246,8 +251,9 @@ export async function POST(request: NextRequest) {
     }
 
     console.error('Create customer error:', error);
+    const message = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: message.includes('Unknown arg') ? 'Please restart the server to apply database changes' : 'Failed to create customer. Please try again.' },
       { status: 500 }
     );
   }

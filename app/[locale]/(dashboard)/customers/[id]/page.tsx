@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/api-error';
+import { CITY_TRANSLATION_KEY, areaTranslationKey, type City } from '@/lib/locations';
 import {
   User,
   Building2,
@@ -88,6 +89,9 @@ interface Customer {
   customerType: string;
   status: string;
   emirate: string | null;
+  city: string | null;
+  area: string | null;
+  basin: string | null;
   projectType: string | null;
   productType: string | null;
   leadSource: string | null;
@@ -95,6 +99,8 @@ interface Customer {
   probability: number | null;
   weightedValue: number | null;
   consultant: string | null;
+  consultantContactPerson: string | null;
+  consultantPhone: string | null;
   paymentTerms: string | null;
   projectSize: number | null;
   lastFollowUp: string | null;
@@ -422,6 +428,9 @@ export default function CustomerDetailsPage() {
                   <InfoItem icon={Building2} label={t('customers.company')} value={customer.company} />
                   <InfoItem icon={Hash} label={t('customers.nationalId')} value={customer.nationalId} />
                   <InfoItem icon={MapPin} label={t('customers.emirate')} value={customer.emirate ? t(`customers.${EMIRATE_TRANSLATION_MAP[customer.emirate]}`) : null} />
+                  <InfoItem icon={MapPin} label={t('customers.city')} value={customer.city ? t(`customers.cities.${CITY_TRANSLATION_KEY[customer.city as City]}`) : null} />
+                  <InfoItem icon={MapPin} label={t('customers.area')} value={customer.area ? t(`customers.areas.${areaTranslationKey(customer.area)}`) : null} />
+                  <InfoItem icon={MapPin} label={t('customers.basin')} value={customer.basin} />
                   <InfoItem icon={User} label={t('customers.customerType')} value={customer.customerType === 'NEW' ? t('customers.typeNew') : customer.customerType === 'EXISTING' ? t('customers.typeExisting') : customer.customerType} />
                   <InfoItem icon={UserCheck} label={t('customers.owner')} value={customer.owner.fullName} />
                   <InfoItem icon={User} label={t('customers.createdBy')} value={customer.createdBy.fullName} />
@@ -461,11 +470,37 @@ export default function CustomerDetailsPage() {
                 <InfoItem icon={Briefcase} label={t('customers.projectType')} value={customer.projectType ? t(`customers.${PROJECT_TYPE_MAP[customer.projectType]}`) : null} />
                 <InfoItem icon={Briefcase} label={t('customers.productType')} value={customer.productType ? t(`customers.${PRODUCT_TYPE_MAP[customer.productType]}`) : null} />
                 <InfoItem icon={Ruler} label={t('customers.projectSize')} value={customer.projectSize ? `${customer.projectSize} m²` : null} />
-                <InfoItem icon={UserCheck} label={t('customers.consultant')} value={customer.consultant} />
                 <InfoItem icon={CreditCard} label={t('customers.paymentTerms')} value={customer.paymentTerms} />
               </div>
             </CardContent>
           </Card>
+
+          {/* Consultant Info */}
+          {(customer.consultant || customer.consultantContactPerson || customer.consultantPhone) && (
+            <Card className="shadow-premium mt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserCheck className="size-5 text-primary" />
+                  {t('customers.consultantSection')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  <InfoItem icon={UserCheck} label={t('customers.consultantName')} value={customer.consultant} />
+                  <InfoItem icon={User} label={t('customers.consultantContactPerson')} value={customer.consultantContactPerson} />
+                  {customer.consultantPhone ? (
+                    <div className="flex items-start gap-3">
+                      <Phone className="size-4 text-muted-foreground mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">{t('customers.consultantPhone')}</p>
+                        <CopyablePhone phone={customer.consultantPhone} className="font-medium text-sm" />
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* === Lead & Sales Tab === */}

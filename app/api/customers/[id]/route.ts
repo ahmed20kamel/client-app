@@ -145,6 +145,11 @@ export async function PATCH(
 
     // Handle empty string → null for optional string fields
     if (validatedData.email === '') updateData.email = null;
+    if (validatedData.city === '') updateData.city = null;
+    if (validatedData.area === '') updateData.area = null;
+    if (validatedData.basin === '') updateData.basin = null;
+    if (validatedData.consultantContactPerson === '') updateData.consultantContactPerson = null;
+    if (validatedData.consultantPhone === '' || validatedData.consultantPhone === '+971') updateData.consultantPhone = null;
 
     // Update customer
     const customer = await prisma.customer.update({
@@ -197,8 +202,9 @@ export async function PATCH(
     }
 
     console.error('Update customer error:', error);
+    const message = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: message.includes('Unknown arg') ? 'Please restart the server to apply database changes' : 'Failed to update customer. Please try again.' },
       { status: 500 }
     );
   }
