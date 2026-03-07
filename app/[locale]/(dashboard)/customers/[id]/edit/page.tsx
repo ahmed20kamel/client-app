@@ -101,8 +101,14 @@ export default function EditCustomerPage() {
         const response = await fetch(`/api/customers/${id}`);
 
         if (!response.ok) {
-          const error = await response.json();
-          toast.error(getApiErrorMessage(error.error || '', t));
+          if (response.status === 404) {
+            toast.error(t('messages.notFound', { entity: t('customers.title') }));
+          } else if (response.status === 403) {
+            toast.error(t('messages.unauthorized'));
+          } else {
+            const error = await response.json();
+            toast.error(getApiErrorMessage(error.error || '', t));
+          }
           router.push(`/${locale}/customers`);
           return;
         }

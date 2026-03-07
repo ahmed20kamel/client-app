@@ -103,6 +103,16 @@ export default function EditUserPage() {
       fetch('/api/roles').then((res) => res.json()),
       fetch('/api/departments').then((res) => res.json()),
       fetch(`/api/users/${userId}`).then((res) => {
+        if (res.status === 404) {
+          toast.error(t('messages.notFound', { entity: t('users.title') }));
+          router.push(`/${locale}/users`);
+          throw new Error('not-found');
+        }
+        if (res.status === 403) {
+          toast.error(t('messages.unauthorized'));
+          router.push(`/${locale}/users`);
+          throw new Error('forbidden');
+        }
         if (!res.ok) throw new Error('Failed to fetch user');
         return res.json();
       }),
@@ -123,7 +133,8 @@ export default function EditUserPage() {
         setSelectedDeptId(user.department?.id || '');
         setLoadingUser(false);
       })
-      .catch(() => {
+      .catch((err) => {
+        if (err.message === 'not-found' || err.message === 'forbidden') return;
         toast.error(t('errors.networkError'));
         router.push(`/${locale}/users`);
       });
