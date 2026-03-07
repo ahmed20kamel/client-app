@@ -90,7 +90,7 @@ export async function POST(
     // Notify creator
     await createNotification({
       userId: task.createdById,
-      type: 'INTERNAL_TASK_SUBMITTED' as any,
+      type: 'INTERNAL_TASK_SUBMITTED',
       title: 'Task Submitted for Approval',
       message: `Task "${task.title}" has been submitted for your approval`,
       link: `/en/internal-tasks/${task.id}`,

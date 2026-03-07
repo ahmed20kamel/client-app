@@ -18,7 +18,6 @@ import {
   User,
   Calendar,
   FileText,
-  TrendingUp,
   Award,
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
@@ -122,7 +121,7 @@ export default function CreatePerformanceReviewPage() {
 
       toast.success(t('messages.reviewCreated'));
       router.push(`/${locale}/performance`);
-    } catch (error) {
+    } catch {
       toast.error(t('errors.networkError'));
     } finally {
       setIsLoading(false);
@@ -130,7 +129,8 @@ export default function CreatePerformanceReviewPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto animate-fade-in">
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
       {/* Header */}
       <PageHeader
         icon={Award}
@@ -144,6 +144,7 @@ export default function CreatePerformanceReviewPage() {
         }
       />
 
+      <div className="p-5 space-y-5">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Employee & Period */}
         <Card className="shadow-premium">
@@ -321,6 +322,8 @@ export default function CreatePerformanceReviewPage() {
           </Button>
         </div>
       </form>
+      </div>
+      </div>
     </div>
   );
 }

@@ -17,7 +17,7 @@ import {
   BarChart3,
   User,
 } from 'lucide-react';
-import { PageSkeleton, DetailSkeleton } from '@/components/ui/page-skeleton';
+import { DetailSkeleton } from '@/components/ui/page-skeleton';
 
 interface UserData {
   id: string;
@@ -112,7 +112,7 @@ export default function EmployeePerformancePage() {
         }
         const result = await response.json();
         setData(result.data);
-      } catch (error) {
+      } catch {
         toast.error(t('common.error'));
         router.push(`/${locale}/performance`);
       } finally {
@@ -121,6 +121,7 @@ export default function EmployeePerformancePage() {
     };
 
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const formatDate = (dateString: string) => {
@@ -137,22 +138,33 @@ export default function EmployeePerformancePage() {
   };
 
   if (loading) {
-    return <DetailSkeleton />;
+    return (
+      <div className="p-3 md:p-3.5">
+        <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+          <DetailSkeleton />
+        </div>
+      </div>
+    );
   }
 
   if (!data) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 animate-fade-in">
-        <AlertCircle className="size-12 mb-4 text-muted-foreground/40" />
-        <p className="text-muted-foreground">{t('common.noData')}</p>
+      <div className="p-3 md:p-3.5">
+        <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+          <div className="flex flex-col items-center justify-center py-16">
+            <AlertCircle className="size-12 mb-4 text-muted-foreground/40" />
+            <p className="text-muted-foreground">{t('common.noData')}</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="animate-fade-in">
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-6 py-5 border-b border-border">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => router.push(`/${locale}/performance`)}>
             <ArrowLeft className="size-4 rtl:-scale-x-100" />
@@ -169,8 +181,9 @@ export default function EmployeePerformancePage() {
         </div>
       </div>
 
+      <div className="p-5 space-y-5">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 lg:mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="shadow-premium">
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
@@ -239,7 +252,7 @@ export default function EmployeePerformancePage() {
       </div>
 
       {/* Review History */}
-      <Card className="shadow-premium mb-8">
+      <Card className="shadow-premium">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="size-5 text-primary" />
@@ -257,22 +270,22 @@ export default function EmployeePerformancePage() {
               <table className="w-full">
                 <thead>
                   <tr className="bg-muted/30">
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('performance.period')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('performance.overallRating')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('performance.tasksCompleted')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('performance.reviewer')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('common.status')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('common.date')}
                     </th>
                   </tr>
@@ -280,7 +293,7 @@ export default function EmployeePerformancePage() {
                 <tbody className="divide-y divide-border">
                   {data.reviews.map((review) => (
                     <tr key={review.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <Badge variant="outline">
                           {t(`performance.${review.period.toLowerCase()}`)}
                         </Badge>
@@ -288,16 +301,16 @@ export default function EmployeePerformancePage() {
                           {formatDate(review.periodStart)} - {formatDate(review.periodEnd)}
                         </p>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <StarDisplay rating={review.overallRating} />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">
                         {review.tasksCompleted}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">
                         {review.reviewer.fullName}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <Badge
                           variant="outline"
                           className={`${STATUS_CONFIG[review.status]?.bg} ${STATUS_CONFIG[review.status]?.color} border`}
@@ -305,7 +318,7 @@ export default function EmployeePerformancePage() {
                           {t(`performance.status${review.status.charAt(0) + review.status.slice(1).toLowerCase()}`)}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
                         {formatDate(review.createdAt)}
                       </td>
                     </tr>
@@ -354,6 +367,8 @@ export default function EmployeePerformancePage() {
           )}
         </CardContent>
       </Card>
+      </div>
+      </div>
     </div>
   );
 }

@@ -93,7 +93,7 @@ export async function POST(
     if (notifyUserId !== session.user.id) {
       await createNotification({
         userId: notifyUserId,
-        type: 'INTERNAL_TASK_COMMENT' as any,
+        type: 'INTERNAL_TASK_COMMENT',
         title: 'New Comment on Internal Task',
         message: `New comment on "${task.title}"`,
         link: `/en/internal-tasks/${task.id}`,

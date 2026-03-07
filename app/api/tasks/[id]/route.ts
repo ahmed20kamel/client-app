@@ -127,7 +127,7 @@ export async function PATCH(
     const validatedData = updateTaskSchema.parse(body);
 
     // If status is being changed to DONE, set completedAt
-    const updateData: any = { ...validatedData };
+    const updateData: Record<string, unknown> = { ...validatedData };
     if (validatedData.status === 'DONE' && existingTask.status !== 'DONE') {
       updateData.completedAt = new Date();
     } else if (validatedData.status && validatedData.status !== 'DONE') {

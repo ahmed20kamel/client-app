@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,7 +16,6 @@ import {
   Eye,
   CheckCircle2,
   CheckSquare,
-  Loader2,
   AlertCircle,
   ChevronLeft,
   ChevronRight,
@@ -93,6 +92,7 @@ export default function TasksPage() {
   const t = useTranslations();
   const params = useParams();
   const locale = params.locale as string;
+  const router = useRouter();
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,7 +154,7 @@ export default function TasksPage() {
       const data = await response.json();
       setTasks(data.data);
       setMeta(data.meta);
-    } catch (error) {
+    } catch {
       toast.error(t('common.error'));
     } finally {
       setLoading(false);
@@ -163,6 +163,7 @@ export default function TasksPage() {
 
   useEffect(() => {
     fetchTasks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search, status, priority, categoryId, departmentId]);
 
   const handleMarkAsDone = async (id: string) => {
@@ -177,7 +178,7 @@ export default function TasksPage() {
 
       toast.success(t('messages.updateSuccess', { entity: t('tasks.title') }));
       fetchTasks();
-    } catch (error) {
+    } catch {
       toast.error(t('common.error'));
     }
   };
@@ -203,7 +204,8 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="animate-fade-in">
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
       {/* Header */}
       <PageHeader
         title={t('tasks.title')}
@@ -219,6 +221,7 @@ export default function TasksPage() {
         }
       />
 
+      <div className="p-5 space-y-5">
       {/* Filters */}
       <Card className="shadow-premium mb-6">
         <CardContent className="p-4">
@@ -361,33 +364,33 @@ export default function TasksPage() {
               <table className="w-full">
                 <thead>
                   <tr className="bg-muted/30">
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-7 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('tasks.taskTitle')}
                     </th>
-                    <th className="px-6 py-3.5 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('tasks.customer')}
                     </th>
-                    <th className="px-6 py-3.5 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('tasks.assignedTo')}
                     </th>
-                    <th className="px-6 py-3.5 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('tasks.priority')}
                     </th>
-                    <th className="px-6 py-3.5 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('common.status')}
                     </th>
-                    <th className="px-6 py-3.5 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('tasks.dueDate')}
                     </th>
-                    <th className="px-6 py-3.5 text-end text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-end text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('common.actions')}
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {tasks.map((task) => (
-                    <tr key={task.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="px-6 py-4">
+                    <tr key={task.id} className="hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => router.push(`/${locale}/tasks/${task.id}`)}>
+                      <td className="px-7 py-4">
                         <div className="flex items-start gap-2">
                           {task.escalationLevel > 0 && (
                             <AlertTriangle className={`size-4 mt-0.5 shrink-0 ${
@@ -420,7 +423,7 @@ export default function TasksPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <td className="px-4 py-4 whitespace-nowrap text-center">
                         <Link
                           href={`/${locale}/customers/${task.customer.id}`}
                           className="text-sm text-primary hover:underline"
@@ -428,15 +431,15 @@ export default function TasksPage() {
                           {task.customer.fullName}
                         </Link>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-foreground">
+                      <td className="px-4 py-4 whitespace-nowrap text-center text-sm text-foreground">
                         {task.assignedTo.fullName}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <td className="px-4 py-4 whitespace-nowrap text-center">
                         <Badge variant="outline" className={`${PRIORITY_CONFIG[task.priority]?.bg} ${PRIORITY_CONFIG[task.priority]?.color} border`}>
                           {t(`tasks.priority${task.priority.charAt(0) + task.priority.slice(1).toLowerCase()}`)}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <td className="px-4 py-4 whitespace-nowrap text-center">
                         <Badge variant="outline" className={`${STATUS_CONFIG[task.status]?.bg} ${STATUS_CONFIG[task.status]?.color} border`}>
                           {t(`tasks.status${task.status.charAt(0) + task.status.slice(1).toLowerCase()}`)}
                         </Badge>
@@ -446,7 +449,7 @@ export default function TasksPage() {
                           </Badge>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <td className="px-4 py-4 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center gap-1.5 text-sm">
                           <Clock className="size-3.5 text-muted-foreground" />
                           <span className={task.status === 'OVERDUE' ? 'text-destructive font-medium' : 'text-foreground'}>
@@ -454,7 +457,7 @@ export default function TasksPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-end">
+                      <td className="px-4 py-4 whitespace-nowrap text-end" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           {(task.status === 'OPEN' || task.status === 'OVERDUE') && (
                             <Button
@@ -510,6 +513,8 @@ export default function TasksPage() {
           )}
         </>
       )}
+      </div>
+      </div>
     </div>
   );
 }

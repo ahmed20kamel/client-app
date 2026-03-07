@@ -16,7 +16,6 @@ import { toast } from 'sonner';
 import {
   User,
   Mail,
-  Phone,
   Lock,
   Shield,
   Briefcase,
@@ -96,6 +95,7 @@ export default function CreateUserPage() {
         setDepartments(deptsData.data);
       })
       .catch(() => toast.error(t('errors.networkError')));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onSubmit = async (data: CreateUserForm) => {
@@ -115,7 +115,7 @@ export default function CreateUserPage() {
 
       toast.success(t('messages.createSuccess', { entity: t('users.title') }));
       router.push(`/${locale}/users`);
-    } catch (error) {
+    } catch {
       toast.error(t('errors.networkError'));
     } finally {
       setIsLoading(false);
@@ -123,7 +123,8 @@ export default function CreateUserPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto animate-fade-in">
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
       {/* Header */}
       <PageHeader
         icon={UserPlus}
@@ -140,6 +141,7 @@ export default function CreateUserPage() {
         }
       />
 
+      <div className="p-5 space-y-5">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {/* Personal Info */}
@@ -373,6 +375,8 @@ export default function CreateUserPage() {
           </div>
         </form>
       </Form>
+      </div>
+      </div>
     </div>
   );
 }

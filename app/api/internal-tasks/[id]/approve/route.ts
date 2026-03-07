@@ -110,7 +110,7 @@ export async function POST(
     // Notify assignee
     await createNotification({
       userId: task.assignedToId,
-      type: 'INTERNAL_TASK_APPROVED' as any,
+      type: 'INTERNAL_TASK_APPROVED',
       title: 'Task Approved',
       message: `Your task "${task.title}" has been approved`,
       link: `/en/internal-tasks/${task.id}`,

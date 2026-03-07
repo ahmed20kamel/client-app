@@ -3,7 +3,8 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 // POST /api/notifications/mark-all-read - Mark all notifications as read
-export async function POST(request: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function POST(_request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {

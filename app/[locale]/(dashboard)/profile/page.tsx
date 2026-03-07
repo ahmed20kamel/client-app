@@ -83,6 +83,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -188,8 +189,12 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="size-8 animate-spin text-primary" />
+      <div className="p-3 md:p-3.5">
+        <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <Loader2 className="size-8 animate-spin text-primary" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -197,11 +202,15 @@ export default function ProfilePage() {
   if (!profile) return null;
 
   return (
-    <div className="max-w-4xl mx-auto animate-fade-in">
-      <h1 className="text-2xl lg:text-3xl font-bold tracking-tight mb-6 lg:mb-8">
-        {t('profile.title')}
-      </h1>
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm animate-fade-in">
+      <div className="px-6 py-5 border-b border-border">
+        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">
+          {t('profile.title')}
+        </h1>
+      </div>
 
+      <div className="p-5">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Profile Card */}
         <div className="lg:col-span-1">
@@ -210,6 +219,7 @@ export default function ProfilePage() {
               {/* Avatar */}
               <div className="relative group mb-4">
                 {profile.profileImage ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={profile.profileImage}
                     alt={profile.fullName}
@@ -447,6 +457,8 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
         </div>
+      </div>
+      </div>
       </div>
     </div>
   );

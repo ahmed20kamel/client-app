@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +22,6 @@ import {
   Filter,
   Pencil,
   Trash2,
-  Loader2,
   AlertCircle,
   Users,
   CheckSquare,
@@ -46,6 +45,7 @@ export default function DepartmentsPage() {
   const t = useTranslations();
   const params = useParams();
   const locale = params.locale as string;
+  const router = useRouter();
 
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,6 +79,7 @@ export default function DepartmentsPage() {
 
   useEffect(() => {
     fetchDepartments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDelete = async (id: string) => {
@@ -127,7 +128,8 @@ export default function DepartmentsPage() {
   };
 
   return (
-    <div className="animate-fade-in">
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
       {/* Header */}
       <PageHeader
         title={t('departments.title')}
@@ -143,6 +145,7 @@ export default function DepartmentsPage() {
         }
       />
 
+      <div className="p-5 space-y-5">
       {/* Search */}
       <Card className="shadow-premium mb-6">
         <CardHeader className="pb-4">
@@ -259,55 +262,55 @@ export default function DepartmentsPage() {
                   <th className="px-4 py-3 w-12">
                     <Checkbox checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false} onCheckedChange={toggleAll} />
                   </th>
-                  <th className="px-6 py-3 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <th className="px-7 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                     <div className="flex items-center gap-1">
                       <Building2 className="size-3" />
                       {t('departments.name')}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                     {t('departments.parent')}
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                     <div className="flex items-center justify-center gap-1">
                       <UserCog className="size-3" />
                       {t('departments.manager')}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                     <div className="flex items-center justify-center gap-1">
                       <Users className="size-3" />
                       {t('departments.members')}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                     <div className="flex items-center justify-center gap-1">
                       <CheckSquare className="size-3" />
                       {t('tasks.title')}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-end text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-3 text-end text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                     {t('common.actions')}
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredDepartments.map((dept) => (
-                  <tr key={dept.id} className="hover:bg-muted/20 transition-colors">
-                    <td className="px-4 py-3">
+                  <tr key={dept.id} className="hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => router.push(`/${locale}/departments/${dept.id}/edit`)}>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <Checkbox checked={isSelected(dept.id)} onCheckedChange={() => toggleOne(dept.id)} />
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-7 py-4">
                       <DualLanguageName name={getDeptName(dept)} nameAr={locale === 'ar' ? dept.name : dept.nameAr} />
                     </td>
-                    <td className="px-6 py-4 text-center text-sm text-foreground">
+                    <td className="px-4 py-4 text-center text-sm text-foreground">
                       {dept.parent ? (
                         getDeptName(dept.parent)
                       ) : (
                         <span className="text-muted-foreground">{t('departments.noParent')}</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-4 py-4 text-center">
                       {dept.manager ? (
                         <div className="flex items-center justify-center gap-2">
                           <div className="size-7 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-xs font-semibold shrink-0">
@@ -319,17 +322,17 @@ export default function DepartmentsPage() {
                         <span className="text-sm text-muted-foreground">-</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-4 py-4 text-center">
                       <Badge variant="secondary" className="bg-primary/10 text-primary font-bold">
                         {dept._count.users}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-4 py-4 text-center">
                       <Badge variant="secondary">
                         {dept._count.tasks}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4 text-end">
+                    <td className="px-4 py-4 text-end" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
                         <Link href={`/${locale}/departments/${dept.id}/edit`}>
                           <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-primary">
@@ -361,6 +364,8 @@ export default function DepartmentsPage() {
         </Card>
         </>
       )}
+      </div>
+      </div>
     </div>
   );
 }

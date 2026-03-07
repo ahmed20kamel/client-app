@@ -16,7 +16,6 @@ import { toast } from 'sonner';
 import {
   User,
   Mail,
-  Phone,
   Lock,
   Shield,
   Briefcase,
@@ -28,7 +27,7 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { PageSkeleton, DetailSkeleton } from '@/components/ui/page-skeleton';
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 
 const updateUserSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -128,6 +127,7 @@ export default function EditUserPage() {
         toast.error(t('errors.networkError'));
         router.push(`/${locale}/users`);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const onSubmit = async (data: UpdateUserForm) => {
@@ -153,7 +153,7 @@ export default function EditUserPage() {
 
       toast.success(t('messages.updateSuccess', { entity: t('users.title') }));
       router.push(`/${locale}/users`);
-    } catch (error) {
+    } catch {
       toast.error(t('errors.networkError'));
     } finally {
       setIsLoading(false);
@@ -165,7 +165,8 @@ export default function EditUserPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto animate-fade-in">
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
       {/* Header */}
       <PageHeader
         icon={UserCog}
@@ -182,6 +183,7 @@ export default function EditUserPage() {
         }
       />
 
+      <div className="p-5 space-y-5">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {/* Personal Info */}
@@ -412,6 +414,8 @@ export default function EditUserPage() {
           </div>
         </form>
       </Form>
+      </div>
+      </div>
     </div>
   );
 }

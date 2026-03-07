@@ -76,7 +76,7 @@ export async function POST(
     // Notify assignee
     await createNotification({
       userId: task.assignedToId,
-      type: 'INTERNAL_TASK_RATED' as any,
+      type: 'INTERNAL_TASK_RATED',
       title: 'Task Rated',
       message: `Your task "${task.title}" has been rated ${validatedData.rating}/5`,
       link: `/en/internal-tasks/${task.id}`,

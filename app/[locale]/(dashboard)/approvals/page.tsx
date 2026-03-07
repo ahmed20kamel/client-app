@@ -86,7 +86,7 @@ export default function ApprovalsPage() {
       }
       const data = await response.json();
       setTasks(data.data);
-    } catch (error) {
+    } catch {
       toast.error(t('common.error'));
     } finally {
       setLoading(false);
@@ -95,6 +95,7 @@ export default function ApprovalsPage() {
 
   useEffect(() => {
     fetchTasks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleApprove = async (id: string) => {
@@ -115,7 +116,7 @@ export default function ApprovalsPage() {
 
       toast.success(t('messages.approveSuccess'));
       setTasks((prev) => prev.filter((task) => task.id !== id));
-    } catch (error) {
+    } catch {
       toast.error(t('common.error'));
     } finally {
       setProcessingId(null);
@@ -143,7 +144,7 @@ export default function ApprovalsPage() {
       setTasks((prev) => prev.filter((task) => task.id !== id));
       setRejectingId(null);
       setRejectionReason('');
-    } catch (error) {
+    } catch {
       toast.error(t('common.error'));
     } finally {
       setProcessingId(null);
@@ -159,7 +160,8 @@ export default function ApprovalsPage() {
   };
 
   return (
-    <div className="animate-fade-in">
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
       {/* Header */}
       <PageHeader
         title={t('approvals.title')}
@@ -174,6 +176,7 @@ export default function ApprovalsPage() {
         }
       />
 
+      <div className="p-5 space-y-5">
       {/* Content */}
       {loading ? (
         <TableSkeleton rows={4} columns={5} />
@@ -328,6 +331,8 @@ export default function ApprovalsPage() {
           ))}
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 }

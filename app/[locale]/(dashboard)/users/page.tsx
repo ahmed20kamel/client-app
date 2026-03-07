@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +25,6 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
-  Loader2,
   Mail,
   Shield,
   Clock,
@@ -64,6 +63,7 @@ export default function UsersPage() {
   const t = useTranslations();
   const params = useParams();
   const locale = params.locale as string;
+  const router = useRouter();
 
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,7 +102,7 @@ export default function UsersPage() {
       const data: UsersResponse = await response.json();
       setUsers(data.data);
       setMeta(data.meta);
-    } catch (error) {
+    } catch {
       toast.error(t('common.error'));
     } finally {
       setLoading(false);
@@ -111,6 +111,7 @@ export default function UsersPage() {
 
   useEffect(() => {
     fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search, status]);
 
   const handleDisableUser = async (id: string) => {
@@ -134,7 +135,8 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="animate-fade-in">
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
       {/* Header */}
       <PageHeader
         title={t('users.title')}
@@ -150,6 +152,7 @@ export default function UsersPage() {
         }
       />
 
+      <div className="p-5 space-y-5">
       {/* Filters */}
       <Card className="shadow-premium mb-6">
         <CardHeader className="pb-4">
@@ -283,45 +286,45 @@ export default function UsersPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b bg-muted/30">
-                    <th className="px-6 py-3 w-12">
+                    <th className="px-4 py-3 w-12">
                       <Checkbox checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false} onCheckedChange={toggleAll} />
                     </th>
-                    <th className="px-6 py-3 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-7 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('users.fullName')}
                     </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       <div className="flex items-center justify-center gap-1">
                         <Mail className="size-3" />
                         {t('common.email')}
                       </div>
                     </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       <div className="flex items-center justify-center gap-1">
                         <Shield className="size-3" />
                         {t('users.role')}
                       </div>
                     </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('common.status')}
                     </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       <div className="flex items-center justify-center gap-1">
                         <Clock className="size-3" />
                         {t('users.lastLogin')}
                       </div>
                     </th>
-                    <th className="px-6 py-3 text-end text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-end text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('common.actions')}
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {users.map((user) => (
-                    <tr key={user.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="px-6 py-4">
+                    <tr key={user.id} className="hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => router.push(`/${locale}/users/${user.id}/edit`)}>
+                      <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                         <Checkbox checked={isSelected(user.id)} onCheckedChange={() => toggleOne(user.id)} />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-7 py-4">
                         <div className="flex items-center gap-3">
                           <div className="size-9 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-semibold text-sm shrink-0">
                             {user.fullName.charAt(0).toUpperCase()}
@@ -334,15 +337,15 @@ export default function UsersPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-foreground text-center">
+                      <td className="px-4 py-4 text-sm text-foreground text-center">
                         {user.email}
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-4 py-4 text-center">
                         <Badge variant="secondary" className="font-medium">
                           {user.role?.name || 'N/A'}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-4 py-4 text-center">
                         <StatusBadge
                           status={user.status}
                           label={user.status === 'ACTIVE'
@@ -350,12 +353,12 @@ export default function UsersPage() {
                             : t('users.statusDisabled')}
                         />
                       </td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground text-center">
+                      <td className="px-4 py-4 text-sm text-muted-foreground text-center">
                         {user.lastLoginAt
                           ? new Date(user.lastLoginAt).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE')
                           : t('common.never')}
                       </td>
-                      <td className="px-6 py-4 text-end">
+                      <td className="px-4 py-4 text-end" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <Link href={`/${locale}/users/${user.id}/edit`}>
                             <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-primary">
@@ -423,6 +426,8 @@ export default function UsersPage() {
           )}
         </>
       )}
+      </div>
+      </div>
     </div>
   );
 }

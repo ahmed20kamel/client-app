@@ -127,6 +127,7 @@ export async function PATCH(
     const validatedData = updateInternalTaskSchema.parse(body);
 
     // Build update data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = { ...validatedData };
 
     if (validatedData.dueAt !== undefined) {

@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         };
 
     // Build task where clause based on permissions
-    const taskWhere: any = { ...dateFilter };
+    const taskWhere: Record<string, unknown> = { ...dateFilter };
     if (!canViewAll) {
       taskWhere.assignedToId = session.user.id;
     }

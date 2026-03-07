@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     const roleId = searchParams.get('roleId') || '';
 
     // Build where clause
-    const where: any = {};
+    const where: Record<string, unknown> = {};
 
     if (search) {
       where.OR = [
@@ -73,7 +73,8 @@ export async function GET(request: NextRequest) {
     });
 
     // Remove passwordHash from response
-    const sanitizedUsers = users.map(({ passwordHash, ...user }) => ({
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const sanitizedUsers = users.map(({ passwordHash: _passwordHash, ...user }) => ({
       ...user,
       role: user.roles[0]?.role || null,
     }));
@@ -129,7 +130,7 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hash(validatedData.password, 10);
 
     // Extract departmentId (not part of Prisma User schema)
-    const { departmentId, ...userData } = validatedData as any;
+    const { departmentId } = validatedData as { departmentId?: string };
 
     // Create user with role
     const user = await prisma.user.create({
@@ -172,7 +173,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Remove passwordHash from response
-    const { passwordHash: _, ...sanitizedUser } = user;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash: _passwordHash, ...sanitizedUser } = user;
 
     // Log audit
     await logAudit({

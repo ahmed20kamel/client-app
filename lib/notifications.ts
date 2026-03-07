@@ -15,6 +15,7 @@ export type NotificationType =
   | 'INTERNAL_TASK_APPROVED'
   | 'INTERNAL_TASK_REJECTED'
   | 'INTERNAL_TASK_RATED'
+  | 'INTERNAL_TASK_COMMENT'
   | 'PERFORMANCE_REVIEW';
 
 interface CreateNotificationParams {

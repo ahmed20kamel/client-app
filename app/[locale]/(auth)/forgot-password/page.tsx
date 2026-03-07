@@ -55,7 +55,7 @@ export default function ForgotPasswordPage() {
 
       setEmailSent(true);
       toast.success(t('auth.reset_email_sent'));
-    } catch (error) {
+    } catch {
       toast.error(t('common.error'));
     } finally {
       setIsLoading(false);

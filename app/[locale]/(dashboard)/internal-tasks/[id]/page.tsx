@@ -3,9 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -31,7 +29,7 @@ import {
   AlertTriangle,
   RotateCcw,
 } from 'lucide-react';
-import { PageSkeleton, DetailSkeleton } from '@/components/ui/page-skeleton';
+import { DetailSkeleton } from '@/components/ui/page-skeleton';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -216,7 +214,7 @@ export default function InternalTaskDetailPage() {
       }
       const { data } = await response.json();
       setTask(data);
-    } catch (error) {
+    } catch {
       toast.error(t('errors.networkError'));
       router.push(`/${locale}/internal-tasks`);
     } finally {
@@ -226,6 +224,7 @@ export default function InternalTaskDetailPage() {
 
   useEffect(() => {
     fetchTask();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // ─── Action Handlers ────────────────────────────────────────────────────
@@ -247,7 +246,7 @@ export default function InternalTaskDetailPage() {
 
       toast.success(t('messages.updateSuccess', { entity: t('internalTasks.title') }));
       fetchTask();
-    } catch (error) {
+    } catch {
       toast.error(t('errors.networkError'));
     } finally {
       setIsActioning(false);
@@ -271,7 +270,7 @@ export default function InternalTaskDetailPage() {
 
       toast.success(t('messages.submitSuccess'));
       fetchTask();
-    } catch (error) {
+    } catch {
       toast.error(t('errors.networkError'));
     } finally {
       setIsActioning(false);
@@ -295,7 +294,7 @@ export default function InternalTaskDetailPage() {
 
       toast.success(t('messages.approveSuccess'));
       fetchTask();
-    } catch (error) {
+    } catch {
       toast.error(t('errors.networkError'));
     } finally {
       setIsActioning(false);
@@ -322,7 +321,7 @@ export default function InternalTaskDetailPage() {
       setShowRejectForm(false);
       setRejectionReason('');
       fetchTask();
-    } catch (error) {
+    } catch {
       toast.error(t('errors.networkError'));
     } finally {
       setIsActioning(false);
@@ -352,7 +351,7 @@ export default function InternalTaskDetailPage() {
       setRatingValue(0);
       setRatingComment('');
       fetchTask();
-    } catch (error) {
+    } catch {
       toast.error(t('errors.networkError'));
     } finally {
       setIsRating(false);
@@ -374,7 +373,7 @@ export default function InternalTaskDetailPage() {
       toast.success(t('messages.commentAdded'));
       setNewComment('');
       fetchTask();
-    } catch (error) {
+    } catch {
       toast.error(t('errors.networkError'));
     } finally {
       setIsSubmittingComment(false);
@@ -444,22 +443,33 @@ export default function InternalTaskDetailPage() {
   // ─── Loading / Not Found ─────────────────────────────────────────────────
 
   if (loading) {
-    return <DetailSkeleton />;
+    return (
+      <div className="p-3 md:p-3.5">
+        <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+          <DetailSkeleton />
+        </div>
+      </div>
+    );
   }
 
   if (!task) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 animate-fade-in">
-        <AlertCircle className="size-12 mb-4 text-muted-foreground/40" />
-        <p className="text-muted-foreground">{t('common.noData')}</p>
+      <div className="p-3 md:p-3.5">
+        <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+          <div className="flex flex-col items-center justify-center py-16">
+            <AlertCircle className="size-12 mb-4 text-muted-foreground/40" />
+            <p className="text-muted-foreground">{t('common.noData')}</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="animate-fade-in">
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-6 py-5 border-b border-border">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => router.push(`/${locale}/internal-tasks`)}>
             <ArrowLeft className="size-4 rtl:-scale-x-100" />
@@ -537,9 +547,10 @@ export default function InternalTaskDetailPage() {
         </div>
       </div>
 
+      <div className="p-5 space-y-5">
       {/* Reject Form Panel */}
       {showRejectForm && (
-        <Card className="shadow-premium mb-6 border-destructive/30">
+        <Card className="shadow-premium border-destructive/30">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2 text-destructive">
               <ThumbsDown className="size-4" />
@@ -874,6 +885,8 @@ export default function InternalTaskDetailPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
+      </div>
       </div>
     </div>
   );

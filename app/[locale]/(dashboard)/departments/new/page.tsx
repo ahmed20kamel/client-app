@@ -104,7 +104,8 @@ export default function NewDepartmentPage() {
   };
 
   return (
-    <div className="animate-fade-in max-w-2xl mx-auto">
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
       {/* Header */}
       <PageHeader
         icon={Building2}
@@ -118,6 +119,7 @@ export default function NewDepartmentPage() {
         }
       />
 
+      <div className="p-5 space-y-5">
       {/* Form */}
       <Card className="shadow-premium">
         <CardHeader>
@@ -273,6 +275,8 @@ export default function NewDepartmentPage() {
           </Form>
         </CardContent>
       </Card>
+      </div>
+      </div>
     </div>
   );
 }

@@ -34,7 +34,7 @@ import {
   Building2,
   Tag,
 } from 'lucide-react';
-import { PageSkeleton, DetailSkeleton } from '@/components/ui/page-skeleton';
+import { DetailSkeleton } from '@/components/ui/page-skeleton';
 
 interface TaskComment {
   id: string;
@@ -109,13 +109,6 @@ const PRIORITY_CONFIG: Record<string, { color: string; bg: string }> = {
   HIGH: { color: 'text-red-700', bg: 'bg-red-50 border-red-200' },
 };
 
-const COMMENT_TYPE_CONFIG: Record<string, { icon: string; color: string }> = {
-  COMMENT: { icon: 'message', color: 'text-blue-500' },
-  STATUS_CHANGE: { icon: 'status', color: 'text-purple-500' },
-  REASSIGNMENT: { icon: 'reassign', color: 'text-amber-500' },
-  ESCALATION: { icon: 'escalation', color: 'text-red-500' },
-  SYSTEM: { icon: 'system', color: 'text-gray-500' },
-};
 
 export default function TaskDetailsPage() {
   const t = useTranslations();
@@ -177,7 +170,7 @@ export default function TaskDetailsPage() {
         priority: data.priority,
         status: data.status,
       });
-    } catch (error) {
+    } catch {
       toast.error(t('errors.networkError'));
       router.push(`/${locale}/tasks`);
     } finally {
@@ -200,6 +193,7 @@ export default function TaskDetailsPage() {
   useEffect(() => {
     fetchTask();
     fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const onSubmit = async (data: UpdateTaskInput) => {
@@ -220,7 +214,7 @@ export default function TaskDetailsPage() {
       toast.success(t('messages.updateSuccess', { entity: t('tasks.title') }));
       setIsEditing(false);
       fetchTask();
-    } catch (error) {
+    } catch {
       toast.error(t('errors.networkError'));
     } finally {
       setIsSaving(false);
@@ -242,7 +236,7 @@ export default function TaskDetailsPage() {
       toast.success(t('messages.commentAdded'));
       setNewComment('');
       fetchTask();
-    } catch (error) {
+    } catch {
       toast.error(t('errors.networkError'));
     } finally {
       setIsSubmittingComment(false);
@@ -266,7 +260,7 @@ export default function TaskDetailsPage() {
       setReassignUserId('');
       setReassignReason('');
       fetchTask();
-    } catch (error) {
+    } catch {
       toast.error(t('errors.networkError'));
     } finally {
       setIsReassigning(false);
@@ -292,7 +286,7 @@ export default function TaskDetailsPage() {
       setShowEscalate(false);
       setEscalationReason('');
       fetchTask();
-    } catch (error) {
+    } catch {
       toast.error(t('errors.networkError'));
     } finally {
       setIsEscalating(false);
@@ -318,14 +312,24 @@ export default function TaskDetailsPage() {
   };
 
   if (loading) {
-    return <DetailSkeleton />;
+    return (
+      <div className="p-3 md:p-3.5">
+        <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+          <DetailSkeleton />
+        </div>
+      </div>
+    );
   }
 
   if (!task) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 animate-fade-in">
-        <AlertCircle className="size-12 mb-4 text-muted-foreground/40" />
-        <p className="text-muted-foreground">{t('common.noData')}</p>
+      <div className="p-3 md:p-3.5">
+        <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+          <div className="flex flex-col items-center justify-center py-16">
+            <AlertCircle className="size-12 mb-4 text-muted-foreground/40" />
+            <p className="text-muted-foreground">{t('common.noData')}</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -333,9 +337,10 @@ export default function TaskDetailsPage() {
   const escalationLabels = [t('tasks.levelNormal'), t('tasks.levelEscalated'), t('tasks.levelCritical')];
 
   return (
-    <div className="animate-fade-in max-w-5xl">
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-6 py-5 border-b border-border">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => router.push(`/${locale}/tasks`)}>
             <ArrowLeft className="size-4 rtl:-scale-x-100" />
@@ -380,9 +385,10 @@ export default function TaskDetailsPage() {
         </div>
       </div>
 
+      <div className="p-5 space-y-5">
       {/* Reassign Panel */}
       {showReassign && (
-        <Card className="shadow-premium mb-6 border-amber-200">
+        <Card className="shadow-premium border-amber-200">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Users className="size-4" />
@@ -417,7 +423,7 @@ export default function TaskDetailsPage() {
 
       {/* Escalate Panel */}
       {showEscalate && (
-        <Card className="shadow-premium mb-6 border-red-200">
+        <Card className="shadow-premium border-red-200">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <ArrowUpCircle className="size-4 text-red-500" />
@@ -697,6 +703,8 @@ export default function TaskDetailsPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
+      </div>
       </div>
     </div>
   );

@@ -97,7 +97,7 @@ export async function POST(
     // Notify assignee
     await createNotification({
       userId: task.assignedToId,
-      type: 'INTERNAL_TASK_REJECTED' as any,
+      type: 'INTERNAL_TASK_REJECTED',
       title: 'Task Rejected',
       message: `Your task "${task.title}" has been rejected: ${validatedData.rejectionReason}`,
       link: `/en/internal-tasks/${task.id}`,

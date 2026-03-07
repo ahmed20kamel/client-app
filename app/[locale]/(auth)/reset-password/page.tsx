@@ -53,7 +53,7 @@ function ResetPasswordContent() {
       toast.error(t('auth.invalid_reset_link'));
       router.push(`/${locale}/login`);
     }
-  }, [token, router, t]);
+  }, [token, router, t, locale]);
 
   const onSubmit = async (data: ResetPasswordForm) => {
     if (!token) return;
@@ -84,7 +84,7 @@ function ResetPasswordContent() {
 
       setResetSuccess(true);
       toast.success(t('auth.password_reset_success'));
-    } catch (error) {
+    } catch {
       toast.error(t('common.error'));
     } finally {
       setIsLoading(false);

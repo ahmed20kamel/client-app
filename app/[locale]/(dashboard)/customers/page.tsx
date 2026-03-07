@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,7 +34,6 @@ import {
   RotateCcw,
   ChevronLeft,
   ChevronRight,
-  Loader2,
   Building2,
   Phone,
   TrendingUp,
@@ -89,6 +88,7 @@ export default function CustomersPage() {
   const t = useTranslations();
   const params = useParams();
   const locale = params.locale as string;
+  const router = useRouter();
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,7 +136,7 @@ export default function CustomersPage() {
       setCustomers(data.data);
       setMeta(data.meta);
       clearSelection();
-    } catch (error) {
+    } catch {
       toast.error(t('common.error'));
     } finally {
       setLoading(false);
@@ -145,6 +145,7 @@ export default function CustomersPage() {
 
   useEffect(() => {
     fetchCustomers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search, customerType, status, leadSource, emirate, showDeleted]);
 
   const handleDeleteCustomer = async (id: string) => {
@@ -183,7 +184,7 @@ export default function CustomersPage() {
 
       toast.success(t('messages.restoreSuccess', { entity: t('customers.title') }));
       fetchCustomers();
-    } catch (error) {
+    } catch {
       toast.error(t('common.error'));
     }
   };
@@ -201,7 +202,8 @@ export default function CustomersPage() {
   const hasActiveFilters = customerType || status || leadSource || emirate || showDeleted;
 
   return (
-    <div className="animate-fade-in">
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
       {/* Header */}
       <PageHeader
         title={t('customers.title')}
@@ -218,6 +220,7 @@ export default function CustomersPage() {
         }
       />
 
+      <div className="p-5 space-y-5">
       {/* Filters */}
       <Card className="shadow-premium mb-6">
         <CardHeader className="pb-4">
@@ -464,43 +467,43 @@ export default function CustomersPage() {
                         onCheckedChange={toggleAll}
                       />
                     </th>
-                    <th className="px-4 py-3 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-7 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('customers.fullName')}
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       <div className="flex items-center justify-center gap-1">
                         <Phone className="size-3" />
                         {t('common.phone')}
                       </div>
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('common.status')}
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       <div className="flex items-center justify-center gap-1">
                         <DollarSign className="size-3" />
                         {t('customers.estimatedValue')}
                       </div>
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       <div className="flex items-center justify-center gap-1">
                         <TrendingUp className="size-3" />
                         {t('customers.weightedValue')}
                       </div>
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       <div className="flex items-center justify-center gap-1">
                         <Calendar className="size-3" />
                         {t('customers.nextFollowUp')}
                       </div>
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       <div className="flex items-center justify-center gap-1">
                         <UserCheck className="size-3" />
                         {t('customers.owner')}
                       </div>
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('common.actions')}
                     </th>
                   </tr>
@@ -508,17 +511,17 @@ export default function CustomersPage() {
                 <tbody className="divide-y divide-border">
                   {customers.map((customer) => {
                     return (
-                      <tr key={customer.id} className={`hover:bg-muted/20 transition-colors ${customer.deletedAt ? 'opacity-50' : ''}`}>
-                        <td className="px-4 py-3.5">
+                      <tr key={customer.id} className={`hover:bg-muted/20 transition-colors cursor-pointer ${customer.deletedAt ? 'opacity-50' : ''}`} onClick={() => router.push(`/${locale}/customers/${customer.id}`)}>
+                        <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                           <Checkbox
                             checked={isSelected(customer.id)}
                             onCheckedChange={() => toggleOne(customer.id)}
                           />
                         </td>
-                        <td className="px-4 py-3.5 text-start">
+                        <td className="px-7 py-4 text-start">
                           <Link
                             href={`/${locale}/customers/${customer.id}`}
-                            className="group"
+                            className="group text-sm font-bold"
                           >
                             <DualLanguageName
                               name={customer.fullName}
@@ -534,10 +537,10 @@ export default function CustomersPage() {
                             </Badge>
                           )}
                         </td>
-                        <td className="px-4 py-3.5 text-center">
+                        <td className="px-4 py-4 text-center text-sm text-muted-foreground">
                           <CopyablePhone phone={customer.phone} />
                         </td>
-                        <td className="px-4 py-3.5 text-center">
+                        <td className="px-4 py-4 text-center">
                           <div className="inline-flex items-center gap-1.5">
                             <StatusBadge
                               status={customer.status}
@@ -548,12 +551,12 @@ export default function CustomersPage() {
                             </span>
                           </div>
                         </td>
-                        <td className="px-4 py-3.5 text-center text-sm text-foreground font-medium">
+                        <td className="px-4 py-4 text-center text-sm text-muted-foreground">
                           {customer.estimatedValue ? `${customer.estimatedValue.toLocaleString(locale === 'ar' ? 'ar-AE' : 'en-AE')} ${t('common.currency')}` : (
                             <span className="text-muted-foreground">-</span>
                           )}
                         </td>
-                        <td className="px-4 py-3.5 text-center">
+                        <td className="px-4 py-4 text-center">
                           {customer.weightedValue ? (
                             <span className="text-sm font-semibold text-success">
                               {customer.weightedValue.toLocaleString(locale === 'ar' ? 'ar-AE' : 'en-AE')} {t('common.currency')}
@@ -562,7 +565,7 @@ export default function CustomersPage() {
                             <span className="text-sm text-muted-foreground">-</span>
                           )}
                         </td>
-                        <td className="px-4 py-3.5 text-center text-sm text-foreground">
+                        <td className="px-4 py-4 text-center text-sm text-muted-foreground">
                           {customer.nextFollowUp ? (
                             <span className="inline-flex items-center gap-1">
                               <Calendar className="size-3 text-muted-foreground" />
@@ -572,10 +575,10 @@ export default function CustomersPage() {
                             <span className="text-muted-foreground">-</span>
                           )}
                         </td>
-                        <td className="px-4 py-3.5 text-center text-sm text-foreground">
+                        <td className="px-4 py-4 text-center text-sm text-muted-foreground">
                           {customer.owner.fullName}
                         </td>
-                        <td className="px-4 py-3.5 text-center">
+                        <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                           {customer.deletedAt ? (
                             <Button
                               variant="ghost"
@@ -679,6 +682,8 @@ export default function CustomersPage() {
           )}
         </>
       )}
+      </div>
+      </div>
     </div>
   );
 }

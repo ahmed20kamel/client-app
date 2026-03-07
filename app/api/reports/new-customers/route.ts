@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const canViewAll = await can(session.user.id, 'customer.view.all');
 
     // Build where clause
-    const where: any = {
+    const where: Record<string, unknown> = {
       deletedAt: null,
     };
 
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Group by date
-    const grouped: Record<string, any[]> = {};
+    const grouped: Record<string, typeof customers> = {};
 
     customers.forEach((customer) => {
       const date = new Date(customer.createdAt);

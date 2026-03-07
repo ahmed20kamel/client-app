@@ -1,116 +1,151 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area,
-  ComposedChart,
-  Line,
-} from 'recharts';
-import {
   Download,
-  BarChart3,
-  TrendingUp,
+  BarChart2,
   Users,
-  AlertTriangle,
   CheckCircle2,
   Clock,
   Filter,
   RefreshCw,
-  Target,
   Trophy,
   Zap,
   Loader2,
+  Send,
+  MessageSquare,
+  FileText,
+  XCircle,
+  PhoneOff,
+  CalendarCheck,
+  LucideIcon,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SectionLabel } from '@/components/ui/section-label';
 import { PageHeader } from '@/components/PageHeader';
 
-type ReportType = 'overdue' | 'noFollowup' | 'newCustomers' | 'taskCompletion' | 'statusFunnel';
-
 const STATUS_COLORS: Record<string, string> = {
-  NEW: '#0F4C3A',
-  CONTACTED: '#0D9488',
-  IN_PROGRESS: '#D97706',
+  NEW_INQUIRY: '#0F4C3A',
+  QUOTATION_SENT: '#0D9488',
+  TECHNICAL_DISCUSSION: '#2563EB',
+  NEGOTIATION: '#D97706',
+  FINAL_OFFER: '#7C3AED',
+  VERBAL_APPROVAL: '#0891B2',
   WON: '#059669',
   LOST: '#BE123C',
 };
 
 const STATUS_TRANSLATION_KEYS: Record<string, string> = {
-  NEW: 'reports.statusNew',
-  CONTACTED: 'reports.statusContacted',
-  IN_PROGRESS: 'reports.statusInProgress',
+  NEW_INQUIRY: 'reports.statusNewInquiry',
+  QUOTATION_SENT: 'reports.statusQuotationSent',
+  TECHNICAL_DISCUSSION: 'reports.statusTechnicalDiscussion',
+  NEGOTIATION: 'reports.statusNegotiation',
+  FINAL_OFFER: 'reports.statusFinalOffer',
+  VERBAL_APPROVAL: 'reports.statusVerbalApproval',
   WON: 'reports.statusWon',
   LOST: 'reports.statusLost',
 };
+
+const STATUS_ICONS: Record<string, LucideIcon> = {
+  NEW_INQUIRY: Users,
+  QUOTATION_SENT: Send,
+  TECHNICAL_DISCUSSION: MessageSquare,
+  NEGOTIATION: FileText,
+  FINAL_OFFER: Trophy,
+  VERBAL_APPROVAL: CalendarCheck,
+  WON: CheckCircle2,
+  LOST: XCircle,
+};
+
+const STATUS_BG: Record<string, string> = {
+  NEW_INQUIRY: '#ECFDF5',
+  QUOTATION_SENT: '#F0FDFA',
+  TECHNICAL_DISCUSSION: '#EFF6FF',
+  NEGOTIATION: '#FFFBEB',
+  FINAL_OFFER: '#F5F3FF',
+  VERBAL_APPROVAL: '#ECFEFF',
+  WON: '#ECFDF5',
+  LOST: '#FFF1F2',
+};
+
+interface FunnelItem {
+  status: string;
+  count: number;
+  percentage?: number;
+}
+
+interface FunnelData {
+  funnel: FunnelItem[];
+  summary?: {
+    total: number;
+    successRate: number;
+    won: number;
+    lost: number;
+  };
+}
+
+interface OverdueTask {
+  id: string;
+  title: string;
+  dueAt: string;
+  priority: string;
+  assignedTo?: { fullName: string };
+}
+
+interface NoFollowupCustomer {
+  id: string;
+  fullName: string;
+  customerType: string;
+  status: string;
+  owner?: { fullName: string };
+}
 
 export default function ReportsPage() {
   const t = useTranslations();
   const params = useParams();
   const locale = params.locale as string;
 
-  const [activeReport, setActiveReport] = useState<ReportType>('statusFunnel');
   const [loading, setLoading] = useState(false);
-  const [reportData, setReportData] = useState<any>(null);
+  const [funnelData, setFunnelData] = useState<FunnelData | null>(null);
+  const [overdueData, setOverdueData] = useState<OverdueTask[]>([]);
+  const [noFollowupData, setNoFollowupData] = useState<NoFollowupCustomer[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
 
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [customerType, setCustomerType] = useState('');
-  const [priority, setPriority] = useState('');
-  const [groupBy, setGroupBy] = useState('day');
 
-  const fetchReport = async () => {
+  const fetchAllData = async () => {
     setLoading(true);
     try {
-      let url = '';
       const searchParams = new URLSearchParams();
+      if (customerType) searchParams.set('customerType', customerType);
+      if (from) searchParams.set('from', from);
+      if (to) searchParams.set('to', to);
 
-      if (activeReport === 'overdue') {
-        url = '/api/reports/overdue-tasks';
-        if (customerType) searchParams.set('customerType', customerType);
-        if (priority) searchParams.set('priority', priority);
-      } else if (activeReport === 'noFollowup') {
-        url = '/api/reports/customers-no-followup';
-        if (customerType) searchParams.set('customerType', customerType);
-      } else if (activeReport === 'newCustomers') {
-        url = '/api/reports/new-customers';
-        if (from) searchParams.set('from', from);
-        if (to) searchParams.set('to', to);
-        if (groupBy) searchParams.set('groupBy', groupBy);
-      } else if (activeReport === 'taskCompletion') {
-        url = '/api/reports/task-completion';
-        if (from) searchParams.set('from', from);
-        if (to) searchParams.set('to', to);
-      } else if (activeReport === 'statusFunnel') {
-        url = '/api/reports/status-funnel';
-        if (customerType) searchParams.set('customerType', customerType);
-        if (from) searchParams.set('from', from);
-        if (to) searchParams.set('to', to);
-      }
+      const [funnelRes, overdueRes, noFollowupRes] = await Promise.all([
+        fetch(`/api/reports/status-funnel?${searchParams.toString()}`),
+        fetch(`/api/reports/overdue-tasks?${searchParams.toString()}`),
+        fetch(`/api/reports/customers-no-followup?${searchParams.toString()}`),
+      ]);
 
-      const response = await fetch(`${url}?${searchParams.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch report');
-      const result = await response.json();
-      setReportData(result.data);
+      const [funnel, overdue, noFollowup] = await Promise.all([
+        funnelRes.ok ? funnelRes.json() : null,
+        overdueRes.ok ? overdueRes.json() : null,
+        noFollowupRes.ok ? noFollowupRes.json() : null,
+      ]);
+
+      setFunnelData(funnel?.data || null);
+      setOverdueData(overdue?.data || []);
+      setNoFollowupData(noFollowup?.data || []);
     } catch {
       toast.error(t('common.error'));
     } finally {
@@ -119,571 +154,397 @@ export default function ReportsPage() {
   };
 
   useEffect(() => {
-    fetchReport();
-  }, [activeReport]);
+    fetchAllData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const exportToCSV = () => {
-    if (!reportData) return;
-    let csvContent = '';
-    let filename = 'report.csv';
-
-    if (activeReport === 'overdue') {
-      filename = 'overdue-tasks.csv';
-      csvContent = 'Task,Customer,Assigned To,Priority,Due Date\n';
-      reportData.forEach((task: any) => {
-        csvContent += `"${task.title}","${task.customer?.fullName || '-'}","${task.assignedTo?.fullName || '-'}","${task.priority}","${new Date(task.dueAt).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE')}"\n`;
-      });
-    } else if (activeReport === 'noFollowup') {
-      filename = 'customers-no-followup.csv';
-      csvContent = 'Customer,Owner,Type,Total Tasks\n';
-      reportData.forEach((customer: any) => {
-        csvContent += `"${customer.fullName}","${customer.owner?.fullName || '-'}","${customer.customerType}","${customer._count?.tasks || 0}"\n`;
-      });
-    } else if (activeReport === 'statusFunnel' && reportData.funnel) {
-      filename = 'status-funnel.csv';
-      csvContent = 'Status,Count,Percentage\n';
-      reportData.funnel.forEach((item: any) => {
-        csvContent += `"${item.status}","${item.count}","${item.percentage?.toFixed(1)}%"\n`;
-      });
-    }
-
+    if (!funnelData?.funnel) return;
+    let csvContent = 'Status,Count,Percentage\n';
+    funnelData.funnel.forEach((item: FunnelItem) => {
+      csvContent += `"${item.status}","${item.count}","${item.percentage?.toFixed(1)}%"\n`;
+    });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = filename;
+    link.download = 'reports.csv';
     link.click();
     toast.success(t('messages.exportSuccess'));
   };
 
-  const reportTabs = [
-    { id: 'statusFunnel', label: t('reports.statusFunnel'), icon: Target },
-    { id: 'taskCompletion', label: t('reports.taskCompletion'), icon: Trophy },
-    { id: 'newCustomers', label: t('reports.newCustomers'), icon: TrendingUp },
-    { id: 'overdue', label: t('reports.overdueTasks'), icon: AlertTriangle },
-    { id: 'noFollowup', label: t('reports.customersNoFollowup'), icon: Clock },
-  ];
+  // Build KPI data from funnel
+  const kpiData = useMemo(() => {
+    if (!funnelData?.funnel) return [];
+    return Object.keys(STATUS_COLORS).map(status => {
+      const item = funnelData.funnel.find((f: FunnelItem) => f.status === status);
+      return {
+        key: status,
+        label: t(STATUS_TRANSLATION_KEYS[status] || status),
+        value: item?.count || 0,
+        icon: STATUS_ICONS[status] || Users,
+        color: STATUS_COLORS[status],
+        bg: STATUS_BG[status],
+      };
+    });
+  }, [funnelData, t]);
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white border border-border rounded-xl p-3 shadow-lg text-sm">
-          <p className="font-semibold text-foreground mb-1.5">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <div key={index} className="flex items-center gap-2">
-              <div className="size-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
-              <span className="text-muted-foreground">{entry.name}:</span>
-              <span className="font-semibold text-foreground">{entry.value}</span>
-            </div>
-          ))}
-        </div>
-      );
-    }
-    return null;
+  const total = useMemo(() => kpiData.reduce((s, k) => s + k.value, 0) || 1, [kpiData]);
+
+  // Funnel bars data (exclude WON/LOST for the conversion funnel)
+  const funnelBars = useMemo(() => kpiData.filter(k => k.key !== 'LOST'), [kpiData]);
+
+  const getDaysLate = (dueAt: string) => {
+    const due = new Date(dueAt);
+    const now = new Date();
+    return Math.max(0, Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)));
   };
 
-  const showDateFilters = activeReport === 'newCustomers' || activeReport === 'taskCompletion' || activeReport === 'statusFunnel';
-  const showCustomerType = activeReport !== 'newCustomers' && activeReport !== 'taskCompletion';
-
   return (
-    <div className="animate-fade-in">
-      {/* Header */}
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+      {/* ====== Hero Header ====== */}
       <PageHeader
         title={t('reports.title')}
-        icon={BarChart3}
-        subtitle={t('reports.subtitle')}
+        icon={BarChart2}
+        subtitle={t('reports.heroSubtitle')}
         actions={
           <>
-            <Button variant="outline" onClick={fetchReport} disabled={loading} size="sm">
-              <RefreshCw className={`size-4 me-1.5 ${loading ? 'animate-spin' : ''}`} />
-              {t('common.refresh')}
+            <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-2">
+              <Filter size={13} /> {t('reports.filter')}
             </Button>
-            <Button onClick={exportToCSV} disabled={!reportData || loading} size="sm" className="btn-premium">
-              <Download className="size-4 me-1.5" />
-              {t('common.export')}
+            <Button variant="outline" size="sm" onClick={fetchAllData} disabled={loading} className="gap-2">
+              <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> {t('reports.refresh')}
+            </Button>
+            <Button size="sm" onClick={exportToCSV} disabled={!funnelData || loading} className="btn-premium gap-2">
+              <Download size={13} /> {t('reports.exportReport')}
             </Button>
           </>
         }
       />
 
-      {/* Report Tabs */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible sm:pb-0">
-        {reportTabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeReport === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveReport(tab.id as ReportType)}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
-                isActive
-                  ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
-                  : 'bg-white border border-border text-muted-foreground hover:text-foreground hover:border-primary/30'
-              }`}
-            >
-              <Icon className="size-4" />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Filters */}
-      <Card className="shadow-premium mb-6">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Filter className="size-4 text-primary" />
-            {t('common.filter')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {showDateFilters && (
-              <>
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1.5 block">{t('reports.from')}</Label>
-                  <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1.5 block">{t('reports.to')}</Label>
-                  <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-                </div>
-              </>
-            )}
-            {activeReport === 'newCustomers' && (
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">{t('reports.groupBy')}</Label>
-                <select
-                  value={groupBy}
-                  onChange={(e) => setGroupBy(e.target.value)}
-                  className="w-full h-11 px-4 rounded-xl border border-border/60 bg-secondary/30 text-sm"
-                >
-                  <option value="day">{t('reports.day')}</option>
-                  <option value="week">{t('reports.week')}</option>
-                  <option value="month">{t('reports.month')}</option>
-                </select>
-              </div>
-            )}
-            {activeReport === 'overdue' && (
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">{t('tasks.priority')}</Label>
-                <select
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                  className="w-full h-11 px-4 rounded-xl border border-border/60 bg-secondary/30 text-sm"
-                >
-                  <option value="">{t('common.all')}</option>
-                  <option value="LOW">{t('tasks.priorityLow')}</option>
-                  <option value="MEDIUM">{t('tasks.priorityMedium')}</option>
-                  <option value="HIGH">{t('tasks.priorityHigh')}</option>
-                </select>
-              </div>
-            )}
-            {showCustomerType && (
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">{t('customers.customerType')}</Label>
-                <select
-                  value={customerType}
-                  onChange={(e) => setCustomerType(e.target.value)}
-                  className="w-full h-11 px-4 rounded-xl border border-border/60 bg-secondary/30 text-sm"
-                >
-                  <option value="">{t('common.all')}</option>
-                  <option value="NEW">{t('customers.typeNew')}</option>
-                  <option value="EXISTING">{t('customers.typeExisting')}</option>
-                </select>
-              </div>
-            )}
-            <div className="flex items-end">
-              <Button onClick={fetchReport} disabled={loading} className="w-full btn-premium">
-                {loading ? <Loader2 className="size-4 animate-spin me-1.5" /> : <Zap className="size-4 me-1.5" />}
-                {t('common.apply')}
-              </Button>
+      <div className="p-5 space-y-6">
+      {/* Collapsible Filters */}
+      {showFilters && (
+        <div className="bg-card rounded-2xl border border-border p-5 animate-fade-in">
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="min-w-[160px] flex-1">
+              <Label className="text-xs text-muted-foreground mb-1.5 block">{t('reports.from')}</Label>
+              <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-10" />
             </div>
+            <div className="min-w-[160px] flex-1">
+              <Label className="text-xs text-muted-foreground mb-1.5 block">{t('reports.to')}</Label>
+              <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-10" />
+            </div>
+            <div className="min-w-[140px]">
+              <Label className="text-xs text-muted-foreground mb-1.5 block">{t('customers.customerType')}</Label>
+              <select
+                value={customerType}
+                onChange={(e) => setCustomerType(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-border/60 bg-secondary/30 text-sm"
+              >
+                <option value="">{t('common.all')}</option>
+                <option value="NEW">{t('customers.typeNew')}</option>
+                <option value="EXISTING">{t('customers.typeExisting')}</option>
+              </select>
+            </div>
+            <Button onClick={fetchAllData} disabled={loading} size="sm" className="btn-premium h-10 px-6">
+              {loading ? <Loader2 className="size-4 animate-spin me-1.5" /> : <Zap className="size-4 me-1.5" />}
+              {t('common.apply')}
+            </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Loading */}
-      {loading && (
-        <Card className="shadow-premium">
-          <CardContent className="pt-6 space-y-4">
-            <Skeleton className="h-6 w-48" />
-            <Skeleton className="h-[300px] w-full" />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* No Data */}
-      {!loading && !reportData && (
-        <Card className="shadow-premium">
-          <CardContent className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-            <BarChart3 className="size-16 mb-4 text-muted-foreground/30" />
-            <p className="text-lg font-medium">{t('common.noData')}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Reports Content */}
-      {!loading && reportData && (
-        <div className="space-y-6">
-          {/* ===== Status Funnel ===== */}
-          {activeReport === 'statusFunnel' && reportData.funnel && (
-            <>
-              {/* Status Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {Object.entries(STATUS_COLORS).map(([status, color]) => {
-                  const item = reportData.funnel?.find((f: any) => f.status === status);
-                  const count = item?.count || 0;
-                  return (
-                    <Card key={status} className="shadow-premium hover:shadow-premium-lg transition-shadow">
-                      <CardContent className="p-5">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="size-3 rounded-full" style={{ backgroundColor: color }} />
-                          <span className="text-xs text-muted-foreground font-medium">{item?.percentage?.toFixed(0) || 0}%</span>
-                        </div>
-                        <p className="text-2xl lg:text-3xl font-bold">{count}</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {t(STATUS_TRANSLATION_KEYS[status] || status)}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-
-              {/* Charts */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-                {/* Pie Chart */}
-                <Card className="shadow-premium">
-                  <CardHeader>
-                    <CardTitle className="text-base">{t('reports.customerStatusDistribution')}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={280}>
-                      <PieChart>
-                        <Pie
-                          data={reportData.funnel}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={65}
-                          outerRadius={105}
-                          paddingAngle={4}
-                          dataKey="count"
-                          nameKey="status"
-                        >
-                          {reportData.funnel.map((entry: any, index: number) => (
-                            <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.status] || '#94a3b8'} stroke="transparent" />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<CustomTooltip />} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="flex flex-wrap justify-center gap-4 mt-2">
-                      {reportData.funnel.map((entry: any) => (
-                        <div key={entry.status} className="flex items-center gap-2">
-                          <div className="size-2.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[entry.status] || '#94a3b8' }} />
-                          <span className="text-xs text-muted-foreground">{t(STATUS_TRANSLATION_KEYS[entry.status] || entry.status)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Success Rate */}
-                <Card className="shadow-premium">
-                  <CardHeader>
-                    <CardTitle className="text-base">{t('reports.successRate')}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-col items-center justify-center py-8">
-                    <div className="relative w-44 h-44">
-                      <svg className="w-full h-full transform -rotate-90">
-                        <circle cx="88" cy="88" r="76" fill="none" stroke="currentColor" strokeWidth="14" className="text-secondary" />
-                        <circle cx="88" cy="88" r="76" fill="none" stroke="url(#successGradient)" strokeWidth="14" strokeLinecap="round"
-                          strokeDasharray={`${(reportData.summary?.successRate || 0) * 4.77} 477`}
-                        />
-                        <defs>
-                          <linearGradient id="successGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#22c55e" />
-                            <stop offset="100%" stopColor="#16a34a" />
-                          </linearGradient>
-                        </defs>
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-4xl font-bold">{reportData.summary?.successRate || 0}%</span>
-                        <span className="text-xs text-muted-foreground mt-1">{t('reports.successRate')}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Bar Chart */}
-              <Card className="shadow-premium">
-                <CardHeader>
-                  <CardTitle className="text-base">{t('reports.conversionFunnel')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={reportData.funnel} layout="vertical" barSize={28}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                      <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                      <YAxis dataKey="status" type="category" axisLine={false} tickLine={false} width={100}
-                        tick={{ fill: '#64748b', fontSize: 12 }}
-                        tickFormatter={(value: string) => { const key = STATUS_TRANSLATION_KEYS[value]; return key ? t(key) : value; }}
-                      />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="count" radius={[0, 8, 8, 0]}>
-                        {reportData.funnel.map((entry: any, index: number) => (
-                          <Cell key={`bar-${index}`} fill={STATUS_COLORS[entry.status] || '#94a3b8'} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </>
-          )}
-
-          {/* ===== Task Completion ===== */}
-          {activeReport === 'taskCompletion' && Array.isArray(reportData) && (
-            <>
-              {/* Summary Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                  { label: t('reports.totalTasks'), value: reportData.reduce((a: number, b: any) => a + b.total, 0), icon: BarChart3, bg: 'bg-blue-50 text-blue-600' },
-                  { label: t('reports.completed'), value: reportData.reduce((a: number, b: any) => a + b.completed, 0), icon: CheckCircle2, bg: 'bg-emerald-50 text-emerald-600' },
-                  { label: t('reports.onTime'), value: reportData.reduce((a: number, b: any) => a + b.completedOnTime, 0), icon: Trophy, bg: 'bg-violet-50 text-violet-600' },
-                  { label: t('reports.avgRate'), value: `${Math.round(reportData.reduce((a: number, b: any) => a + b.completionRate, 0) / (reportData.length || 1))}%`, icon: TrendingUp, bg: 'bg-amber-50 text-amber-600' },
-                ].map((item, idx) => {
-                  const Icon = item.icon;
-                  return (
-                    <Card key={idx} className="shadow-premium">
-                      <CardContent className="p-5">
-                        <div className={`size-10 rounded-xl ${item.bg} flex items-center justify-center mb-3`}>
-                          <Icon className="size-5" />
-                        </div>
-                        <p className="text-2xl font-bold">{item.value}</p>
-                        <p className="text-sm text-muted-foreground">{item.label}</p>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-
-              {/* Chart */}
-              <Card className="shadow-premium">
-                <CardHeader>
-                  <CardTitle className="text-base">{t('reports.employeePerformance')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={350}>
-                    <ComposedChart data={reportData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis dataKey="user.fullName" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
-                      <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                      <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                      <Bar yAxisId="left" dataKey="total" name={t('reports.total')} fill="#cbd5e1" radius={[4, 4, 0, 0]} barSize={18} />
-                      <Bar yAxisId="left" dataKey="completed" name={t('reports.completedLabel')} fill="#0F4C3A" radius={[4, 4, 0, 0]} barSize={18} />
-                      <Line yAxisId="right" type="monotone" dataKey="completionRate" name={t('reports.rateLabel')} stroke="#22c55e" strokeWidth={2.5} dot={{ fill: '#22c55e', r: 4 }} />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* Table */}
-              <Card className="shadow-premium overflow-hidden">
-                <CardHeader className="border-b">
-                  <CardTitle className="text-base">{t('reports.performanceDetails')}</CardTitle>
-                </CardHeader>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b bg-muted/30">
-                        <th className="text-start py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('users.fullName')}</th>
-                        <th className="text-center py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('reports.total')}</th>
-                        <th className="text-center py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('reports.completedLabel')}</th>
-                        <th className="text-center py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('reports.onTimeLabel')}</th>
-                        <th className="text-center py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('reports.rateLabel')}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {reportData.map((stat: any, idx: number) => (
-                        <tr key={stat.user?.id || idx} className="hover:bg-muted/20 transition-colors">
-                          <td className="py-3.5 px-4 lg:px-6">
-                            <div className="flex items-center gap-3">
-                              <div className="size-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-xs font-semibold shrink-0">
-                                {stat.user?.fullName?.charAt(0) || '?'}
-                              </div>
-                              <span className="font-medium text-sm">{stat.user?.fullName || '-'}</span>
-                            </div>
-                          </td>
-                          <td className="py-3.5 px-4 lg:px-6 text-center text-sm">{stat.total}</td>
-                          <td className="py-3.5 px-4 lg:px-6 text-center text-sm">{stat.completed}</td>
-                          <td className="py-3.5 px-4 lg:px-6 text-center text-sm">{stat.completedOnTime}</td>
-                          <td className="py-3.5 px-4 lg:px-6 text-center">
-                            <Badge variant={stat.completionRate >= 80 ? 'default' : stat.completionRate >= 50 ? 'secondary' : 'destructive'}
-                              className={stat.completionRate >= 80 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : ''}>
-                              {stat.completionRate}%
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-            </>
-          )}
-
-          {/* ===== New Customers ===== */}
-          {activeReport === 'newCustomers' && reportData.summary && (
-            <>
-              <Card className="shadow-premium bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-                <CardContent className="p-4 lg:p-6 flex items-center gap-4">
-                  <div className="size-12 lg:size-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <Users className="size-6 lg:size-7 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-3xl lg:text-4xl font-bold">{reportData.customers?.length || 0}</p>
-                    <p className="text-sm text-muted-foreground">{t('reports.totalNewCustomers')}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-premium">
-                <CardHeader>
-                  <CardTitle className="text-base">{t('reports.customerGrowth')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={280}>
-                    <AreaChart data={reportData.summary}>
-                      <defs>
-                        <linearGradient id="colorGrowth" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#0F4C3A" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="#0F4C3A" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Area type="monotone" dataKey="count" name={t('navigation.customers')} stroke="#0F4C3A" strokeWidth={2.5} fill="url(#colorGrowth)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </>
-          )}
-
-          {/* ===== Overdue Tasks ===== */}
-          {activeReport === 'overdue' && Array.isArray(reportData) && (
-            <Card className="shadow-premium overflow-hidden">
-              <CardHeader className="border-b">
-                <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-xl bg-red-50 flex items-center justify-center">
-                    <AlertTriangle className="size-5 text-red-500" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base">{t('reports.overdueTasks')}</CardTitle>
-                    <p className="text-sm text-muted-foreground">{reportData.length} {t('reports.overdueTasksCount')}</p>
-                  </div>
-                </div>
-              </CardHeader>
-              {reportData.length === 0 ? (
-                <CardContent className="flex flex-col items-center justify-center py-16">
-                  <CheckCircle2 className="size-14 text-emerald-500 mb-4" />
-                  <p className="text-muted-foreground font-medium">{t('reports.noOverdueTasks')}</p>
-                </CardContent>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b bg-muted/30">
-                        <th className="text-start py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('tasks.taskTitle')}</th>
-                        <th className="text-start py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('tasks.customer')}</th>
-                        <th className="text-start py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('tasks.priority')}</th>
-                        <th className="text-start py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('tasks.dueDate')}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {reportData.map((task: any) => (
-                        <tr key={task.id} className="hover:bg-muted/20 transition-colors">
-                          <td className="py-3.5 px-4 lg:px-6">
-                            <Link href={`/${locale}/tasks/${task.id}`} className="text-primary hover:underline font-medium text-sm">
-                              {task.title}
-                            </Link>
-                          </td>
-                          <td className="py-3.5 px-4 lg:px-6 text-sm">{task.customer?.fullName || '-'}</td>
-                          <td className="py-3.5 px-4 lg:px-6">
-                            <Badge variant={task.priority === 'HIGH' ? 'destructive' : 'secondary'}
-                              className={task.priority === 'MEDIUM' ? 'bg-amber-50 text-amber-700 border border-amber-200' : task.priority === 'LOW' ? 'bg-blue-50 text-blue-700 border border-blue-200' : ''}>
-                              {task.priority === 'HIGH' ? t('tasks.priorityHigh') : task.priority === 'MEDIUM' ? t('tasks.priorityMedium') : t('tasks.priorityLow')}
-                            </Badge>
-                          </td>
-                          <td className="py-3.5 px-4 lg:px-6 text-sm text-destructive font-medium">
-                            {new Date(task.dueAt).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE')}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </Card>
-          )}
-
-          {/* ===== No Followup ===== */}
-          {activeReport === 'noFollowup' && Array.isArray(reportData) && (
-            <Card className="shadow-premium overflow-hidden">
-              <CardHeader className="border-b">
-                <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-xl bg-amber-50 flex items-center justify-center">
-                    <Clock className="size-5 text-amber-500" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base">{t('reports.customersNoFollowup')}</CardTitle>
-                    <p className="text-sm text-muted-foreground">{reportData.length} {t('reports.customersCount')}</p>
-                  </div>
-                </div>
-              </CardHeader>
-              {reportData.length === 0 ? (
-                <CardContent className="flex flex-col items-center justify-center py-16">
-                  <CheckCircle2 className="size-14 text-emerald-500 mb-4" />
-                  <p className="text-muted-foreground font-medium">{t('reports.allHaveFollowup')}</p>
-                </CardContent>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b bg-muted/30">
-                        <th className="text-start py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('customers.fullName')}</th>
-                        <th className="text-start py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('customers.owner')}</th>
-                        <th className="text-start py-3 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('customers.customerType')}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {reportData.map((customer: any) => (
-                        <tr key={customer.id} className="hover:bg-muted/20 transition-colors">
-                          <td className="py-3.5 px-4 lg:px-6">
-                            <Link href={`/${locale}/customers/${customer.id}`} className="text-primary hover:underline font-medium text-sm">
-                              {customer.fullName}
-                            </Link>
-                          </td>
-                          <td className="py-3.5 px-4 lg:px-6 text-sm">{customer.owner?.fullName || '-'}</td>
-                          <td className="py-3.5 px-4 lg:px-6">
-                            <Badge variant="secondary">{customer.customerType}</Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </Card>
-          )}
         </div>
       )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+              <div key={i} className="bg-card rounded-2xl border border-border p-5">
+                <Skeleton className="h-10 w-10 rounded-xl mb-3" />
+                <Skeleton className="h-8 w-16 mb-2" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-3.5">
+            <div className="bg-card rounded-2xl border border-border p-6">
+              <Skeleton className="h-[250px] w-full rounded-xl" />
+            </div>
+            <div className="bg-card rounded-2xl border border-border p-6">
+              <Skeleton className="h-[250px] w-full rounded-xl" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====== Main Content ====== */}
+      {!loading && funnelData && (
+        <>
+          {/* ====== KPI Cards ====== */}
+          <div className="animate-fade-up-2">
+            <SectionLabel>{t('reports.kpiSection')}</SectionLabel>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {kpiData.map((kpi) => {
+                const pct = Math.round((kpi.value / total) * 100);
+                const Icon = kpi.icon;
+                return (
+                  <div key={kpi.key}
+                    className="bg-card rounded-2xl p-5 border border-border relative overflow-hidden
+                               hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-default"
+                  >
+                    {/* Color accent bar */}
+                    <div className="absolute top-0 end-0 w-[3px] h-full rounded-e-2xl"
+                      style={{ background: kpi.color }}
+                    />
+
+                    <div className="flex items-start justify-between mb-3.5">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: kpi.bg }}
+                      >
+                        <Icon size={17} style={{ color: kpi.color }} />
+                      </div>
+                      <div className="text-end">
+                        <p className="text-[11px] font-extrabold text-muted-foreground">
+                          {pct}%
+                        </p>
+                        {/* Mini progress bar */}
+                        <div className="w-9 h-[3px] rounded-full mt-1 bg-border">
+                          <div className="h-full rounded-full transition-all duration-700"
+                            style={{ width: `${pct}%`, background: kpi.color }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-[34px] font-black leading-none mb-1.5 tracking-tight"
+                      style={{ color: kpi.color }}
+                    >
+                      {kpi.value}
+                    </div>
+                    <div className="text-xs font-medium text-muted-foreground">
+                      {kpi.label}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ====== Charts Section ====== */}
+          <div className="animate-fade-up-3">
+            <SectionLabel>{t('reports.chartsSection')}</SectionLabel>
+
+            <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-3.5">
+              {/* Success Rate Gauge */}
+              <div className="bg-card rounded-2xl border border-border p-6">
+                <div className="flex items-start justify-between mb-1">
+                  <div>
+                    <h3 className="text-[15px] font-extrabold text-foreground">{t('reports.successRate')}</h3>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{t('reports.dealCompletion')}</p>
+                  </div>
+                  <span className="text-[10px] font-bold text-muted-foreground bg-muted border border-border px-2.5 py-1 rounded-lg">
+                    {t('reports.thisMonth')}
+                  </span>
+                </div>
+
+                <div className="flex flex-col items-center py-6">
+                  <div className="relative w-40 h-40 mb-4">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle cx="80" cy="80" r="68" fill="none" stroke="currentColor" strokeWidth="12" className="text-secondary" />
+                      <circle cx="80" cy="80" r="68" fill="none" stroke="var(--primary)" strokeWidth="12" strokeLinecap="round"
+                        strokeDasharray={`${(funnelData.summary?.successRate || 0) * 4.27} 427`}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-3xl font-black">{funnelData.summary?.successRate || 0}%</span>
+                      <span className="text-[11px] text-muted-foreground mt-0.5">{t('reports.successRate')}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-6 text-sm">
+                    <div className="text-center">
+                      <p className="text-lg font-black text-emerald-600">{funnelData.summary?.won || 0}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground">{t('reports.statusWon')}</p>
+                    </div>
+                    <div className="w-px h-8 bg-border" />
+                    <div className="text-center">
+                      <p className="text-lg font-black text-red-500">{funnelData.summary?.lost || 0}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground">{t('reports.statusLost')}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Conversion Funnel - Horizontal Bars */}
+              <div className="bg-card rounded-2xl border border-border p-6">
+                <div className="flex items-start justify-between mb-5">
+                  <div>
+                    <h3 className="text-[15px] font-extrabold text-foreground">{t('reports.conversionFunnel')}</h3>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{t('reports.funnelDistribution')}</p>
+                  </div>
+                  <span className="text-[10px] font-bold bg-muted border border-border px-2.5 py-1 rounded-lg text-muted-foreground">
+                    {t('reports.clientCount', { count: funnelData.summary?.total || 0 })}
+                  </span>
+                </div>
+                <div className="space-y-3.5">
+                  {funnelBars.map((kpi) => {
+                    const maxVal = Math.max(...funnelBars.map(k => k.value), 1);
+                    const barPct = Math.round((kpi.value / maxVal) * 100);
+                    const pct = Math.round((kpi.value / total) * 100);
+                    return (
+                      <div key={kpi.key}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-xs font-semibold text-foreground">{kpi.label}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-extrabold text-foreground">{kpi.value}</span>
+                            <span className="text-[10px] font-bold text-muted-foreground">{pct}%</span>
+                          </div>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full rounded-full transition-all duration-700"
+                            style={{ width: `${barPct}%`, background: kpi.color }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ====== Bottom Tables ====== */}
+          <div className="animate-fade-up-4">
+            <SectionLabel>{t('reports.tablesSection')}</SectionLabel>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+              {/* No Follow-up Customers */}
+              <div className="bg-card rounded-2xl border border-border overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                      <PhoneOff size={14} className="text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-extrabold text-foreground">{t('reports.noFollowupCustomers')}</p>
+                      <p className="text-[10px] text-muted-foreground">{t('reports.needsUrgentContact')}</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-extrabold bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full">
+                    {t('reports.clientCount', { count: noFollowupData.length })}
+                  </span>
+                </div>
+                <div className="grid grid-cols-[2fr_1fr_1fr] px-5 py-2 bg-muted/40 border-b border-border">
+                  <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest">{t('reports.customer')}</span>
+                  <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest">{t('reports.responsible')}</span>
+                  <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest">{t('reports.status')}</span>
+                </div>
+                {noFollowupData.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="size-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-3">
+                      <CheckCircle2 className="size-6 text-emerald-500" />
+                    </div>
+                    <p className="text-sm text-muted-foreground font-medium">{t('reports.allHaveFollowup')}</p>
+                  </div>
+                ) : (
+                  <div className="max-h-[320px] overflow-y-auto">
+                    {noFollowupData.slice(0, 10).map((c) => (
+                      <div key={c.id} className="grid grid-cols-[2fr_1fr_1fr] px-5 py-3 border-b border-border/50 hover:bg-muted/30 transition-colors last:border-0">
+                        <div>
+                          <Link href={`/${locale}/customers/${c.id}`} className="text-sm font-bold text-foreground hover:text-primary transition-colors">
+                            {c.fullName}
+                          </Link>
+                          <p className="text-[10px] text-muted-foreground">{c.customerType === 'NEW' ? t('customers.typeNew') : t('customers.typeExisting')}</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground self-center">{c.owner?.fullName || '-'}</span>
+                        <div className="self-center">
+                          <Badge variant="secondary" className="text-[10px]">
+                            {t(STATUS_TRANSLATION_KEYS[c.status] || 'reports.statusNewInquiry')}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Overdue Tasks */}
+              <div className="bg-card rounded-2xl border border-border overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center">
+                      <Clock size={14} className="text-rose-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-extrabold text-foreground">{t('reports.overdueTasks')}</p>
+                      <p className="text-[10px] text-muted-foreground">{t('reports.exceededDueDate')}</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-extrabold bg-rose-50 text-rose-700 px-2.5 py-1 rounded-full">
+                    {t('reports.tasksCount', { count: overdueData.length })}
+                  </span>
+                </div>
+                <div className="grid grid-cols-[2fr_1fr_1fr] px-5 py-2 bg-muted/40 border-b border-border">
+                  <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest">{t('reports.task')}</span>
+                  <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest">{t('reports.responsible')}</span>
+                  <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest">{t('reports.priority')}</span>
+                </div>
+                {overdueData.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="size-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-3">
+                      <CheckCircle2 className="size-6 text-emerald-500" />
+                    </div>
+                    <p className="text-sm text-muted-foreground font-medium">{t('reports.noOverdueTasks')}</p>
+                  </div>
+                ) : (
+                  <div className="max-h-[320px] overflow-y-auto">
+                    {overdueData.slice(0, 10).map((task, idx) => (
+                      <div key={task.id || idx} className="grid grid-cols-[2fr_1fr_1fr] px-5 py-3 border-b border-border/50 hover:bg-muted/30 transition-colors last:border-0">
+                        <div>
+                          <Link href={`/${locale}/tasks/${task.id}`} className="text-sm font-bold text-foreground hover:text-primary transition-colors">
+                            {task.title}
+                          </Link>
+                          <p className="text-[10px] text-rose-500 font-semibold">
+                            {t('reports.daysLate', { days: getDaysLate(task.dueAt) })}
+                          </p>
+                        </div>
+                        <span className="text-xs text-muted-foreground self-center">{task.assignedTo?.fullName || '-'}</span>
+                        <div className="self-center">
+                          <Badge
+                            variant={task.priority === 'HIGH' ? 'destructive' : 'secondary'}
+                            className={
+                              task.priority === 'MEDIUM' ? 'bg-amber-50 text-amber-700 border border-amber-200 text-[10px]' :
+                              task.priority === 'LOW' ? 'bg-blue-50 text-blue-700 border border-blue-200 text-[10px]' : 'text-[10px]'
+                            }
+                          >
+                            {task.priority === 'HIGH' ? t('tasks.priorityHigh') : task.priority === 'MEDIUM' ? t('tasks.priorityMedium') : t('tasks.priorityLow')}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* No Data State */}
+      {!loading && !funnelData && (
+        <div className="bg-card rounded-2xl border border-border">
+          <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
+            <div className="size-20 rounded-2xl bg-muted/50 flex items-center justify-center mb-5">
+              <BarChart2 className="size-10 text-muted-foreground/40" />
+            </div>
+            <p className="text-lg font-semibold mb-1">{t('common.noData')}</p>
+            <p className="text-sm text-muted-foreground">{t('reports.noData')}</p>
+          </div>
+        </div>
+      )}
+      </div>
+      </div>
     </div>
   );
 }

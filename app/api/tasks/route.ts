@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const canViewAll = await can(session.user.id, 'task.view.all');
 
     // Build where clause
-    const where: any = {};
+    const where: Record<string, unknown> = {};
 
     // Scope-based filtering
     if (!canViewAll) {

@@ -74,6 +74,7 @@ export default function CreateCustomerPage() {
   const locale = params.locale as string;
   const [isLoading, setIsLoading] = useState(false);
   const [users, setUsers] = useState<SystemUser[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [attachments, setAttachments] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('basic');
 
@@ -128,6 +129,7 @@ export default function CreateCustomerPage() {
   const watchedCity = form.watch('city') as City | '';
   const availableAreas = watchedCity && CITY_AREAS[watchedCity] ? CITY_AREAS[watchedCity] : [];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleExistingCustomerSelect = (customer: any) => {
     form.setValue('fullName', customer.fullName);
     form.setValue('fullNameAr', customer.fullNameAr || '');
@@ -196,7 +198,8 @@ export default function CreateCustomerPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto animate-fade-in">
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
       {/* Header */}
       <PageHeader
         icon={UserPlus}
@@ -213,6 +216,7 @@ export default function CreateCustomerPage() {
         }
       />
 
+      <div className="p-5 space-y-5">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -1085,6 +1089,8 @@ export default function CreateCustomerPage() {
           </div>
         </form>
       </Form>
+      </div>
+      </div>
     </div>
   );
 }

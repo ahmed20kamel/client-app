@@ -130,7 +130,8 @@ export async function POST(
 // DELETE /api/customers/[id]/attachments - Delete attachment
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  { params: _params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();

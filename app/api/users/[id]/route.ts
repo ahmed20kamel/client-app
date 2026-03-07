@@ -56,7 +56,8 @@ export async function GET(
     }
 
     // Remove passwordHash from response
-    const { passwordHash, ...sanitizedUser } = user;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash: _passwordHash, ...sanitizedUser } = user;
 
     return NextResponse.json({
       data: {
@@ -147,7 +148,7 @@ export async function PATCH(
     }
 
     // Prepare update data
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
 
     if (validatedData.email) updateData.email = validatedData.email;
     if (validatedData.fullName) updateData.fullName = validatedData.fullName;
@@ -211,7 +212,8 @@ export async function PATCH(
       });
 
       if (updatedUser) {
-        const { passwordHash, ...sanitizedUser } = updatedUser;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { passwordHash: _passwordHash, ...sanitizedUser } = updatedUser;
 
         // Log audit
         await logAudit({
@@ -243,7 +245,8 @@ export async function PATCH(
     }
 
     // Remove passwordHash from response
-    const { passwordHash, ...sanitizedUser } = user;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash: _passwordHash, ...sanitizedUser } = user;
 
     // Log audit
     await logAudit({

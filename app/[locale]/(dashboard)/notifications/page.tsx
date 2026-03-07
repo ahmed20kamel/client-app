@@ -8,7 +8,6 @@ import { ar, enUS } from 'date-fns/locale';
 import { toast } from 'sonner';
 import {
   Bell,
-  BellRing,
   Check,
   CheckCheck,
   Trash2,
@@ -16,11 +15,9 @@ import {
   CheckSquare,
   Users,
   Info,
-  AlertTriangle,
   ArrowUpCircle,
   MessageSquare,
   Clock,
-  Filter,
   ChevronDown,
   X,
 } from 'lucide-react';
@@ -94,6 +91,7 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     fetchNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const markAsRead = async (id: string) => {
@@ -201,16 +199,6 @@ export default function NotificationsPage() {
     });
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   // Filter notifications
   const filteredNotifications = notifications.filter(n => {

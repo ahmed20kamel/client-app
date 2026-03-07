@@ -120,6 +120,7 @@ export async function PATCH(
     }
 
     // Auto-calculate probability and weighted value
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = { ...validatedData };
 
     // If status changed, auto-update probability

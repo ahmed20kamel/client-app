@@ -43,7 +43,7 @@ export async function POST(
     const previousLevel = task.escalationLevel;
 
     // Update escalation level and priority
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       escalationLevel: validatedData.escalationLevel,
     };
 

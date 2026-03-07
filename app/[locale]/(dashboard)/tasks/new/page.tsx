@@ -110,7 +110,7 @@ export default function CreateTaskPage() {
       } else {
         router.push(`/${locale}/tasks`);
       }
-    } catch (error) {
+    } catch {
       toast.error(t('errors.networkError'));
     } finally {
       setIsLoading(false);
@@ -126,7 +126,8 @@ export default function CreateTaskPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto animate-fade-in">
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
       {/* Header */}
       <PageHeader
         icon={PlusCircle}
@@ -140,6 +141,7 @@ export default function CreateTaskPage() {
         }
       />
 
+      <div className="p-5 space-y-5">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {/* Task Details */}
@@ -344,6 +346,8 @@ export default function CreateTaskPage() {
           </div>
         </form>
       </Form>
+      </div>
+      </div>
     </div>
   );
 }

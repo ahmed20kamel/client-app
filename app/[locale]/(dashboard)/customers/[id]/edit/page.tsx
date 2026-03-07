@@ -40,7 +40,7 @@ import {
   UserCog,
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
-import { PageSkeleton, DetailSkeleton } from '@/components/ui/page-skeleton';
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import { FileUploadZone } from '@/components/FileUploadZone';
 import { PhoneInput } from '@/components/PhoneInput';
 import { EmiratesIdInput } from '@/components/EmiratesIdInput';
@@ -62,6 +62,7 @@ export default function EditCustomerPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [users, setUsers] = useState<SystemUser[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [attachments, setAttachments] = useState<any[]>([]);
 
   useEffect(() => {
@@ -80,6 +81,7 @@ export default function EditCustomerPage() {
 
   useEffect(() => {
     fetchAttachments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const form = useForm<UpdateCustomerInput>({
@@ -134,7 +136,7 @@ export default function EditCustomerPage() {
           lastFollowUp: data.lastFollowUp ? data.lastFollowUp.split('T')[0] : '',
           nextFollowUp: data.nextFollowUp ? data.nextFollowUp.split('T')[0] : '',
         });
-      } catch (error) {
+      } catch {
         toast.error(t('errors.networkError'));
         router.push(`/${locale}/customers`);
       } finally {
@@ -169,7 +171,7 @@ export default function EditCustomerPage() {
 
       toast.success(t('messages.updateSuccess', { entity: t('customers.title') }));
       router.push(`/${locale}/customers/${id}`);
-    } catch (error) {
+    } catch {
       toast.error(t('errors.networkError'));
     } finally {
       setIsLoading(false);
@@ -181,7 +183,8 @@ export default function EditCustomerPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto animate-fade-in">
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
       {/* Header */}
       <PageHeader
         icon={UserCog}
@@ -198,6 +201,7 @@ export default function EditCustomerPage() {
         }
       />
 
+      <div className="p-5 space-y-5">
       {/* Weighted Value Summary Card */}
       <Card className="mb-6 border-primary/20 shadow-premium">
         <CardContent className="pt-6">
@@ -1111,6 +1115,8 @@ export default function EditCustomerPage() {
           </div>
         </form>
       </Form>
+      </div>
+      </div>
     </div>
   );
 }

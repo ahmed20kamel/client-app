@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     const categoryId = searchParams.get('categoryId') || '';
 
     // Build where clause
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
 
     if (search) {
@@ -199,7 +200,7 @@ export async function POST(request: NextRequest) {
     if (task.assignedToId !== session.user.id) {
       await createNotification({
         userId: task.assignedToId,
-        type: 'INTERNAL_TASK_ASSIGNED' as any,
+        type: 'INTERNAL_TASK_ASSIGNED',
         title: 'New Internal Task',
         message: `You have been assigned: "${task.title}"`,
         link: `/en/internal-tasks/${task.id}`,

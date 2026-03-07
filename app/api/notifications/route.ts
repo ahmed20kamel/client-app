@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = parseInt(searchParams.get('offset') || '0');
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {
       userId: session.user.id,
     };

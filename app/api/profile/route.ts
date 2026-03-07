@@ -51,7 +51,8 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const { passwordHash, ...sanitizedUser } = user;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash: _passwordHash, ...sanitizedUser } = user;
 
     return NextResponse.json({
       data: {
@@ -162,7 +163,8 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
-    const { passwordHash, ...sanitizedUser } = updatedUser;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash: _passwordHash, ...sanitizedUser } = updatedUser;
 
     return NextResponse.json({
       data: {

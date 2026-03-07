@@ -129,7 +129,7 @@ export default function CreateInternalTaskPage() {
 
       toast.success(t('messages.createSuccess', { entity: t('internalTasks.title') }));
       router.push(`/${locale}/internal-tasks`);
-    } catch (error) {
+    } catch {
       toast.error(t('errors.networkError'));
     } finally {
       setIsLoading(false);
@@ -137,7 +137,8 @@ export default function CreateInternalTaskPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto animate-fade-in">
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
       {/* Header */}
       <PageHeader
         icon={PlusCircle}
@@ -151,6 +152,7 @@ export default function CreateInternalTaskPage() {
         }
       />
 
+      <div className="p-5 space-y-5">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Task Details */}
         <Card className="shadow-premium">
@@ -330,6 +332,8 @@ export default function CreateInternalTaskPage() {
           </Button>
         </div>
       </form>
+      </div>
+      </div>
     </div>
   );
 }

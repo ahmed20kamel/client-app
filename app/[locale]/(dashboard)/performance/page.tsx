@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,13 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import {
   Plus,
-  Loader2,
   AlertCircle,
   ChevronLeft,
   ChevronRight,
   Eye,
   Star,
-  BarChart3,
   Award,
 } from 'lucide-react';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
@@ -69,6 +67,7 @@ export default function PerformancePage() {
   const t = useTranslations();
   const params = useParams();
   const locale = params.locale as string;
+  const router = useRouter();
 
   const [reviews, setReviews] = useState<PerformanceReview[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,7 +96,7 @@ export default function PerformancePage() {
       const data = await response.json();
       setReviews(data.data);
       setPagination(data.pagination);
-    } catch (error) {
+    } catch {
       toast.error(t('common.error'));
     } finally {
       setLoading(false);
@@ -106,6 +105,7 @@ export default function PerformancePage() {
 
   useEffect(() => {
     fetchReviews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, period, status]);
 
   const formatDate = (dateString: string) => {
@@ -122,7 +122,8 @@ export default function PerformancePage() {
   };
 
   return (
-    <div className="animate-fade-in">
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
       {/* Header */}
       <PageHeader
         title={t('performance.title')}
@@ -138,6 +139,7 @@ export default function PerformancePage() {
         }
       />
 
+      <div className="p-5 space-y-5">
       {/* Filters */}
       <Card className="shadow-premium mb-6">
         <CardContent className="p-4">
@@ -183,33 +185,33 @@ export default function PerformancePage() {
               <table className="w-full">
                 <thead>
                   <tr className="bg-muted/30">
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-7 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('performance.employeePerformance')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('performance.period')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('performance.overallRating')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('performance.tasksCompleted')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('performance.onTimeRate')}
                     </th>
-                    <th className="px-6 py-3.5 text-start text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('common.status')}
                     </th>
-                    <th className="px-6 py-3.5 text-end text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-end text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('common.actions')}
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {reviews.map((review) => (
-                    <tr key={review.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="px-6 py-4">
+                    <tr key={review.id} className="hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => router.push(`/${locale}/performance/${review.user.id}`)}>
+                      <td className="px-7 py-4">
                         <div>
                           <Link
                             href={`/${locale}/performance/${review.user.id}`}
@@ -222,7 +224,7 @@ export default function PerformancePage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <div>
                           <Badge variant="outline" className="mb-1">
                             {t(`performance.${review.period.toLowerCase()}`)}
@@ -232,18 +234,18 @@ export default function PerformancePage() {
                           </p>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <StarDisplay rating={review.overallRating} />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">
                         {review.tasksCompleted}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <span className={`text-sm font-medium ${getOnTimePercentage(review) >= 80 ? 'text-success' : getOnTimePercentage(review) >= 50 ? 'text-warning' : 'text-destructive'}`}>
                           {getOnTimePercentage(review)}%
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <Badge
                           variant="outline"
                           className={`${STATUS_CONFIG[review.status]?.bg} ${STATUS_CONFIG[review.status]?.color} border`}
@@ -251,7 +253,7 @@ export default function PerformancePage() {
                           {t(`performance.status${review.status.charAt(0) + review.status.slice(1).toLowerCase()}`)}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-end">
+                      <td className="px-4 py-4 whitespace-nowrap text-end" onClick={(e) => e.stopPropagation()}>
                         <Link href={`/${locale}/performance/${review.user.id}`}>
                           <Button variant="ghost" size="sm">
                             <Eye className="size-4" />
@@ -295,6 +297,8 @@ export default function PerformancePage() {
           )}
         </>
       )}
+      </div>
+      </div>
     </div>
   );
 }

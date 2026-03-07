@@ -104,6 +104,7 @@ export default async function DashboardLayout({
             <div className="flex items-center gap-3 p-3 rounded-xl bg-sidebar-accent/50">
               <Link href={`/${locale}/profile`} className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity">
                 {profileImage ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={profileImage} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
                 ) : (
                   <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-sm font-semibold text-primary shrink-0">
@@ -165,6 +166,7 @@ export default async function DashboardLayout({
                 <p className="text-xs text-muted-foreground">{session.user?.role}</p>
               </div>
               {profileImage ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={profileImage} alt="" className="w-9 h-9 lg:w-10 lg:h-10 rounded-full object-cover shadow-lg shadow-primary/20" />
               ) : (
                 <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-primary/20 flex items-center justify-center text-xs lg:text-sm font-semibold text-primary shadow-lg shadow-primary/20">
@@ -176,7 +178,7 @@ export default async function DashboardLayout({
         </header>
 
         {/* Page Content - responsive padding */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 mx-auto w-full max-w-[1600px]">
           {children}
         </main>
       </div>

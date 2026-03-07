@@ -5,23 +5,22 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import {
   Users,
   UserCheck,
+  UserPlus,
   CheckSquare,
   AlertTriangle,
-  TrendingUp,
   Clock,
   CheckCircle2,
   AlertCircle,
-  BarChart3,
   LayoutDashboard,
+  ClipboardCheck,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/PageHeader';
+import { SectionLabel } from '@/components/ui/section-label';
 
 interface DashboardData {
   stats: {
@@ -30,6 +29,8 @@ interface DashboardData {
     openTasks: number;
     overdueTasks: number;
     completedThisWeek: number;
+    totalEstimatedValue?: number;
+    totalWeightedValue?: number;
   };
   issues: {
     customersNoTasks: Array<{
@@ -72,20 +73,15 @@ export default function DashboardPage() {
     const fetchDashboard = async () => {
       try {
         const response = await fetch('/api/dashboard/summary');
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch dashboard data');
-        }
-
+        if (!response.ok) throw new Error('Failed to fetch');
         const result = await response.json();
         setData(result.data);
-      } catch (error) {
+      } catch {
         toast.error(t('common.error'));
       } finally {
         setLoading(false);
       }
     };
-
     fetchDashboard();
   }, [t]);
 
@@ -96,97 +92,17 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'DONE' }),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to update task');
-      }
-
+      if (!response.ok) throw new Error('Failed to update task');
       toast.success(t('messages.updateSuccess', { entity: t('tasks.title') }));
-
       const dashboardResponse = await fetch('/api/dashboard/summary');
       if (dashboardResponse.ok) {
         const result = await dashboardResponse.json();
         setData(result.data);
       }
-    } catch (error) {
+    } catch {
       toast.error(t('common.error'));
     }
   };
-
-  if (loading) {
-    return (
-      <div className="animate-fade-in space-y-6">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-4 w-32" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Card key={i} className="shadow-premium">
-              <CardContent className="pt-6 space-y-3">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-8 w-16" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="shadow-premium"><CardContent className="pt-6 space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</CardContent></Card>
-          <Card className="shadow-premium"><CardContent className="pt-6 space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</CardContent></Card>
-        </div>
-      </div>
-    );
-  }
-
-  if (!data) {
-    return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <div className="text-center">
-          <AlertCircle className="size-12 text-muted-foreground/40 mx-auto mb-4" />
-          <p className="text-muted-foreground">{t('common.noData')}</p>
-        </div>
-      </div>
-    );
-  }
-
-  const statCards = [
-    {
-      label: t('dashboard.totalCustomers'),
-      value: data.stats.totalCustomers,
-      icon: Users,
-      iconColor: 'text-blue-600',
-      iconBg: 'bg-blue-500/10',
-    },
-    {
-      label: t('dashboard.myCustomers'),
-      value: data.stats.myCustomers,
-      icon: UserCheck,
-      iconColor: 'text-indigo-600',
-      iconBg: 'bg-indigo-500/10',
-    },
-    {
-      label: t('dashboard.openTasks'),
-      value: data.stats.openTasks,
-      icon: CheckSquare,
-      iconColor: 'text-amber-600',
-      iconBg: 'bg-amber-500/10',
-    },
-    {
-      label: t('dashboard.overdueTasks'),
-      value: data.stats.overdueTasks,
-      icon: AlertTriangle,
-      iconColor: 'text-red-600',
-      iconBg: 'bg-red-500/10',
-      alert: data.stats.overdueTasks > 0,
-    },
-    {
-      label: t('dashboard.completedThisWeek'),
-      value: data.stats.completedThisWeek,
-      icon: TrendingUp,
-      iconColor: 'text-emerald-600',
-      iconBg: 'bg-emerald-500/10',
-    },
-  ];
 
   const getPriorityConfig = (priority: string) => {
     const configs: Record<string, { color: string; label: string }> = {
@@ -206,236 +122,378 @@ export default function DashboardPage() {
     return configs[status] || configs.OPEN;
   };
 
-  return (
-    <div className="animate-fade-in">
-      {/* Header */}
-      <PageHeader
-        title={t('dashboard.title')}
-        icon={LayoutDashboard}
-        subtitle={`${t('dashboard.welcome')}${data.stats.openTasks > 0 ? ` — ${data.stats.openTasks} ${t('dashboard.openTasksSuffix')}` : ''}`}
-      />
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4 mb-6 lg:mb-8">
-        {statCards.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <Card
-              key={index}
-              className={`shadow-premium hover:shadow-premium-lg transition-all duration-300 hover:-translate-y-0.5 ${
-                stat.alert ? 'ring-2 ring-red-500/20' : ''
-              }`}
-            >
-              <CardContent className="pt-4 pb-4 lg:pt-6 lg:pb-5">
-                <div className="flex items-center gap-2 lg:gap-3">
-                  <div className={`p-2 lg:p-2.5 rounded-xl ${stat.iconBg} shrink-0`}>
-                    <Icon className={`size-4 lg:size-5 ${stat.iconColor}`} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] lg:text-xs text-muted-foreground truncate">{stat.label}</p>
-                    <p className="text-xl lg:text-2xl font-bold">{stat.value}</p>
-                  </div>
+  // Loading
+  if (loading) {
+    return (
+      <div className="p-3 md:p-3.5">
+        <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #0A3728, #0D6B52, #0F8566)' }}>
+            <div className="px-8 py-7 flex items-center gap-5">
+              <Skeleton className="w-14 h-14 rounded-2xl bg-white/10" />
+              <div>
+                <Skeleton className="h-6 w-40 bg-white/10 mb-2" />
+                <Skeleton className="h-4 w-60 bg-white/10" />
+              </div>
+            </div>
+          </div>
+          <div className="p-5 space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="bg-muted/30 rounded-2xl border border-border p-5">
+                  <Skeleton className="h-10 w-10 rounded-xl mb-3" />
+                  <Skeleton className="h-8 w-16 mb-2" />
+                  <Skeleton className="h-3 w-20" />
                 </div>
-              </CardContent>
-            </Card>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-3.5">
+              <div className="bg-muted/30 rounded-2xl border border-border p-6">
+                <Skeleton className="h-[300px] w-full rounded-xl" />
+              </div>
+              <div className="bg-muted/30 rounded-2xl border border-border p-6">
+                <Skeleton className="h-[300px] w-full rounded-xl" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // No data
+  if (!data) {
+    return (
+      <div className="p-3 md:p-3.5">
+        <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+          <div className="flex items-center justify-center h-[60vh]">
+            <div className="text-center">
+              <AlertCircle className="size-12 text-muted-foreground/40 mx-auto mb-4" />
+              <p className="text-muted-foreground">{t('common.noData')}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const kpiCards = [
+    {
+      key: 'myCustomers',
+      label: t('dashboard.myCustomers'),
+      value: data.stats.myCustomers,
+      icon: UserPlus,
+      color: '#0F4C3A', bg: '#ECFDF5',
+      trend: t('dashboard.myCustomers'), trendBg: '#D1FAE5', trendColor: '#065F46',
+    },
+    {
+      key: 'overdue',
+      label: t('dashboard.overdueTasks'),
+      value: data.stats.overdueTasks,
+      icon: AlertTriangle,
+      color: '#BE123C', bg: '#FFF1F2',
+      trend: data.stats.overdueTasks > 0 ? t('tasks.priorityHigh') : '0',
+      trendBg: '#FFE4E6', trendColor: '#9F1239',
+    },
+    {
+      key: 'openTasks',
+      label: t('dashboard.openTasks'),
+      value: data.stats.openTasks,
+      icon: ClipboardCheck,
+      color: '#D97706', bg: '#FFFBEB',
+      trend: t('dashboard.openTasks'), trendBg: '#FEF3C7', trendColor: '#92400E',
+    },
+    {
+      key: 'completed',
+      label: t('dashboard.completedThisWeek'),
+      value: data.stats.completedThisWeek,
+      icon: CheckCircle2,
+      color: '#059669', bg: '#ECFDF5',
+      trend: t('dashboard.completedThisWeek'), trendBg: '#D1FAE5', trendColor: '#065F46',
+    },
+    {
+      key: 'totalCustomers',
+      label: t('dashboard.totalCustomers'),
+      value: data.stats.totalCustomers,
+      icon: UserCheck,
+      color: '#6D28D9', bg: '#F5F3FF',
+      trend: t('dashboard.totalCustomers'), trendBg: '#EDE9FE', trendColor: '#4C1D95',
+    },
+  ];
+
+  const getDaysSinceUpdate = (updatedAt: string) => {
+    return Math.floor((new Date().getTime() - new Date(updatedAt).getTime()) / (1000 * 60 * 60 * 24));
+  };
+
+  const GRADIENTS = [
+    'linear-gradient(135deg, #0F4C3A, #0D9488)',
+    'linear-gradient(135deg, #0369A1, #6D28D9)',
+    'linear-gradient(135deg, #6D28D9, #BE123C)',
+    'linear-gradient(135deg, #D97706, #059669)',
+    'linear-gradient(135deg, #0D9488, #0369A1)',
+  ];
+
+  return (
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+      {/* ====== Hero Header ====== */}
+      <div className="animate-fade-up-1">
+        <PageHeader
+          title={t('dashboard.title')}
+          icon={LayoutDashboard}
+          subtitle={`${t('dashboard.welcome')}${data.stats.openTasks > 0 ? ` — ${data.stats.openTasks} ${t('dashboard.openTasksSuffix')}` : ''}`}
+        />
+      </div>
+
+      <div className="p-5 space-y-6">
+      {/* ====== KPI Strip ====== */}
+      <div className="animate-fade-up-2 grid grid-cols-2 md:grid-cols-5 gap-3">
+        {kpiCards.map((k) => {
+          const Icon = k.icon;
+          return (
+            <div key={k.key}
+              className="bg-card rounded-2xl p-5 border border-border relative overflow-hidden
+                         hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-default"
+            >
+              <div className="absolute top-0 end-0 w-[3px] h-full rounded-e-2xl"
+                style={{ background: k.color }}
+              />
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ background: k.bg }}
+                >
+                  <Icon size={17} style={{ color: k.color }} />
+                </div>
+              </div>
+              <div className="text-[32px] font-black leading-none mb-1 tracking-tight"
+                style={{ color: k.color }}
+              >
+                {k.value}
+              </div>
+              <div className="text-[11px] font-medium text-muted-foreground">{k.label}</div>
+            </div>
           );
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-        {/* Issues Section */}
-        <Card className="shadow-premium">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="size-5 text-amber-600" />
-              {t('dashboard.issues')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Customers with no tasks */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-medium text-sm">{t('dashboard.customersNoTasks')}</h3>
-                <Badge
-                  variant={data.issues.customersNoTasks.length > 0 ? 'destructive' : 'secondary'}
-                  className={data.issues.customersNoTasks.length === 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : ''}
-                >
-                  {data.issues.customersNoTasks.length}
-                </Badge>
-              </div>
-              {data.issues.customersNoTasks.length === 0 ? (
-                <p className="text-sm text-muted-foreground bg-muted/50 rounded-xl p-3 text-center">{t('common.noData')}</p>
-              ) : (
-                <div className="space-y-2">
-                  {data.issues.customersNoTasks.slice(0, 5).map((customer) => (
-                    <div key={customer.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors">
-                      <Link
-                        href={`/${locale}/customers/${customer.id}`}
-                        className="text-sm font-medium text-primary hover:underline truncate"
-                      >
-                        {customer.fullName}
-                      </Link>
-                      <span className="text-xs text-muted-foreground shrink-0 ms-2">{customer.owner.fullName}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Customers not updated */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-medium text-sm">{t('dashboard.customersNotUpdated', { days: 7 })}</h3>
-                <Badge
-                  variant={data.issues.customersNotUpdated.length > 0 ? 'default' : 'secondary'}
-                  className={data.issues.customersNotUpdated.length > 0 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}
-                >
-                  {data.issues.customersNotUpdated.length}
-                </Badge>
-              </div>
-              {data.issues.customersNotUpdated.length === 0 ? (
-                <p className="text-sm text-muted-foreground bg-muted/50 rounded-xl p-3 text-center">{t('common.noData')}</p>
-              ) : (
-                <div className="space-y-2">
-                  {data.issues.customersNotUpdated.slice(0, 5).map((customer) => (
-                    <div key={customer.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors">
-                      <Link
-                        href={`/${locale}/customers/${customer.id}`}
-                        className="text-sm font-medium text-primary hover:underline truncate"
-                      >
-                        {customer.fullName}
-                      </Link>
-                      <span className="text-xs text-muted-foreground shrink-0 ms-2">
-                        {Math.floor(
-                          (new Date().getTime() - new Date(customer.updatedAt).getTime()) /
-                            (1000 * 60 * 60 * 24)
-                        )} {t('tasks.daysAgo')}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      {/* ====== Main Grid: Tasks Today + Issues ====== */}
+      <div className="animate-fade-up-3 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-3.5">
 
         {/* Tasks Today */}
-        <Card className="shadow-premium">
-          <CardHeader>
-            <div className="flex items-center justify-between w-full">
-              <CardTitle className="flex items-center gap-2">
-                <CheckSquare className="size-5 text-primary" />
-                {t('dashboard.tasksToday')}
-              </CardTitle>
-              <Badge variant="secondary" className="bg-primary/10 text-primary">
-                {data.tasksToday.length}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {data.tasksToday.length === 0 ? (
-              <div className="text-center py-12">
-                <CheckCircle2 className="size-12 text-emerald-400 mx-auto mb-3" />
-                <p className="text-muted-foreground">{t('tasks.noTasks')}</p>
+        <div className="bg-card rounded-2xl border border-border overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+                <CheckSquare size={15} className="text-emerald-600" />
               </div>
-            ) : (
-              <div className="space-y-3">
-                {data.tasksToday.map((task) => {
-                  const priorityConfig = getPriorityConfig(task.priority);
-                  const statusConfig = getStatusConfig(task.status);
-                  const StatusIcon = statusConfig.icon;
+              <div>
+                <p className="text-sm font-extrabold text-foreground">{t('dashboard.tasksToday')}</p>
+                <p className="text-[10px] text-muted-foreground">{t('dashboard.tasksToday')}</p>
+              </div>
+            </div>
+            <span className="text-[10px] font-extrabold bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full">
+              {data.tasksToday.length} {t('tasks.title')}
+            </span>
+          </div>
 
-                  return (
-                    <div
-                      key={task.id}
-                      className="p-4 rounded-xl border border-border/60 hover:border-primary/30 hover:shadow-md transition-all duration-200"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
-                        <Link
-                          href={`/${locale}/tasks/${task.id}`}
-                          className="font-medium text-foreground hover:text-primary transition-colors truncate min-w-0"
+          {data.tasksToday.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-14">
+              <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
+                <CheckCircle2 size={24} className="text-emerald-500" />
+              </div>
+              <p className="text-sm font-semibold text-muted-foreground">{t('tasks.noTasks')}</p>
+            </div>
+          ) : (
+            <div className="max-h-[460px] overflow-y-auto">
+              {data.tasksToday.map((task) => {
+                const priorityConfig = getPriorityConfig(task.priority);
+                const statusConfig = getStatusConfig(task.status);
+                const StatusIcon = statusConfig.icon;
+
+                return (
+                  <div key={task.id}
+                    className="flex items-center justify-between px-5 py-3.5 border-b border-border/50 hover:bg-muted/30 transition-colors last:border-0"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                        style={{ background: 'linear-gradient(135deg, #0F4C3A, #0D9488)' }}
+                      >
+                        {task.customer.fullName.charAt(0)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <Link href={`/${locale}/tasks/${task.id}`}
+                          className="text-sm font-bold text-foreground hover:text-primary transition-colors block truncate"
                         >
                           {task.title}
                         </Link>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border ${statusConfig.color}`}>
-                            <StatusIcon className="size-3" />
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Link href={`/${locale}/customers/${task.customer.id}`}
+                            className="text-[10px] text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            {task.customer.fullName}
+                          </Link>
+                          <span className={`inline-flex items-center gap-0.5 px-1.5 py-0 text-[9px] font-bold rounded-full border ${statusConfig.color}`}>
+                            <StatusIcon className="size-2.5" />
                           </span>
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${priorityConfig.color}`}>
+                          <span className={`px-1.5 py-0 text-[9px] font-bold rounded-full border ${priorityConfig.color}`}>
                             {priorityConfig.label}
                           </span>
                         </div>
                       </div>
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <Link
-                          href={`/${locale}/customers/${task.customer.id}`}
-                          className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                        >
-                          {task.customer.fullName}
-                        </Link>
-                        {(task.status === 'OPEN' || task.status === 'OVERDUE') && (
-                          <Button
-                            onClick={() => handleMarkAsDone(task.id)}
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs text-success hover:text-success/80 hover:bg-success/10"
-                          >
-                            <CheckCircle2 className="size-3.5 me-1" />
-                            {t('tasks.markAsDone')}
-                          </Button>
-                        )}
-                      </div>
                     </div>
-                  );
-                })}
+                    {(task.status === 'OPEN' || task.status === 'OVERDUE') && (
+                      <Button
+                        onClick={() => handleMarkAsDone(task.id)}
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-[10px] text-success hover:text-success/80 hover:bg-success/10 shrink-0"
+                      >
+                        <CheckCircle2 className="size-3 me-1" />
+                        {t('tasks.markAsDone')}
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Issues Panel */}
+        <div className="bg-card rounded-2xl border border-border overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center">
+                <AlertCircle size={15} className="text-rose-600" />
               </div>
+              <div>
+                <p className="text-sm font-extrabold text-foreground">{t('dashboard.issues')}</p>
+                <p className="text-[10px] text-muted-foreground">{t('dashboard.issues')}</p>
+              </div>
+            </div>
+            <span className="text-[10px] font-extrabold bg-rose-50 text-rose-700 px-2.5 py-1 rounded-full">
+              {data.issues.customersNoTasks.length + data.issues.customersNotUpdated.length}
+            </span>
+          </div>
+
+          <div className="max-h-[460px] overflow-y-auto">
+            {/* Customers with no open tasks */}
+            <div className="px-5 py-2 bg-muted/40 border-b border-border">
+              <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest">
+                {t('dashboard.customersNoTasks')}
+              </span>
+            </div>
+            {data.issues.customersNoTasks.length === 0 ? (
+              <div className="flex items-center gap-2 px-5 py-4 text-muted-foreground border-b border-border/50">
+                <CheckCircle2 size={13} className="text-emerald-500" />
+                <span className="text-xs">{t('common.noData')}</span>
+              </div>
+            ) : (
+              data.issues.customersNoTasks.slice(0, 5).map((c) => (
+                <div key={c.id} className="flex items-center justify-between px-5 py-2.5 border-b border-border/50 hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                      style={{ background: 'linear-gradient(135deg, #0F4C3A, #0D9488)' }}
+                    >
+                      {c.fullName.charAt(0)}
+                    </div>
+                    <div>
+                      <Link href={`/${locale}/customers/${c.id}`}
+                        className="text-xs font-bold text-foreground hover:text-primary transition-colors"
+                      >
+                        {c.fullName}
+                      </Link>
+                      <p className="text-[10px] text-muted-foreground">{c.owner.fullName}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
             )}
-          </CardContent>
-        </Card>
+
+            {/* Customers not updated 7+ days */}
+            <div className="px-5 py-2 bg-muted/40 border-b border-border">
+              <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest">
+                {t('dashboard.customersNotUpdated', { days: 7 })}
+              </span>
+            </div>
+            {data.issues.customersNotUpdated.length === 0 ? (
+              <div className="flex items-center gap-2 px-5 py-4 text-muted-foreground">
+                <Clock size={13} />
+                <span className="text-xs">{t('common.noData')}</span>
+              </div>
+            ) : (
+              data.issues.customersNotUpdated.slice(0, 5).map((c) => (
+                <div key={c.id} className="flex items-center justify-between px-5 py-2.5 border-b border-border/50 hover:bg-muted/30 transition-colors last:border-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                      style={{ background: 'linear-gradient(135deg, #D97706, #BE123C)' }}
+                    >
+                      {c.fullName.charAt(0)}
+                    </div>
+                    <Link href={`/${locale}/customers/${c.id}`}
+                      className="text-xs font-bold text-foreground hover:text-primary transition-colors"
+                    >
+                      {c.fullName}
+                    </Link>
+                  </div>
+                  <span className="text-[10px] font-bold text-rose-500">
+                    {getDaysSinceUpdate(c.updatedAt)} {t('tasks.daysAgo')}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Employee Distribution (Admin only) */}
+      {/* ====== Employee Distribution ====== */}
       {data.employeeDistribution.length > 0 && (
-        <Card className="mt-4 lg:mt-6 shadow-premium">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="size-5 text-indigo-600" />
-              {t('dashboard.employeeDistribution')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto rounded-xl border border-border">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-muted/30">
-                    <th className="text-start py-3.5 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('users.fullName')}</th>
-                    <th className="text-end py-3.5 px-4 lg:px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('customers.title')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {data.employeeDistribution.map((emp) => (
-                    <tr key={emp.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="py-3.5 px-4 lg:px-6">
-                        <div className="flex items-center gap-3">
-                          <div className="size-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-xs font-semibold shrink-0">
-                            {emp.fullName.charAt(0)}
-                          </div>
-                          <span className="font-medium text-sm">{emp.fullName}</span>
-                        </div>
-                      </td>
-                      <td className="text-end py-3.5 px-4 lg:px-6">
-                        <Badge variant="secondary" className="bg-primary/10 text-primary font-bold">
-                          {emp.customerCount}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        <div className="animate-fade-up-4">
+          <SectionLabel>{t('dashboard.employeeDistribution')}</SectionLabel>
+
+          <div className="bg-card rounded-2xl border border-border overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+                  <Users size={15} className="text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-extrabold text-foreground">{t('dashboard.employeeDistribution')}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {data.stats.totalCustomers} {t('customers.title')}
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold bg-muted border border-border px-2.5 py-1 rounded-lg text-muted-foreground">
+                {data.stats.totalCustomers} {t('customers.title')}
+              </span>
             </div>
-          </CardContent>
-        </Card>
+
+            <div className="grid grid-cols-[1fr_80px] px-5 py-2 bg-muted/40 border-b border-border">
+              <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest">{t('users.fullName')}</span>
+              <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest">{t('customers.title')}</span>
+            </div>
+
+            {data.employeeDistribution.map((emp, i) => (
+              <div key={emp.id} className="grid grid-cols-[1fr_80px] px-5 py-3 border-b border-border/50 hover:bg-muted/30 transition-colors last:border-0 items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                    style={{ background: GRADIENTS[i % GRADIENTS.length] }}
+                  >
+                    {emp.fullName.charAt(0)}
+                  </div>
+                  <p className="text-sm font-bold text-foreground">{emp.fullName}</p>
+                </div>
+                <div>
+                  <p className="text-xl font-black text-primary">{emp.customerCount}</p>
+                  <p className="text-[9px] text-muted-foreground">{t('customers.title')}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
+      </div>
+      </div>
     </div>
   );
 }

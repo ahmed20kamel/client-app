@@ -21,7 +21,7 @@ import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { Building2, ArrowLeft, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
-import { PageSkeleton, DetailSkeleton } from '@/components/ui/page-skeleton';
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import Link from 'next/link';
 import { updateDepartmentSchema, type UpdateDepartmentInput } from '@/lib/validations/escalation';
 
@@ -100,6 +100,7 @@ export default function EditDepartmentPage() {
       }
     };
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deptId]);
 
   const onSubmit = async (data: UpdateDepartmentInput) => {
@@ -131,7 +132,8 @@ export default function EditDepartmentPage() {
   }
 
   return (
-    <div className="animate-fade-in max-w-2xl mx-auto">
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
       {/* Header */}
       <PageHeader
         icon={Building2}
@@ -145,6 +147,7 @@ export default function EditDepartmentPage() {
         }
       />
 
+      <div className="p-5 space-y-5">
       {/* Form */}
       <Card className="shadow-premium">
         <CardHeader>
@@ -298,6 +301,8 @@ export default function EditDepartmentPage() {
           </Form>
         </CardContent>
       </Card>
+      </div>
+      </div>
     </div>
   );
 }
