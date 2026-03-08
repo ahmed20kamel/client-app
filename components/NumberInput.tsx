@@ -45,7 +45,12 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
         // Count commas before cursor in old value
         const commasBefore = (oldVal.slice(0, cursorPos).match(/,/g) || []).length;
 
-        const raw = stripCommas(oldVal);
+        // Strip suffix and commas from the raw value
+        let cleaned = oldVal;
+        if (suffix) {
+          cleaned = cleaned.replace(new RegExp(`\\s*${suffix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`, 'g'), '');
+        }
+        const raw = stripCommas(cleaned);
 
         if (raw === '' || raw === '-') {
           onChange(null);

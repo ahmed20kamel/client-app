@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -24,6 +24,7 @@ import {
   Save,
   Loader2,
   UserCog,
+  Camera,
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -70,6 +71,7 @@ interface UserData {
   fullName: string;
   jobTitle: string | null;
   phone: string | null;
+  profileImage: string | null;
   status: 'ACTIVE' | 'DISABLED';
   role: {
     id: string;
@@ -93,6 +95,9 @@ export default function EditUserPage() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedDeptId, setSelectedDeptId] = useState('');
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<UpdateUserForm>({
     resolver: zodResolver(updateUserSchema),
@@ -131,6 +136,7 @@ export default function EditUserPage() {
           password: '',
         });
         setSelectedDeptId(user.department?.id || '');
+        setProfileImage(user.profileImage || null);
         setLoadingUser(false);
       })
       .catch((err) => {
@@ -140,6 +146,47 @@ export default function EditUserPage() {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(t('errors.fileTooLarge'));
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast.error(t('errors.fileTypeNotAllowed'));
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('profileImage', file);
+
+      const response = await fetch(`/api/users/${userId}/upload-image`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || t('common.error'));
+        return;
+      }
+
+      const { data } = await response.json();
+      setProfileImage(data.profileImage);
+      toast.success(t('messages.updateSuccess', { entity: t('users.profileImage') }));
+    } catch {
+      toast.error(t('errors.networkError'));
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const onSubmit = async (data: UpdateUserForm) => {
     setIsLoading(true);
@@ -197,6 +244,71 @@ export default function EditUserPage() {
       <div className="p-5 space-y-5">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Profile Image */}
+          <Card className="shadow-premium">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Camera className="size-5 text-primary" />
+                {t('users.profileImage')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-6">
+                <div className="relative group">
+                  {profileImage ? (
+                    <img
+                      src={profileImage}
+                      alt="Profile"
+                      className="size-24 rounded-full object-cover border-2 border-border"
+                    />
+                  ) : (
+                    <div className="size-24 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-bold text-2xl border-2 border-border">
+                      {form.getValues('fullName')?.charAt(0)?.toUpperCase() || 'U'}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingImage}
+                    className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  >
+                    {uploadingImage ? (
+                      <Loader2 className="size-6 text-white animate-spin" />
+                    ) : (
+                      <Camera className="size-6 text-white" />
+                    )}
+                  </button>
+                </div>
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingImage}
+                  >
+                    {uploadingImage ? (
+                      <Loader2 className="size-4 me-2 animate-spin" />
+                    ) : (
+                      <Camera className="size-4 me-2" />
+                    )}
+                    {t('users.changePhoto')}
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    JPG, PNG, GIF - Max 5MB
+                  </p>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Personal Info */}
           <Card className="shadow-premium">
             <CardHeader>

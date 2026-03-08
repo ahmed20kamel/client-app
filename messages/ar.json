@@ -348,7 +348,9 @@
     "statusDisabled": "معطل",
     "lastLogin": "آخر تسجيل دخول",
     "roleAdmin": "مدير",
-    "roleEmployee": "موظف"
+    "roleEmployee": "موظف",
+    "profileImage": "صورة الملف الشخصي",
+    "changePhoto": "تغيير الصورة"
   },
   "reports": {
     "title": "التقارير",

@@ -786,7 +786,7 @@ export default function CreateCustomerPage() {
                       name="status"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('common.status')} *</FormLabel>
+                          <FormLabel>{t('common.status')}</FormLabel>
                           <Select
                             onValueChange={(value) => {
                               const newStatus = value as LeadStatus;

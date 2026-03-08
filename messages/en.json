@@ -348,7 +348,9 @@
     "statusDisabled": "Disabled",
     "lastLogin": "Last Login",
     "roleAdmin": "Admin",
-    "roleEmployee": "Employee"
+    "roleEmployee": "Employee",
+    "profileImage": "Profile Image",
+    "changePhoto": "Change Photo"
   },
   "reports": {
     "title": "Reports",
