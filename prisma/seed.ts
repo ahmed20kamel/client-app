@@ -8,6 +8,20 @@ async function main() {
 
   // Clean existing data
   console.log('Cleaning existing data...');
+  // Procurement & Sales
+  await prisma.purchaseOrderItem.deleteMany();
+  await prisma.purchaseOrder.deleteMany();
+  await prisma.payment.deleteMany();
+  await prisma.invoiceItem.deleteMany();
+  await prisma.invoice.deleteMany();
+  await prisma.quotationItem.deleteMany();
+  await prisma.quotation.deleteMany();
+  // Inventory
+  await prisma.stockMovement.deleteMany();
+  await prisma.product.deleteMany();
+  await prisma.productCategory.deleteMany();
+  await prisma.supplier.deleteMany();
+  // Performance & Tasks
   await prisma.performanceReview.deleteMany();
   await prisma.taskRating.deleteMany();
   await prisma.internalTaskComment.deleteMany();
@@ -160,7 +174,7 @@ async function main() {
   const adminPassword = await hash('Admin123!', 10);
   const adminUser = await prisma.user.create({
     data: {
-      email: 'admin@example.com',
+      email: 'admin@stride.com',
       fullName: 'System Administrator',
       jobTitle: 'Administrator',
       passwordHash: adminPassword,
@@ -173,7 +187,7 @@ async function main() {
   const employeePassword = await hash('Employee123!', 10);
   const employeeUser = await prisma.user.create({
     data: {
-      email: 'ali@example.com',
+      email: 'ali@stride.com',
       fullName: 'Ali',
       jobTitle: 'Sales Agent',
       phone: '+971501234567',
@@ -221,7 +235,119 @@ async function main() {
     },
   });
 
-  console.log('Created 4 departments');
+  const hrDept = await prisma.department.create({
+    data: {
+      name: 'HR',
+      nameAr: 'الموارد البشرية',
+      description: 'Human Resources department',
+      managerId: adminUser.id,
+    },
+  });
+
+  const accountsDept = await prisma.department.create({
+    data: {
+      name: 'Accounts',
+      nameAr: 'الحسابات',
+      description: 'Accounts and Finance department',
+      managerId: adminUser.id,
+    },
+  });
+
+  const projectEngDept = await prisma.department.create({
+    data: {
+      name: 'Project Eng.',
+      nameAr: 'هندسة المشاريع',
+      description: 'Project Engineering department',
+      managerId: adminUser.id,
+    },
+  });
+
+  const aluminumDept = await prisma.department.create({
+    data: {
+      name: 'Aluminmum',
+      nameAr: 'الألمنيوم',
+      description: 'Aluminum department',
+      managerId: adminUser.id,
+    },
+  });
+
+  console.log('Created 8 departments');
+
+  // Create new employees
+  console.log('Creating new employees...');
+  const mohamedMalikPassword = await hash('MO@1234', 10);
+  const mohamedMalik = await prisma.user.create({
+    data: {
+      email: 'mohamed.malik@stride.com',
+      fullName: 'MOHAMED MALIK',
+      jobTitle: 'HR Officer',
+      passwordHash: mohamedMalikPassword,
+      status: 'ACTIVE',
+    },
+  });
+  await prisma.userRole.create({ data: { userId: mohamedMalik.id, roleId: employeeRole.id } });
+
+  const ansarPassword = await hash('AN@1234', 10);
+  const ansar = await prisma.user.create({
+    data: {
+      email: 'ansar.abdulrahman@stride.com',
+      fullName: 'ANSAR ABDULRAHMAN',
+      jobTitle: 'Accountant',
+      passwordHash: ansarPassword,
+      status: 'ACTIVE',
+    },
+  });
+  await prisma.userRole.create({ data: { userId: ansar.id, roleId: employeeRole.id } });
+
+  const yaseenPassword = await hash('YA@1234', 10);
+  const yaseen = await prisma.user.create({
+    data: {
+      email: 'yaseen.nisar@stride.com',
+      fullName: 'YASEEN NISAR NISAR AHMAD',
+      jobTitle: 'Project Engineer',
+      passwordHash: yaseenPassword,
+      status: 'ACTIVE',
+    },
+  });
+  await prisma.userRole.create({ data: { userId: yaseen.id, roleId: employeeRole.id } });
+
+  const islamPassword = await hash('IS@1234', 10);
+  const islam = await prisma.user.create({
+    data: {
+      email: 'islam.hamdy@stride.com',
+      fullName: 'ISLAM HAMDY',
+      jobTitle: 'Sales Executive',
+      passwordHash: islamPassword,
+      status: 'ACTIVE',
+    },
+  });
+  await prisma.userRole.create({ data: { userId: islam.id, roleId: employeeRole.id } });
+
+  const mohamedElsayedPassword = await hash('MO@1234', 10);
+  const mohamedElsayed = await prisma.user.create({
+    data: {
+      email: 'mohamed.elsayed@stride.com',
+      fullName: 'Mohamed Elsayed',
+      jobTitle: 'Project Engineer',
+      passwordHash: mohamedElsayedPassword,
+      status: 'ACTIVE',
+    },
+  });
+  await prisma.userRole.create({ data: { userId: mohamedElsayed.id, roleId: employeeRole.id } });
+
+  const haithamPassword = await hash('HA@1234', 10);
+  const haitham = await prisma.user.create({
+    data: {
+      email: 'haitham@stride.com',
+      fullName: 'Haitham',
+      jobTitle: 'Aluminum Specialist',
+      passwordHash: haithamPassword,
+      status: 'ACTIVE',
+    },
+  });
+  await prisma.userRole.create({ data: { userId: haitham.id, roleId: employeeRole.id } });
+
+  console.log('Created 6 new employees');
 
   // Assign users to departments
   await prisma.userDepartment.create({
@@ -229,6 +355,24 @@ async function main() {
   });
   await prisma.userDepartment.create({
     data: { userId: employeeUser.id, departmentId: salesDept.id, isPrimary: true },
+  });
+  await prisma.userDepartment.create({
+    data: { userId: mohamedMalik.id, departmentId: hrDept.id, isPrimary: true },
+  });
+  await prisma.userDepartment.create({
+    data: { userId: ansar.id, departmentId: accountsDept.id, isPrimary: true },
+  });
+  await prisma.userDepartment.create({
+    data: { userId: yaseen.id, departmentId: projectEngDept.id, isPrimary: true },
+  });
+  await prisma.userDepartment.create({
+    data: { userId: islam.id, departmentId: salesDept.id, isPrimary: true },
+  });
+  await prisma.userDepartment.create({
+    data: { userId: mohamedElsayed.id, departmentId: projectEngDept.id, isPrimary: true },
+  });
+  await prisma.userDepartment.create({
+    data: { userId: haitham.id, departmentId: aluminumDept.id, isPrimary: true },
   });
 
   // Create Task Categories
@@ -699,8 +843,14 @@ async function main() {
   console.log('Created 1 performance review');
   console.log('\nDatabase seeding completed successfully!');
   console.log('\nLogin Credentials:');
-  console.log('  Admin:    admin@example.com / Admin123!');
-  console.log('  Employee: ali@example.com / Employee123!');
+  console.log('  Admin:              admin@stride.com / Admin123!');
+  console.log('  Ali (Employee):     ali@stride.com / Employee123!');
+  console.log('  MOHAMED MALIK:      mohamed.malik@stride.com / MO@1234');
+  console.log('  ANSAR ABDULRAHMAN:  ansar.abdulrahman@stride.com / AN@1234');
+  console.log('  YASEEN NISAR:       yaseen.nisar@stride.com / YA@1234');
+  console.log('  ISLAM HAMDY:        islam.hamdy@stride.com / IS@1234');
+  console.log('  Mohamed Elsayed:    mohamed.elsayed@stride.com / MO@1234');
+  console.log('  Haitham:            haitham@stride.com / HA@1234');
 }
 
 main()
