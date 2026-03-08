@@ -28,27 +28,31 @@ export default async function DashboardLayout({
 
   const t = await getTranslations();
 
-  const navItems = [
-    { href: `/${locale}/dashboard`, label: t('navigation.dashboard'), icon: 'LayoutDashboard' },
-    { href: `/${locale}/customers`, label: t('navigation.customers'), icon: 'Users' },
-    { href: `/${locale}/tasks`, label: t('navigation.tasks'), icon: 'CheckSquare' },
-    { href: `/${locale}/internal-tasks`, label: t('navigation.internalTasks'), icon: 'ClipboardList' },
-    { href: `/${locale}/approvals`, label: t('navigation.approvals'), icon: 'CheckCircle2' },
-    { href: `/${locale}/reports`, label: t('navigation.reports'), icon: 'BarChart3' },
-    { href: `/${locale}/quotations`, label: t('navigation.quotations'), icon: 'FileText' },
-    { href: `/${locale}/invoices`, label: t('navigation.invoices'), icon: 'Receipt' },
-    { href: `/${locale}/payments`, label: t('navigation.payments'), icon: 'CreditCard' },
-    { href: `/${locale}/inventory`, label: t('navigation.inventory'), icon: 'Package' },
-    { href: `/${locale}/suppliers`, label: t('navigation.suppliers'), icon: 'Truck' },
-    { href: `/${locale}/purchase-orders`, label: t('navigation.purchaseOrders'), icon: 'ShoppingCart' },
-  ];
+  const isAdmin = session.user?.role === 'Admin';
+
+  const navItems = isAdmin
+    ? [
+        { href: `/${locale}/dashboard`, label: t('navigation.dashboard'), icon: 'LayoutDashboard' },
+        { href: `/${locale}/customers`, label: t('navigation.customers'), icon: 'Users' },
+        { href: `/${locale}/tasks`, label: t('navigation.tasks'), icon: 'CheckSquare' },
+        { href: `/${locale}/internal-tasks`, label: t('navigation.internalTasks'), icon: 'ClipboardList' },
+        { href: `/${locale}/approvals`, label: t('navigation.approvals'), icon: 'CheckCircle2' },
+        { href: `/${locale}/reports`, label: t('navigation.reports'), icon: 'BarChart3' },
+        { href: `/${locale}/quotations`, label: t('navigation.quotations'), icon: 'FileText' },
+        { href: `/${locale}/invoices`, label: t('navigation.invoices'), icon: 'Receipt' },
+        { href: `/${locale}/payments`, label: t('navigation.payments'), icon: 'CreditCard' },
+        { href: `/${locale}/inventory`, label: t('navigation.inventory'), icon: 'Package' },
+        { href: `/${locale}/suppliers`, label: t('navigation.suppliers'), icon: 'Truck' },
+        { href: `/${locale}/purchase-orders`, label: t('navigation.purchaseOrders'), icon: 'ShoppingCart' },
+        { href: `/${locale}/users`, label: t('navigation.users'), icon: 'UserCog' },
+        { href: `/${locale}/performance`, label: t('navigation.performance'), icon: 'TrendingUp' },
+      ]
+    : [
+        { href: `/${locale}/internal-tasks`, label: t('navigation.internalTasks'), icon: 'ClipboardList' },
+      ];
 
   const adminItems: typeof navItems = [];
-  if (session.user?.role === 'Admin') {
-    navItems.push(
-      { href: `/${locale}/users`, label: t('navigation.users'), icon: 'UserCog' },
-      { href: `/${locale}/performance`, label: t('navigation.performance'), icon: 'TrendingUp' },
-    );
+  if (isAdmin) {
     adminItems.push(
       { href: `/${locale}/departments`, label: t('navigation.departments'), icon: 'Building2' },
     );

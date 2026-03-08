@@ -156,9 +156,7 @@ async function main() {
 
   // Assign limited permissions to Employee
   const employeePermissionNames = [
-    'customer.view.own', 'customer.create', 'customer.edit.own',
-    'task.view.own', 'task.create', 'task.edit.own', 'reports.view.own',
-    'internal-task.read.own', 'internal-task.update.own', 'performance.read.own',
+    'internal-task.read.own', 'internal-task.update.own',
   ];
   const employeePermissions = permissions.filter((p) => employeePermissionNames.includes(p.name));
   await Promise.all(

@@ -59,7 +59,12 @@ export default function LoginPage() {
       }
 
       toast.success(t('auth.login_success'));
-      router.push(`/${locale}/dashboard`);
+      const userRole = result.user?.role;
+      if (userRole === 'Admin') {
+        router.push(`/${locale}/dashboard`);
+      } else {
+        router.push(`/${locale}/internal-tasks`);
+      }
       router.refresh();
     } catch {
       toast.error(t('common.error'));
