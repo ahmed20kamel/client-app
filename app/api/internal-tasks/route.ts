@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { hasRole } from '@/lib/permissions';
 import { createInternalTaskSchema } from '@/lib/validations/internal-task';
 import { createNotification } from '@/lib/notifications';
 import { z } from 'zod';
@@ -27,11 +28,30 @@ export async function GET(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
 
-    if (search) {
+    // Non-admin users can only see tasks assigned to them or created by them
+    const isAdmin = await hasRole(session.user.id, 'Admin');
+    if (!isAdmin) {
       where.OR = [
+        { assignedToId: session.user.id },
+        { createdById: session.user.id },
+      ];
+    }
+
+    if (search) {
+      const searchCondition = [
         { title: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
       ];
+      if (where.OR) {
+        // Non-admin: combine ownership filter with search using AND
+        where.AND = [
+          { OR: where.OR },
+          { OR: searchCondition },
+        ];
+        delete where.OR;
+      } else {
+        where.OR = searchCondition;
+      }
     }
 
     if (status) {

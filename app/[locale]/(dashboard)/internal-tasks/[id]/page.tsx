@@ -439,6 +439,8 @@ export default function InternalTaskDetailPage() {
   const currentUserId = session?.user?.id;
   const isAssignee = task ? currentUserId === task.assignedTo.id : false;
   const isCreator = task ? currentUserId === task.createdBy.id : false;
+  const isAdmin = session?.user?.role === 'Admin';
+  const canManage = isCreator || isAdmin;
 
   // ─── Loading / Not Found ─────────────────────────────────────────────────
 
@@ -523,8 +525,8 @@ export default function InternalTaskDetailPage() {
             </Button>
           )}
 
-          {/* Creator: Approve & Reject */}
-          {task.status === 'SUBMITTED' && isCreator && (
+          {/* Creator/Admin: Approve & Reject */}
+          {task.status === 'SUBMITTED' && canManage && (
             <>
               <Button
                 onClick={handleApprove}
@@ -666,8 +668,8 @@ export default function InternalTaskDetailPage() {
             </Card>
           )}
 
-          {/* Rate Panel - only for creator on APPROVED/DONE without existing rating */}
-          {(task.status === 'APPROVED' || task.status === 'DONE') && isCreator && !task.rating && (
+          {/* Rate Panel - for creator/admin on APPROVED/DONE without existing rating */}
+          {(task.status === 'APPROVED' || task.status === 'DONE') && canManage && !task.rating && (
             <Card className="shadow-premium border-yellow-200">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">

@@ -8,6 +8,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useSelection } from '@/hooks/use-selection';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import {
   Plus,
@@ -19,6 +32,7 @@ import {
   Star,
   Clock,
   ClipboardList,
+  Trash2,
 } from 'lucide-react';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { PageHeader } from '@/components/PageHeader';
@@ -66,6 +80,15 @@ interface Department {
   nameAr?: string | null;
 }
 
+interface Session {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+  };
+}
+
 export default function InternalTasksPage() {
   const t = useTranslations();
   const params = useParams();
@@ -80,8 +103,30 @@ export default function InternalTasksPage() {
   const [departmentId, setDepartmentId] = useState('all');
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
+  const [session, setSession] = useState<Session | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const [departments, setDepartments] = useState<Department[]>([]);
+
+  const { selectedIds, toggleOne, toggleAll, clearSelection, isAllSelected, isSomeSelected, selectedCount, isSelected } = useSelection(tasks);
+
+  const isAdmin = session?.user?.role === 'Admin';
+
+  // Fetch session
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.user) setSession(data);
+        }
+      } catch (error) {
+        console.error('Error fetching session:', error);
+      }
+    };
+    fetchSession();
+  }, []);
 
   // Fetch departments for filter
   useEffect(() => {
@@ -133,6 +178,18 @@ export default function InternalTasksPage() {
     fetchTasks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search, status, priority, departmentId]);
+
+  const handleBulkDelete = async () => {
+    try {
+      await Promise.all(Array.from(selectedIds).map((id) => fetch(`/api/internal-tasks/${id}`, { method: 'DELETE' })));
+      toast.success(t('messages.deleteSuccess', { entity: t('internalTasks.title') }));
+      clearSelection();
+      setBulkDeleteOpen(false);
+      fetchTasks();
+    } catch {
+      toast.error(t('common.error'));
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE');
@@ -254,6 +311,33 @@ export default function InternalTasksPage() {
         </CardContent>
       </Card>
 
+      {/* Bulk Action Bar */}
+      {selectedCount > 0 && (
+        <div className="mb-4 p-3 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-between animate-slide-down">
+          <span className="text-sm font-medium text-primary">
+            {t('common.selected', { count: selectedCount })}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={clearSelection}>{t('common.deselectAll')}</Button>
+            <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm"><Trash2 className="size-3.5 me-1" />{t('common.deleteSelected')}</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('common.bulkDeleteConfirm', { count: selectedCount })}</AlertDialogTitle>
+                  <AlertDialogDescription>{t('common.bulkDeleteConfirmDesc')}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-white hover:bg-destructive/90">{t('common.delete')}</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       {loading ? (
         <TableSkeleton rows={6} columns={6} />
@@ -269,24 +353,33 @@ export default function InternalTasksPage() {
             {tasks.map((task) => (
               <Card key={task.id} className="shadow-premium">
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <Link href={`/${locale}/internal-tasks/${task.id}`} className="text-sm font-semibold text-primary hover:underline flex-1 min-w-0 truncate">
-                      {task.title}
-                    </Link>
-                    <span className="shrink-0 ms-2">
-                      <StatusBadge status={task.status} label={getStatusLabel(task.status)} size="sm" />
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mb-3">
-                    <div className="truncate">{task.assignedTo.fullName}</div>
-                    <StatusBadge status={task.priority} label={getPriorityLabel(task.priority)} size="sm" />
-                    {task.dueAt && (
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="size-3 shrink-0" />
-                        <span>{formatDate(task.dueAt)}</span>
+                  <div className="flex items-start gap-3 mb-2">
+                    <Checkbox
+                      checked={isSelected(task.id)}
+                      onCheckedChange={() => toggleOne(task.id)}
+                      className="mt-1"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <Link href={`/${locale}/internal-tasks/${task.id}`} className="text-sm font-semibold text-primary hover:underline flex-1 min-w-0 truncate">
+                          {task.title}
+                        </Link>
+                        <span className="shrink-0 ms-2">
+                          <StatusBadge status={task.status} label={getStatusLabel(task.status)} size="sm" />
+                        </span>
                       </div>
-                    )}
-                    {task.rating && <div>{renderStars(task.rating.rating)}</div>}
+                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mt-2">
+                        <div className="truncate">{task.assignedTo.fullName}</div>
+                        <StatusBadge status={task.priority} label={getPriorityLabel(task.priority)} size="sm" />
+                        {task.dueAt && (
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="size-3 shrink-0" />
+                            <span>{formatDate(task.dueAt)}</span>
+                          </div>
+                        )}
+                        {task.rating && <div>{renderStars(task.rating.rating)}</div>}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex items-center justify-end border-t pt-2">
                     <Link href={`/${locale}/internal-tasks/${task.id}`}>
@@ -306,6 +399,9 @@ export default function InternalTasksPage() {
               <table className="w-full">
                 <thead>
                   <tr className="bg-muted/30">
+                    <th className="px-4 py-3 w-12">
+                      <Checkbox checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false} onCheckedChange={toggleAll} />
+                    </th>
                     <th className="px-7 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('internalTasks.taskTitle')}
                     </th>
@@ -332,6 +428,9 @@ export default function InternalTasksPage() {
                 <tbody className="divide-y divide-border">
                   {tasks.map((task) => (
                     <tr key={task.id} className="hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => router.push(`/${locale}/internal-tasks/${task.id}`)}>
+                      <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox checked={isSelected(task.id)} onCheckedChange={() => toggleOne(task.id)} />
+                      </td>
                       <td className="px-7 py-4">
                         <Link
                           href={`/${locale}/internal-tasks/${task.id}`}
