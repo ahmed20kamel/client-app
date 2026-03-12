@@ -38,9 +38,9 @@ export async function GET(_request: NextRequest) {
       customersNoTasks,
       customersNotUpdated,
       tasksToday,
-      employeeDistribution,
       recentInternalTasks,
       pendingApprovals,
+      employeeDistribution,
     ] = await Promise.all([
       // Total customers (all if admin, own if employee)
       prisma.customer.count({
