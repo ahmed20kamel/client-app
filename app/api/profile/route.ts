@@ -5,6 +5,8 @@ import { uploadToCloudinary, deleteFromCloudinary } from '@/lib/cloudinary';
 import { hash, compare } from 'bcryptjs';
 import { z } from 'zod';
 
+export const maxDuration = 30; // 30 seconds for file upload
+
 const updateProfileSchema = z.object({
   fullName: z.string().min(2).optional(),
   phone: z.string().optional(),
