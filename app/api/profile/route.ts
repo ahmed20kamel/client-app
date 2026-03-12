@@ -146,6 +146,11 @@ export async function PATCH(request: NextRequest) {
       updateData.passwordHash = await hash(validatedData.newPassword, 10);
     }
 
+    // Nothing to update
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
       data: updateData,
@@ -183,9 +188,9 @@ export async function PATCH(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
+      return NextResponse.json({ error: error.issues[0]?.message || 'Validation error' }, { status: 400 });
     }
-    console.error('Update profile error:', error);
+    console.error('Update profile error:', error instanceof Error ? error.message : error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
