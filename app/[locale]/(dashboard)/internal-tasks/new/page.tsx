@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -22,12 +22,26 @@ import {
   Flag,
   Calendar,
   PlusCircle,
+  Paperclip,
+  Upload,
+  Trash2,
+  File,
+  Image,
+  X,
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 
 interface User {
   id: string;
   fullName: string;
+}
+
+interface TempAttachment {
+  id: string;
+  originalName: string;
+  fileSize: number;
+  mimeType: string;
+  filePath: string;
 }
 
 interface Department {
@@ -63,6 +77,13 @@ export default function CreateInternalTaskPage() {
   const [priority, setPriority] = useState('MEDIUM');
   const [dueAt, setDueAt] = useState('');
 
+  // Attachment state
+  const tempSessionId = useMemo(() => `temp_task_${crypto.randomUUID()}`, []);
+  const [attachments, setAttachments] = useState<TempAttachment[]>([]);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -93,6 +114,63 @@ export default function CreateInternalTaskPage() {
 
     fetchData();
   }, []);
+
+  const cleanupTempAttachments = async () => {
+    if (attachments.length === 0) return;
+    await Promise.allSettled(
+      attachments.map((a) =>
+        fetch(`/api/attachments/temp?attachmentId=${a.id}`, { method: 'DELETE' })
+      )
+    );
+  };
+
+  const handleFileUpload = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+
+    setIsUploadingFile(true);
+    try {
+      for (const file of fileArray) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('category', 'TASK_FILE');
+        formData.append('tempSessionId', tempSessionId);
+
+        const res = await fetch('/api/attachments/temp', { method: 'POST', body: formData });
+        if (!res.ok) {
+          const err = await res.json();
+          toast.error(err.error || 'Upload failed');
+          continue;
+        }
+        const { data } = await res.json();
+        setAttachments((prev) => [...prev, data]);
+      }
+    } finally {
+      setIsUploadingFile(false);
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    try {
+      const res = await fetch(`/api/attachments/temp?attachmentId=${attachmentId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
+      }
+    } catch {
+      toast.error('Failed to delete file');
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) return <Image className="size-4 text-blue-500" />;
+    return <File className="size-4 text-gray-500" />;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,6 +203,21 @@ export default function CreateInternalTaskPage() {
         const error = await response.json();
         toast.error(getApiErrorMessage(error.error || '', t));
         return;
+      }
+
+      const task = await response.json();
+
+      // Link any temp attachments to the created task
+      if (attachments.length > 0) {
+        try {
+          await fetch('/api/attachments/link-task', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tempSessionId, internalTaskId: task.data.id }),
+          });
+        } catch {
+          console.error('Failed to link attachments');
+        }
       }
 
       toast.success(t('messages.createSuccess', { entity: t('internalTasks.title') }));
@@ -307,12 +400,83 @@ export default function CreateInternalTaskPage() {
           </CardContent>
         </Card>
 
+        {/* Attachments */}
+        <Card className="shadow-premium">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Paperclip className="size-5 text-primary" />
+              Attachments
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Drop Zone */}
+            <div
+              className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
+                isDragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-muted/30'
+              }`}
+              onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+              onDragLeave={() => setIsDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragOver(false);
+                handleFileUpload(e.dataTransfer.files);
+              }}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.doc,.docx,.xls,.xlsx,.zip,.rar,.mp4,.mov"
+                onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
+              />
+              {isUploadingFile ? (
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <Loader2 className="size-8 animate-spin text-primary" />
+                  <p className="text-sm">Uploading...</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <Upload className="size-8" />
+                  <p className="text-sm font-medium">Drop files here or click to browse</p>
+                  <p className="text-xs">PDF, Word, Excel, Images, ZIP — max 20MB each</p>
+                </div>
+              )}
+            </div>
+
+            {/* File List */}
+            {attachments.length > 0 && (
+              <div className="space-y-2">
+                {attachments.map((attachment) => (
+                  <div key={attachment.id} className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20 group">
+                    {getFileIcon(attachment.mimeType)}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{attachment.originalName}</p>
+                      <p className="text-xs text-muted-foreground">{formatFileSize(attachment.fileSize)}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleDeleteAttachment(attachment.id)}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Action Buttons */}
         <div className="flex items-center justify-end gap-3 pt-6 border-t">
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push(`/${locale}/internal-tasks`)}
+            onClick={async () => { await cleanupTempAttachments(); router.push(`/${locale}/internal-tasks`); }}
             disabled={isLoading}
           >
             {t('common.cancel')}
