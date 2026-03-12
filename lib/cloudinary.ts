@@ -17,9 +17,13 @@ export async function uploadToCloudinary(
 
   const publicId = `${Date.now()}-${originalName.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9]/g, '_')}`;
 
+  const isImage = mimeType.startsWith('image/');
+  const isVideo = mimeType.startsWith('video/');
+  const resourceType = isImage ? 'image' : isVideo ? 'video' : 'raw';
+
   const result = await cloudinary.uploader.upload(dataUri, {
     folder,
-    resource_type: 'auto',
+    resource_type: resourceType,
     public_id: publicId,
     use_filename: false,
   });
