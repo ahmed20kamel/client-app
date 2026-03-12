@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -11,17 +11,9 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/api-error';
 import {
-  ArrowLeft,
-  Save,
-  Loader2,
-  FileText,
-  AlignLeft,
-  UserCheck,
-  Building2,
-  Tag,
-  Flag,
-  Calendar,
-  Pencil,
+  ArrowLeft, Save, Loader2, FileText, AlignLeft, UserCheck,
+  Building2, Tag, Flag, Calendar, Pencil, Paperclip, Upload,
+  Trash2, Download, File, Image,
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { DetailSkeleton } from '@/components/ui/page-skeleton';
@@ -29,6 +21,16 @@ import { DetailSkeleton } from '@/components/ui/page-skeleton';
 interface User { id: string; fullName: string; }
 interface Department { id: string; name: string; nameAr?: string | null; }
 interface Category { id: string; name: string; nameAr?: string | null; color: string; }
+interface TaskAttachment {
+  id: string;
+  originalName: string;
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  mimeType: string;
+  createdAt: string;
+  uploadedBy: { id: string; fullName: string; };
+}
 
 export default function EditInternalTaskPage() {
   const t = useTranslations();
@@ -52,14 +54,21 @@ export default function EditInternalTaskPage() {
   const [priority, setPriority] = useState('MEDIUM');
   const [dueAt, setDueAt] = useState('');
 
+  // Attachment state
+  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [isDeletingAttachment, setIsDeletingAttachment] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [taskRes, usersRes, deptsRes, catsRes] = await Promise.all([
+        const [taskRes, usersRes, deptsRes, catsRes, attachRes] = await Promise.all([
           fetch(`/api/internal-tasks/${id}`),
           fetch('/api/users?limit=1000'),
           fetch('/api/departments'),
           fetch('/api/task-categories'),
+          fetch(`/api/internal-tasks/${id}/attachments`),
         ]);
 
         if (!taskRes.ok) {
@@ -80,6 +89,7 @@ export default function EditInternalTaskPage() {
         if (usersRes.ok) setUsers((await usersRes.json()).data);
         if (deptsRes.ok) setDepartments((await deptsRes.json()).data);
         if (catsRes.ok) setCategories((await catsRes.json()).data);
+        if (attachRes.ok) setAttachments((await attachRes.json()).data || []);
       } catch {
         toast.error(t('errors.networkError'));
         router.push(`/${locale}/internal-tasks`);
@@ -91,6 +101,56 @@ export default function EditInternalTaskPage() {
     fetchAll();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingFile(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`/api/internal-tasks/${id}/attachments`, { method: 'POST', body: formData });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || t('errors.networkError'));
+        return;
+      }
+      const { data } = await res.json();
+      setAttachments((prev) => [data, ...prev]);
+      toast.success(t('messages.uploadSuccess') || 'File uploaded');
+    } catch {
+      toast.error(t('errors.networkError'));
+    } finally {
+      setIsUploadingFile(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    setIsDeletingAttachment(attachmentId);
+    try {
+      const res = await fetch(`/api/internal-tasks/${id}/attachments?attachmentId=${attachmentId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      setAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
+      toast.success(t('messages.deleteSuccess') || 'Deleted');
+    } catch {
+      toast.error(t('errors.networkError'));
+    } finally {
+      setIsDeletingAttachment(null);
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) return <Image className="size-5 text-blue-500" />;
+    if (mimeType === 'application/pdf') return <FileText className="size-5 text-red-500" />;
+    return <File className="size-5 text-gray-500" />;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -299,6 +359,85 @@ export default function EditInternalTaskPage() {
                     </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Attachments */}
+            <Card className="shadow-premium">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Paperclip className="size-5 text-primary" />
+                    {locale === 'ar' ? 'المرفقات' : 'Attachments'} ({attachments.length})
+                  </CardTitle>
+                  <label className="cursor-pointer">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      onChange={handleUploadFile}
+                      disabled={isUploadingFile}
+                      accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.zip,.rar,.mp4,.mov"
+                    />
+                    <span className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                      {isUploadingFile ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="size-3.5" />
+                      )}
+                      {locale === 'ar' ? 'رفع ملف' : 'Upload'}
+                    </span>
+                  </label>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {attachments.length === 0 ? (
+                  <div className="text-center py-10 border-2 border-dashed border-border rounded-lg">
+                    <Paperclip className="size-8 mx-auto mb-2 text-muted-foreground/30" />
+                    <p className="text-sm text-muted-foreground">
+                      {locale === 'ar' ? 'لا توجد مرفقات بعد' : 'No attachments yet'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {attachments.map((attachment) => (
+                      <div
+                        key={attachment.id}
+                        className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors group"
+                      >
+                        <div className="shrink-0">{getFileIcon(attachment.mimeType)}</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{attachment.originalName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatFileSize(attachment.fileSize)} · {attachment.uploadedBy.fullName}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <a
+                            href={attachment.filePath}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                          >
+                            <Download className="size-4 text-muted-foreground" />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAttachment(attachment.id)}
+                            disabled={isDeletingAttachment === attachment.id}
+                            className="p-1.5 rounded-md hover:bg-destructive/10 transition-colors"
+                          >
+                            {isDeletingAttachment === attachment.id ? (
+                              <Loader2 className="size-4 animate-spin text-destructive" />
+                            ) : (
+                              <Trash2 className="size-4 text-destructive" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
