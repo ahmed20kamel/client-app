@@ -39,6 +39,8 @@ export async function GET(_request: NextRequest) {
       customersNotUpdated,
       tasksToday,
       employeeDistribution,
+      recentInternalTasks,
+      pendingApprovals,
     ] = await Promise.all([
       // Total customers (all if admin, own if employee)
       prisma.customer.count({
@@ -144,6 +146,31 @@ export async function GET(_request: NextRequest) {
         take: 10,
       }),
 
+      // Recent internal tasks (assigned to user or all if admin)
+      prisma.internalTask.findMany({
+        where: {
+          ...(canViewAll ? {} : { assignedToId: userId }),
+          status: { in: ['OPEN', 'IN_PROGRESS', 'SUBMITTED'] },
+        },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          priority: true,
+          dueAt: true,
+          createdAt: true,
+          assignedTo: { select: { id: true, fullName: true } },
+          createdBy: { select: { fullName: true } },
+        },
+        orderBy: { dueAt: 'asc' },
+        take: 8,
+      }),
+
+      // Pending approvals count (admin only)
+      canViewAll
+        ? prisma.internalTask.count({ where: { status: 'SUBMITTED' } })
+        : prisma.internalTask.count({ where: { status: 'SUBMITTED', createdById: userId } }),
+
       // Employee distribution (admin only)
       canViewAll
         ? prisma.user.findMany({
@@ -212,6 +239,8 @@ export async function GET(_request: NextRequest) {
           customersNotUpdated,
         },
         tasksToday,
+        recentInternalTasks,
+        pendingApprovals,
         employeeDistribution: employeeDistribution.map((emp) => {
           const review = reviewMap.get(emp.id);
           const onTimeRate = review && review.tasksCompleted > 0

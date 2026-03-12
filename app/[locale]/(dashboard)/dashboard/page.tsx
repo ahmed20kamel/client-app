@@ -17,14 +17,17 @@ import {
   AlertCircle,
   LayoutDashboard,
   ClipboardCheck,
+  ClipboardList,
   Star,
+  ShieldCheck,
+  ArrowRight,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/PageHeader';
-import { SectionLabel } from '@/components/ui/section-label';
-import { DataTable } from '@/components/ui/data-table';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { EmptyState } from '@/components/ui/empty-state';
 
+/* ─── Types ─── */
 interface DashboardData {
   stats: {
     totalCustomers: number;
@@ -32,44 +35,82 @@ interface DashboardData {
     openTasks: number;
     overdueTasks: number;
     completedThisWeek: number;
-    totalEstimatedValue?: number;
-    totalWeightedValue?: number;
   };
   issues: {
-    customersNoTasks: Array<{
-      id: string;
-      fullName: string;
-      owner: { fullName: string };
-    }>;
-    customersNotUpdated: Array<{
-      id: string;
-      fullName: string;
-      updatedAt: string;
-      owner: { fullName: string };
-    }>;
+    customersNoTasks: Array<{ id: string; fullName: string; owner: { fullName: string } }>;
+    customersNotUpdated: Array<{ id: string; fullName: string; updatedAt: string; owner: { fullName: string } }>;
   };
   tasksToday: Array<{
-    id: string;
-    title: string;
-    status: string;
-    priority: string;
-    dueAt: string;
+    id: string; title: string; status: string; priority: string; dueAt: string;
     customer: { id: string; fullName: string };
     assignedTo: { id: string; fullName: string };
   }>;
+  recentInternalTasks: Array<{
+    id: string; title: string; status: string; priority: string;
+    dueAt: string | null; createdAt: string;
+    assignedTo: { id: string; fullName: string };
+    createdBy: { fullName: string };
+  }>;
+  pendingApprovals: number;
   employeeDistribution: Array<{
-    id: string;
-    fullName: string;
-    jobTitle: string | null;
-    customerCount: number;
-    openTasksCount: number;
-    completedInternalTasks: number;
-    latestRating: number | null;
-    onTimeRate: number | null;
-    reviewPeriod: string | null;
+    id: string; fullName: string; jobTitle: string | null;
+    customerCount: number; openTasksCount: number; completedInternalTasks: number;
+    latestRating: number | null; onTimeRate: number | null;
   }>;
 }
 
+/* ─── Constants ─── */
+const GRADIENTS = [
+  'linear-gradient(135deg, #0F4C3A, #0D9488)',
+  'linear-gradient(135deg, #0369A1, #6D28D9)',
+  'linear-gradient(135deg, #6D28D9, #BE123C)',
+  'linear-gradient(135deg, #D97706, #059669)',
+  'linear-gradient(135deg, #0D9488, #0369A1)',
+];
+
+const PRIORITY_VARIANT: Record<string, 'danger' | 'warning' | 'default'> = {
+  HIGH: 'danger', URGENT: 'danger', MEDIUM: 'warning', LOW: 'default',
+};
+const STATUS_VARIANT: Record<string, 'info' | 'warning' | 'success' | 'danger' | 'purple'> = {
+  OPEN: 'info', IN_PROGRESS: 'warning', SUBMITTED: 'purple', DONE: 'success', OVERDUE: 'danger', APPROVED: 'success',
+};
+
+const KPI_COLORS = {
+  success: { text: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30', bar: 'bg-emerald-500' },
+  danger:  { text: 'text-red-600',     bg: 'bg-red-50 dark:bg-red-950/30',     bar: 'bg-red-500' },
+  warning: { text: 'text-amber-600',   bg: 'bg-amber-50 dark:bg-amber-950/30', bar: 'bg-amber-500' },
+  purple:  { text: 'text-purple-600',  bg: 'bg-purple-50 dark:bg-purple-950/30', bar: 'bg-purple-500' },
+  info:    { text: 'text-blue-600',    bg: 'bg-blue-50 dark:bg-blue-950/30',   bar: 'bg-blue-500' },
+};
+
+/* ─── Small Components ─── */
+function SectionHead({ icon: Icon, title, badge, action }: {
+  icon: React.ElementType; title: string; badge?: React.ReactNode; action?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+      <div className="flex items-center gap-2.5">
+        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Icon size={14} className="text-primary" />
+        </div>
+        <p className="text-sm font-bold text-foreground">{title}</p>
+        {badge}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function Ava({ name, gradient }: { name: string; gradient?: string }) {
+  return (
+    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+      style={{ background: gradient || GRADIENTS[0] }}>
+      {name.charAt(0)}
+    </div>
+  );
+}
+
+/* ─── Main ─── */
 export default function DashboardPage() {
   const t = useTranslations();
   const params = useParams();
@@ -80,172 +121,63 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const response = await fetch('/api/dashboard/summary');
-        if (!response.ok) throw new Error('Failed to fetch');
-        const result = await response.json();
-        setData(result.data);
-      } catch {
-        toast.error(t('common.error'));
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDashboard();
+    fetch('/api/dashboard/summary')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(r => setData(r.data))
+      .catch(() => toast.error(t('common.error')))
+      .finally(() => setLoading(false));
   }, [t]);
 
   const handleMarkAsDone = async (taskId: string) => {
     try {
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+      const r = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'DONE' }),
       });
-      if (!response.ok) throw new Error('Failed to update task');
+      if (!r.ok) throw new Error();
       toast.success(t('messages.updateSuccess', { entity: t('tasks.title') }));
-      const dashboardResponse = await fetch('/api/dashboard/summary');
-      if (dashboardResponse.ok) {
-        const result = await dashboardResponse.json();
-        setData(result.data);
-      }
-    } catch {
-      toast.error(t('common.error'));
-    }
+      const r2 = await fetch('/api/dashboard/summary');
+      if (r2.ok) setData((await r2.json()).data);
+    } catch { toast.error(t('common.error')); }
   };
 
-  const getPriorityConfig = (priority: string) => {
-    const configs: Record<string, { color: string; label: string }> = {
-      HIGH: { color: 'bg-red-50 text-red-700 border-red-200', label: t('tasks.priorityHigh') },
-      MEDIUM: { color: 'bg-amber-50 text-amber-700 border-amber-200', label: t('tasks.priorityMedium') },
-      LOW: { color: 'bg-gray-50 text-gray-700 border-gray-200', label: t('tasks.priorityLow') },
-    };
-    return configs[priority] || configs.MEDIUM;
-  };
+  const daysSince = (d: string) => Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
+  const fmtDue = (d: string) => new Date(d).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE', { month: 'short', day: 'numeric' });
 
-  const getStatusConfig = (status: string) => {
-    const configs: Record<string, { color: string; icon: typeof Clock }> = {
-      OPEN: { color: 'bg-blue-50 text-blue-700 border-blue-200', icon: Clock },
-      OVERDUE: { color: 'bg-red-50 text-red-700 border-red-200', icon: AlertTriangle },
-      DONE: { color: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle2 },
-    };
-    return configs[status] || configs.OPEN;
-  };
-
-  // Loading
+  /* ── Loading ── */
   if (loading) {
     return (
-      <div className="p-3 md:p-3.5">
-        <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
-          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #0A3728, #0D6B52, #0F8566)' }}>
-            <div className="px-8 py-7 flex items-center gap-5">
-              <Skeleton className="w-14 h-14 rounded-2xl bg-white/10" />
-              <div>
-                <Skeleton className="h-6 w-40 bg-white/10 mb-2" />
-                <Skeleton className="h-4 w-60 bg-white/10" />
-              </div>
-            </div>
+      <div className="space-y-4">
+        <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #0A3728, #0D6B52, #0F8566)' }}>
+          <div className="px-8 py-7 flex items-center gap-5">
+            <Skeleton className="w-12 h-12 rounded-2xl bg-white/10" />
+            <div><Skeleton className="h-5 w-40 bg-white/10 mb-2" /><Skeleton className="h-4 w-56 bg-white/10" /></div>
           </div>
-          <div className="p-5 space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {[1, 2, 3, 4, 5].map(i => (
-                <div key={i} className="bg-muted/30 rounded-2xl border border-border p-5">
-                  <Skeleton className="h-10 w-10 rounded-xl mb-3" />
-                  <Skeleton className="h-8 w-16 mb-2" />
-                  <Skeleton className="h-3 w-20" />
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-3.5">
-              <div className="bg-muted/30 rounded-2xl border border-border p-6">
-                <Skeleton className="h-[300px] w-full rounded-xl" />
-              </div>
-              <div className="bg-muted/30 rounded-2xl border border-border p-6">
-                <Skeleton className="h-[300px] w-full rounded-xl" />
-              </div>
-            </div>
-          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[1,2,3,4,5,6].map(i => <div key={i} className="bg-card rounded-xl border p-4"><Skeleton className="h-8 w-12 mb-2" /><Skeleton className="h-3 w-20" /></div>)}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {[1,2,3].map(i => <div key={i} className="bg-card rounded-xl border p-6"><Skeleton className="h-[250px] rounded-lg" /></div>)}
         </div>
       </div>
     );
   }
 
-  // No data
-  if (!data) {
-    return (
-      <div className="p-3 md:p-3.5">
-        <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
-          <div className="flex items-center justify-center h-[60vh]">
-            <div className="text-center">
-              <AlertCircle className="size-12 text-muted-foreground/40 mx-auto mb-4" />
-              <p className="text-muted-foreground">{t('common.noData')}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (!data) return <EmptyState title={t('common.noData')} />;
 
   const kpiCards = [
-    {
-      key: 'myCustomers',
-      label: t('dashboard.myCustomers'),
-      value: data.stats.myCustomers,
-      icon: UserPlus,
-      color: '#0F4C3A', bg: '#ECFDF5',
-      trend: t('dashboard.myCustomers'), trendBg: '#D1FAE5', trendColor: '#065F46',
-    },
-    {
-      key: 'overdue',
-      label: t('dashboard.overdueTasks'),
-      value: data.stats.overdueTasks,
-      icon: AlertTriangle,
-      color: '#BE123C', bg: '#FFF1F2',
-      trend: data.stats.overdueTasks > 0 ? t('tasks.priorityHigh') : '0',
-      trendBg: '#FFE4E6', trendColor: '#9F1239',
-    },
-    {
-      key: 'openTasks',
-      label: t('dashboard.openTasks'),
-      value: data.stats.openTasks,
-      icon: ClipboardCheck,
-      color: '#D97706', bg: '#FFFBEB',
-      trend: t('dashboard.openTasks'), trendBg: '#FEF3C7', trendColor: '#92400E',
-    },
-    {
-      key: 'completed',
-      label: t('dashboard.completedThisWeek'),
-      value: data.stats.completedThisWeek,
-      icon: CheckCircle2,
-      color: '#059669', bg: '#ECFDF5',
-      trend: t('dashboard.completedThisWeek'), trendBg: '#D1FAE5', trendColor: '#065F46',
-    },
-    {
-      key: 'totalCustomers',
-      label: t('dashboard.totalCustomers'),
-      value: data.stats.totalCustomers,
-      icon: UserCheck,
-      color: '#6D28D9', bg: '#F5F3FF',
-      trend: t('dashboard.totalCustomers'), trendBg: '#EDE9FE', trendColor: '#4C1D95',
-    },
-  ];
-
-  const getDaysSinceUpdate = (updatedAt: string) => {
-    return Math.floor((new Date().getTime() - new Date(updatedAt).getTime()) / (1000 * 60 * 60 * 24));
-  };
-
-  const GRADIENTS = [
-    'linear-gradient(135deg, #0F4C3A, #0D9488)',
-    'linear-gradient(135deg, #0369A1, #6D28D9)',
-    'linear-gradient(135deg, #6D28D9, #BE123C)',
-    'linear-gradient(135deg, #D97706, #059669)',
-    'linear-gradient(135deg, #0D9488, #0369A1)',
+    { key: 'myCustomers',     label: t('dashboard.myCustomers'),       value: data.stats.myCustomers,       icon: UserPlus,      v: 'success' as const },
+    { key: 'overdue',         label: t('dashboard.overdueTasks'),      value: data.stats.overdueTasks,      icon: AlertTriangle,  v: 'danger'  as const },
+    { key: 'openTasks',       label: t('dashboard.openTasks'),         value: data.stats.openTasks,         icon: ClipboardCheck, v: 'warning' as const },
+    { key: 'completed',       label: t('dashboard.completedThisWeek'), value: data.stats.completedThisWeek, icon: CheckCircle2,   v: 'success' as const },
+    { key: 'totalCustomers',  label: t('dashboard.totalCustomers'),    value: data.stats.totalCustomers,    icon: UserCheck,      v: 'purple'  as const },
+    { key: 'pending',         label: t('dashboard.pendingApprovals'),  value: data.pendingApprovals,        icon: ShieldCheck,    v: 'info'    as const },
   ];
 
   return (
-    <div className="p-3 md:p-3.5">
-      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
-      {/* ====== Hero Header ====== */}
+    <div className="space-y-5">
+      {/* ━━━ Header ━━━ */}
       <div className="animate-fade-up-1">
         <PageHeader
           title={t('dashboard.title')}
@@ -254,309 +186,196 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="p-5 space-y-6">
-      {/* ====== KPI Strip ====== */}
-      <div className="animate-fade-up-2 grid grid-cols-2 md:grid-cols-5 gap-3">
-        {kpiCards.map((k) => {
+      {/* ━━━ KPI Strip — 6 cards ━━━ */}
+      <div className="animate-fade-up-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {kpiCards.map(k => {
           const Icon = k.icon;
+          const c = KPI_COLORS[k.v];
           return (
-            <div key={k.key}
-              className="bg-card rounded-2xl p-5 border border-border relative overflow-hidden
-                         hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-default"
-            >
-              <div className="absolute top-0 end-0 w-[3px] h-full rounded-e-2xl"
-                style={{ background: k.color }}
-              />
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                  style={{ background: k.bg }}
-                >
-                  <Icon size={17} style={{ color: k.color }} />
-                </div>
+            <div key={k.key} className="bg-card rounded-xl border border-border p-4 hover:shadow-md transition-all relative overflow-hidden group">
+              <div className={`absolute bottom-0 inset-x-0 h-[3px] ${c.bar} opacity-0 group-hover:opacity-100 transition-opacity`} />
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${c.bg}`}>
+                <Icon size={16} className={c.text} />
               </div>
-              <div className="text-[32px] font-black leading-none mb-1 tracking-tight"
-                style={{ color: k.color }}
-              >
-                {k.value}
-              </div>
-              <div className="text-[11px] font-medium text-muted-foreground">{k.label}</div>
+              <p className={`text-2xl font-black leading-none mb-0.5 ${c.text}`}>{k.value}</p>
+              <p className="text-[11px] text-muted-foreground font-medium">{k.label}</p>
             </div>
           );
         })}
       </div>
 
-      {/* ====== Main Grid: Tasks Today + Issues ====== */}
-      <div className="animate-fade-up-3 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-3.5">
+      {/* ━━━ Three panels ━━━ */}
+      <div className="animate-fade-up-3 grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-        {/* Tasks Today */}
-        <div className="bg-card rounded-2xl border border-border overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <CheckSquare size={15} className="text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-sm font-extrabold text-foreground">{t('dashboard.tasksToday')}</p>
-                <p className="text-[10px] text-muted-foreground">{t('dashboard.tasksToday')}</p>
-              </div>
-            </div>
-            <span className="text-[10px] font-extrabold bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full">
-              {data.tasksToday.length} {t('tasks.title')}
-            </span>
-          </div>
-
+        {/* ── Tasks Today ── */}
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <SectionHead icon={CheckSquare} title={t('dashboard.tasksToday')} badge={<StatusBadge label={`${data.tasksToday.length}`} variant="success" />} />
           {data.tasksToday.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-14">
-              <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
-                <CheckCircle2 size={24} className="text-emerald-500" />
-              </div>
-              <p className="text-sm font-semibold text-muted-foreground">{t('tasks.noTasks')}</p>
-            </div>
+            <EmptyState icon={CheckCircle2} title={t('tasks.noTasks')} className="py-10" />
           ) : (
-            <div className="max-h-[460px] overflow-y-auto">
-              {data.tasksToday.map((task) => {
-                const priorityConfig = getPriorityConfig(task.priority);
-                const statusConfig = getStatusConfig(task.status);
-                const StatusIcon = statusConfig.icon;
-
-                return (
-                  <div key={task.id}
-                    className="flex items-center justify-between px-5 py-3.5 border-b border-border/50 hover:bg-muted/30 transition-colors last:border-0"
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                        style={{ background: 'linear-gradient(135deg, #0F4C3A, #0D9488)' }}
-                      >
-                        {task.customer.fullName.charAt(0)}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <Link href={`/${locale}/tasks/${task.id}`}
-                          className="text-sm font-bold text-foreground hover:text-primary transition-colors block truncate"
-                        >
-                          {task.title}
-                        </Link>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <Link href={`/${locale}/customers/${task.customer.id}`}
-                            className="text-[10px] text-muted-foreground hover:text-primary transition-colors"
-                          >
-                            {task.customer.fullName}
-                          </Link>
-                          <span className={`inline-flex items-center gap-0.5 px-1.5 py-0 text-[9px] font-bold rounded-full border ${statusConfig.color}`}>
-                            <StatusIcon className="size-2.5" />
-                          </span>
-                          <span className={`px-1.5 py-0 text-[9px] font-bold rounded-full border ${priorityConfig.color}`}>
-                            {priorityConfig.label}
-                          </span>
-                        </div>
-                      </div>
+            <div className="max-h-[380px] overflow-y-auto divide-y divide-border/40">
+              {data.tasksToday.map(task => (
+                <div key={task.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
+                  <Ava name={task.customer.fullName} />
+                  <div className="min-w-0 flex-1">
+                    <Link href={`/${locale}/tasks/${task.id}`} className="text-sm font-semibold text-foreground hover:text-primary transition-colors block truncate">
+                      {task.title}
+                    </Link>
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">{task.customer.fullName}</span>
+                      <StatusBadge label={task.status} variant={STATUS_VARIANT[task.status] || 'default'} className="text-[9px] px-1.5 py-0" />
+                      <StatusBadge label={task.priority} variant={PRIORITY_VARIANT[task.priority] || 'default'} className="text-[9px] px-1.5 py-0" />
                     </div>
-                    {(task.status === 'OPEN' || task.status === 'OVERDUE') && (
-                      <Button
-                        onClick={() => handleMarkAsDone(task.id)}
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-[10px] text-success hover:text-success/80 hover:bg-success/10 shrink-0"
-                      >
-                        <CheckCircle2 className="size-3 me-1" />
-                        {t('tasks.markAsDone')}
-                      </Button>
-                    )}
                   </div>
-                );
-              })}
+                  {(task.status === 'OPEN' || task.status === 'OVERDUE') && (
+                    <Button onClick={() => handleMarkAsDone(task.id)} variant="ghost" size="icon-sm" className="text-success hover:bg-success/10 shrink-0">
+                      <CheckCircle2 className="size-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
 
-        {/* Issues Panel */}
-        <div className="bg-card rounded-2xl border border-border overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center">
-                <AlertCircle size={15} className="text-rose-600" />
-              </div>
-              <div>
-                <p className="text-sm font-extrabold text-foreground">{t('dashboard.issues')}</p>
-                <p className="text-[10px] text-muted-foreground">{t('dashboard.issues')}</p>
-              </div>
+        {/* ── Internal Tasks ── */}
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <SectionHead
+            icon={ClipboardList}
+            title={t('dashboard.internalTasks')}
+            badge={<StatusBadge label={`${data.recentInternalTasks.length}`} variant="info" />}
+            action={
+              <Link href={`/${locale}/internal-tasks`}>
+                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
+                  {t('common.viewAll')} <ArrowRight className="size-3 ms-1 rtl:-scale-x-100" />
+                </Button>
+              </Link>
+            }
+          />
+          {data.recentInternalTasks.length === 0 ? (
+            <EmptyState icon={ClipboardList} title={t('common.noData')} className="py-10" />
+          ) : (
+            <div className="max-h-[380px] overflow-y-auto divide-y divide-border/40">
+              {data.recentInternalTasks.map(task => (
+                <Link key={task.id} href={`/${locale}/internal-tasks/${task.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
+                  <Ava name={task.assignedTo.fullName} gradient={GRADIENTS[1]} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-foreground truncate">{task.title}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <span className="text-[10px] text-muted-foreground">{task.assignedTo.fullName}</span>
+                      <StatusBadge label={task.status.replace('_', ' ')} variant={STATUS_VARIANT[task.status] || 'default'} className="text-[9px] px-1.5 py-0" />
+                      <StatusBadge label={task.priority} variant={PRIORITY_VARIANT[task.priority] || 'default'} className="text-[9px] px-1.5 py-0" />
+                    </div>
+                  </div>
+                  {task.dueAt && <span className="text-[10px] text-muted-foreground whitespace-nowrap">{fmtDue(task.dueAt)}</span>}
+                </Link>
+              ))}
             </div>
-            <span className="text-[10px] font-extrabold bg-rose-50 text-rose-700 px-2.5 py-1 rounded-full">
-              {data.issues.customersNoTasks.length + data.issues.customersNotUpdated.length}
-            </span>
-          </div>
+          )}
+        </div>
 
-          <div className="max-h-[460px] overflow-y-auto">
-            {/* Customers with no open tasks */}
-            <div className="px-5 py-2 bg-muted/40 border-b border-border">
-              <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest">
-                {t('dashboard.customersNoTasks')}
-              </span>
+        {/* ── Issues / Attention ── */}
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <SectionHead
+            icon={AlertCircle}
+            title={t('dashboard.attentionNeeded')}
+            badge={<StatusBadge label={`${data.issues.customersNoTasks.length + data.issues.customersNotUpdated.length}`} variant="danger" />}
+          />
+          <div className="max-h-[380px] overflow-y-auto">
+            <div className="px-4 py-2 bg-muted/30 border-b border-border">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('dashboard.customersNoTasks')}</span>
             </div>
             {data.issues.customersNoTasks.length === 0 ? (
-              <div className="flex items-center gap-2 px-5 py-4 text-muted-foreground border-b border-border/50">
-                <CheckCircle2 size={13} className="text-emerald-500" />
-                <span className="text-xs">{t('common.noData')}</span>
+              <div className="flex items-center gap-2 px-4 py-3 text-muted-foreground border-b border-border/40">
+                <CheckCircle2 size={12} className="text-emerald-500" /><span className="text-xs">{t('common.noData')}</span>
               </div>
             ) : (
-              data.issues.customersNoTasks.slice(0, 5).map((c) => (
-                <div key={c.id} className="flex items-center justify-between px-5 py-2.5 border-b border-border/50 hover:bg-muted/30 transition-colors">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                      style={{ background: 'linear-gradient(135deg, #0F4C3A, #0D9488)' }}
-                    >
-                      {c.fullName.charAt(0)}
-                    </div>
-                    <div>
-                      <Link href={`/${locale}/customers/${c.id}`}
-                        className="text-xs font-bold text-foreground hover:text-primary transition-colors"
-                      >
-                        {c.fullName}
-                      </Link>
-                      <p className="text-[10px] text-muted-foreground">{c.owner.fullName}</p>
-                    </div>
+              data.issues.customersNoTasks.slice(0, 5).map(c => (
+                <Link key={c.id} href={`/${locale}/customers/${c.id}`} className="flex items-center gap-2.5 px-4 py-2.5 border-b border-border/40 hover:bg-muted/30 transition-colors">
+                  <Ava name={c.fullName} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-foreground truncate">{c.fullName}</p>
+                    <p className="text-[10px] text-muted-foreground">{c.owner.fullName}</p>
                   </div>
-                </div>
+                </Link>
               ))
             )}
-
-            {/* Customers not updated 7+ days */}
-            <div className="px-5 py-2 bg-muted/40 border-b border-border">
-              <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest">
-                {t('dashboard.customersNotUpdated', { days: 7 })}
-              </span>
+            <div className="px-4 py-2 bg-muted/30 border-b border-border">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('dashboard.customersNotUpdated', { days: 7 })}</span>
             </div>
             {data.issues.customersNotUpdated.length === 0 ? (
-              <div className="flex items-center gap-2 px-5 py-4 text-muted-foreground">
-                <Clock size={13} />
-                <span className="text-xs">{t('common.noData')}</span>
+              <div className="flex items-center gap-2 px-4 py-3 text-muted-foreground">
+                <Clock size={12} /><span className="text-xs">{t('common.noData')}</span>
               </div>
             ) : (
-              data.issues.customersNotUpdated.slice(0, 5).map((c) => (
-                <div key={c.id} className="flex items-center justify-between px-5 py-2.5 border-b border-border/50 hover:bg-muted/30 transition-colors last:border-0">
+              data.issues.customersNotUpdated.slice(0, 5).map(c => (
+                <Link key={c.id} href={`/${locale}/customers/${c.id}`} className="flex items-center justify-between px-4 py-2.5 border-b border-border/40 hover:bg-muted/30 transition-colors last:border-0">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                      style={{ background: 'linear-gradient(135deg, #D97706, #BE123C)' }}
-                    >
-                      {c.fullName.charAt(0)}
-                    </div>
-                    <Link href={`/${locale}/customers/${c.id}`}
-                      className="text-xs font-bold text-foreground hover:text-primary transition-colors"
-                    >
-                      {c.fullName}
-                    </Link>
+                    <Ava name={c.fullName} gradient={GRADIENTS[3]} />
+                    <p className="text-xs font-semibold text-foreground truncate">{c.fullName}</p>
                   </div>
-                  <span className="text-[10px] font-bold text-rose-500">
-                    {getDaysSinceUpdate(c.updatedAt)} {t('tasks.daysAgo')}
-                  </span>
-                </div>
+                  <StatusBadge label={`${daysSince(c.updatedAt)}d`} variant="danger" className="text-[9px]" />
+                </Link>
               ))
             )}
           </div>
         </div>
       </div>
 
-      {/* ====== Employee Performance Table ====== */}
+      {/* ━━━ Employee Performance Table ━━━ */}
       {data.employeeDistribution.length > 0 && (
-        <div className="animate-fade-up-4">
-          <SectionLabel>{t('dashboard.employeeDistribution')}</SectionLabel>
-
-          <div className="bg-card rounded-2xl border border-border overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
-                  <Users size={15} className="text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-extrabold text-foreground">{t('dashboard.employeeDistribution')}</p>
-                  <p className="text-[10px] text-muted-foreground">{data.employeeDistribution.length} {t('users.title')}</p>
-                </div>
-              </div>
-            </div>
-
-            <DataTable
-              rowKey={(row) => row.id}
-              data={data.employeeDistribution}
-              onRowClick={(emp) => router.push(`/${locale}/performance/${emp.id}`)}
-              columns={[
-                {
-                  key: 'fullName',
-                  header: t('users.fullName'),
-                  render: (emp) => (
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-                        style={{ background: GRADIENTS[data.employeeDistribution.indexOf(emp) % GRADIENTS.length] }}
-                      >
-                        {emp.fullName.charAt(0)}
+        <div className="animate-fade-up-4 bg-card rounded-xl border border-border overflow-hidden">
+          <SectionHead
+            icon={Users}
+            title={t('dashboard.teamOverview')}
+            badge={<StatusBadge label={`${data.employeeDistribution.length}`} variant="info" />}
+            action={
+              <Link href={`/${locale}/performance`}>
+                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
+                  {t('common.viewAll')} <ArrowRight className="size-3 ms-1 rtl:-scale-x-100" />
+                </Button>
+              </Link>
+            }
+          />
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-muted/30">
+                  {[t('users.fullName'), t('customers.title'), t('dashboard.openTasks'), t('dashboard.completedThisWeek'), t('performance.onTimeRate'), t('performance.overallRating')].map(h => (
+                    <th key={h} className="px-4 py-3 text-start text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {data.employeeDistribution.map((emp, i) => (
+                  <tr key={emp.id} onClick={() => router.push(`/${locale}/performance/${emp.id}`)} className="hover:bg-muted/20 transition-colors cursor-pointer">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <Ava name={emp.fullName} gradient={GRADIENTS[i % GRADIENTS.length]} />
+                        <div>
+                          <p className="text-sm font-semibold">{emp.fullName}</p>
+                          {emp.jobTitle && <p className="text-[10px] text-muted-foreground">{emp.jobTitle}</p>}
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">{emp.fullName}</p>
-                        {emp.jobTitle && <p className="text-xs text-muted-foreground">{emp.jobTitle}</p>}
-                      </div>
-                    </div>
-                  ),
-                },
-                {
-                  key: 'customerCount',
-                  header: t('customers.title'),
-                  render: (emp) => (
-                    <div>
-                      <p className="text-lg font-black text-primary">{emp.customerCount}</p>
-                    </div>
-                  ),
-                },
-                {
-                  key: 'openTasksCount',
-                  header: t('dashboard.openTasks'),
-                  render: (emp) => (
-                    <StatusBadge
-                      label={String(emp.openTasksCount)}
-                      variant={emp.openTasksCount === 0 ? 'success' : emp.openTasksCount > 5 ? 'danger' : 'warning'}
-                    />
-                  ),
-                },
-                {
-                  key: 'completedInternalTasks',
-                  header: t('dashboard.completedThisWeek'),
-                  render: (emp) => (
-                    <span className="text-sm font-semibold text-foreground">{emp.completedInternalTasks}</span>
-                  ),
-                },
-                {
-                  key: 'onTimeRate',
-                  header: t('performance.onTimeRate'),
-                  render: (emp) => {
-                    if (emp.onTimeRate === null) return <span className="text-xs text-muted-foreground">—</span>;
-                    return (
-                      <StatusBadge
-                        label={`${emp.onTimeRate}%`}
-                        variant={emp.onTimeRate >= 80 ? 'success' : emp.onTimeRate >= 50 ? 'warning' : 'danger'}
-                        dot
-                      />
-                    );
-                  },
-                },
-                {
-                  key: 'latestRating',
-                  header: t('performance.overallRating'),
-                  render: (emp) => {
-                    if (emp.latestRating === null) return <span className="text-xs text-muted-foreground">—</span>;
-                    return (
-                      <div className="flex items-center gap-1">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star key={s} className={`size-3.5 ${emp.latestRating! >= s ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/25'}`} />
-                        ))}
-                      </div>
-                    );
-                  },
-                },
-              ]}
-            />
+                    </td>
+                    <td className="px-4 py-3"><span className="text-lg font-black text-primary">{emp.customerCount}</span></td>
+                    <td className="px-4 py-3"><StatusBadge label={String(emp.openTasksCount)} variant={emp.openTasksCount === 0 ? 'success' : emp.openTasksCount > 5 ? 'danger' : 'warning'} /></td>
+                    <td className="px-4 py-3"><span className="text-sm font-semibold">{emp.completedInternalTasks}</span></td>
+                    <td className="px-4 py-3">
+                      {emp.onTimeRate == null ? <span className="text-xs text-muted-foreground">—</span>
+                        : <StatusBadge label={`${emp.onTimeRate}%`} variant={emp.onTimeRate >= 80 ? 'success' : emp.onTimeRate >= 50 ? 'warning' : 'danger'} dot />}
+                    </td>
+                    <td className="px-4 py-3">
+                      {emp.latestRating == null ? <span className="text-xs text-muted-foreground">—</span>
+                        : <div className="flex gap-0.5">{[1,2,3,4,5].map(s => <Star key={s} className={`size-3.5 ${emp.latestRating! >= s ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/20'}`} />)}</div>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
-      </div>
-      </div>
     </div>
   );
 }

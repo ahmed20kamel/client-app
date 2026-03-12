@@ -6,6 +6,7 @@
     "edit": "تعديل",
     "create": "إنشاء",
     "view": "عرض",
+    "viewAll": "عرض الكل",
     "search": "بحث",
     "filter": "تصفية",
     "export": "تصدير",
@@ -126,10 +127,16 @@
     "customersNoTasks": "عملاء بدون مهام مفتوحة",
     "customersNotUpdated": "عملاء لم يتم تحديثهم منذ {days} أيام",
     "tasksToday": "مهام اليوم",
-    "employeeDistribution": "توزيع العملاء على الموظفين",
+    "employeeDistribution": "أداء الموظفين",
     "totalEstimatedValue": "إجمالي القيمة الإجمالية للعقود",
     "totalWeightedValue": "إجمالي الرصيد المتاح",
-    "openTasksSuffix": "مهام مفتوحة"
+    "openTasksSuffix": "مهام مفتوحة",
+    "internalTasks": "المهام الداخلية",
+    "internalTasksDesc": "المهام النشطة المسندة لفريقك",
+    "pendingApprovals": "في انتظار الموافقة",
+    "assignedBy": "بواسطة",
+    "teamOverview": "نظرة عامة على الفريق",
+    "attentionNeeded": "يحتاج انتباه"
   },
   "customers": {
     "title": "العملاء",

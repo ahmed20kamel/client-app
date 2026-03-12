@@ -6,6 +6,7 @@
     "edit": "Edit",
     "create": "Create",
     "view": "View",
+    "viewAll": "View All",
     "search": "Search",
     "filter": "Filter",
     "export": "Export",
@@ -126,10 +127,16 @@
     "customersNoTasks": "Customers with no open tasks",
     "customersNotUpdated": "Customers not updated in {days} days",
     "tasksToday": "Tasks Due Today",
-    "employeeDistribution": "Employee Distribution",
+    "employeeDistribution": "Employee Performance",
     "totalEstimatedValue": "Total Estimated Value",
     "totalWeightedValue": "Total Weighted Value",
-    "openTasksSuffix": "open tasks"
+    "openTasksSuffix": "open tasks",
+    "internalTasks": "Internal Tasks",
+    "internalTasksDesc": "Active tasks assigned to your team",
+    "pendingApprovals": "Pending Approvals",
+    "assignedBy": "Assigned by",
+    "teamOverview": "Team Overview",
+    "attentionNeeded": "Attention Needed"
   },
   "customers": {
     "title": "Customers",
