@@ -22,9 +22,13 @@ import {
   ArrowRight,
   TrendingUp,
   CalendarClock,
+  Activity,
+  Zap,
+  Target,
+  ChevronRight,
+  ExternalLink,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PageHeader } from '@/components/PageHeader';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { EmptyState } from '@/components/ui/empty-state';
 
@@ -77,29 +81,12 @@ const STATUS_VARIANT: Record<string, 'info' | 'warning' | 'success' | 'danger' |
 };
 
 /* ─── Small Components ─── */
-function Ava({ name, gradient }: { name: string; gradient?: string }) {
+function Ava({ name, size = 'sm', gradient }: { name: string; size?: 'xs' | 'sm'; gradient?: string }) {
+  const s = size === 'xs' ? 'w-6 h-6 text-[10px]' : 'w-7 h-7 text-[11px]';
   return (
-    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+    <div className={`${s} rounded-full flex items-center justify-center font-bold text-white shrink-0`}
       style={{ background: gradient || GRADIENTS[0] }}>
       {name.charAt(0)}
-    </div>
-  );
-}
-
-function SectionHeader({ icon: Icon, title, count, countVariant = 'info', action }: {
-  icon: React.ElementType; title: string; count?: number; countVariant?: 'info' | 'success' | 'danger' | 'warning' | 'purple';
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between px-5 py-3.5 border-b border-border bg-muted/20">
-      <div className="flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Icon size={13} className="text-primary" />
-        </div>
-        <h3 className="text-[13px] font-bold text-foreground">{title}</h3>
-        {count != null && <StatusBadge label={String(count)} variant={countVariant} />}
-      </div>
-      {action}
     </div>
   );
 }
@@ -141,307 +128,296 @@ export default function DashboardPage() {
   /* ── Loading ── */
   if (loading) {
     return (
-      <div className="p-3 md:p-3.5">
-        <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
-          <div className="rounded-t-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #0A3728, #0D6B52, #0F8566)' }}>
-            <div className="px-8 py-7 flex items-center gap-5">
-              <Skeleton className="w-12 h-12 rounded-2xl bg-white/10" />
-              <div><Skeleton className="h-5 w-40 bg-white/10 mb-2" /><Skeleton className="h-4 w-56 bg-white/10" /></div>
-            </div>
-          </div>
-          <div className="p-5 space-y-5">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {[1,2,3,4,5,6].map(i => <div key={i} className="bg-muted/30 rounded-xl border p-4"><Skeleton className="h-8 w-12 mb-2" /><Skeleton className="h-3 w-20" /></div>)}
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {[1,2,3].map(i => <div key={i} className="bg-muted/20 rounded-xl border p-5"><Skeleton className="h-[200px] rounded-lg" /></div>)}
-            </div>
-          </div>
+      <div className="p-2 md:p-3 space-y-2">
+        <div className="grid grid-cols-3 lg:grid-cols-6 gap-1.5">
+          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}
         </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2">
+          <Skeleton className="lg:col-span-4 h-[300px] rounded-lg" />
+          <Skeleton className="lg:col-span-4 h-[300px] rounded-lg" />
+          <Skeleton className="lg:col-span-4 h-[300px] rounded-lg" />
+        </div>
+        <Skeleton className="h-[200px] rounded-lg" />
       </div>
     );
   }
 
   if (!data) return <EmptyState title={t('common.noData')} />;
 
+  const totalIssues = data.issues.customersNoTasks.length + data.issues.customersNotUpdated.length;
+
   const kpiCards: Array<{
     key: string; label: string; value: number;
-    icon: React.ElementType;
-    color: string; iconBg: string; iconColor: string;
+    icon: React.ElementType; accent: string; bg: string;
   }> = [
-    { key: 'myCustomers',    label: t('dashboard.myCustomers'),        value: data.stats.myCustomers,       icon: UserPlus,       color: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400' },
-    { key: 'overdue',        label: t('dashboard.overdueTasks'),       value: data.stats.overdueTasks,      icon: AlertTriangle,  color: 'text-red-600 dark:text-red-400',          iconBg: 'bg-red-100 dark:bg-red-900/40',          iconColor: 'text-red-600 dark:text-red-400' },
-    { key: 'openTasks',      label: t('dashboard.openTasks'),          value: data.stats.openTasks,         icon: CalendarClock,  color: 'text-amber-600 dark:text-amber-400',      iconBg: 'bg-amber-100 dark:bg-amber-900/40',      iconColor: 'text-amber-600 dark:text-amber-400' },
-    { key: 'completed',      label: t('dashboard.completedThisWeek'), value: data.stats.completedThisWeek, icon: CheckCircle2,   color: 'text-teal-600 dark:text-teal-400',        iconBg: 'bg-teal-100 dark:bg-teal-900/40',        iconColor: 'text-teal-600 dark:text-teal-400' },
-    { key: 'totalCustomers', label: t('dashboard.totalCustomers'),     value: data.stats.totalCustomers,    icon: UserCheck,      color: 'text-purple-600 dark:text-purple-400',    iconBg: 'bg-purple-100 dark:bg-purple-900/40',    iconColor: 'text-purple-600 dark:text-purple-400' },
-    { key: 'pending',        label: t('dashboard.pendingApprovals'),   value: data.pendingApprovals,        icon: ShieldCheck,    color: 'text-blue-600 dark:text-blue-400',        iconBg: 'bg-blue-100 dark:bg-blue-900/40',        iconColor: 'text-blue-600 dark:text-blue-400' },
+    { key: 'myCustomers',    label: t('dashboard.myCustomers'),        value: data.stats.myCustomers,       icon: UserPlus,       accent: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10' },
+    { key: 'overdue',        label: t('dashboard.overdueTasks'),       value: data.stats.overdueTasks,      icon: AlertTriangle,  accent: 'text-red-600 dark:text-red-400',          bg: 'bg-red-500/10' },
+    { key: 'openTasks',      label: t('dashboard.openTasks'),          value: data.stats.openTasks,         icon: CalendarClock,  accent: 'text-amber-600 dark:text-amber-400',      bg: 'bg-amber-500/10' },
+    { key: 'completed',      label: t('dashboard.completedThisWeek'), value: data.stats.completedThisWeek, icon: CheckCircle2,   accent: 'text-teal-600 dark:text-teal-400',        bg: 'bg-teal-500/10' },
+    { key: 'totalCustomers', label: t('dashboard.totalCustomers'),     value: data.stats.totalCustomers,    icon: UserCheck,      accent: 'text-purple-600 dark:text-purple-400',    bg: 'bg-purple-500/10' },
+    { key: 'pending',        label: t('dashboard.pendingApprovals'),   value: data.pendingApprovals,        icon: ShieldCheck,    accent: 'text-blue-600 dark:text-blue-400',        bg: 'bg-blue-500/10' },
   ];
 
   return (
-    <div className="p-3 md:p-3.5">
-      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+    <div className="p-2 md:p-3">
 
-        {/* ━━━ Header ━━━ */}
-        <div className="animate-fade-up-1">
-          <PageHeader
-            title={t('dashboard.title')}
-            icon={LayoutDashboard}
-            subtitle={`${t('dashboard.welcome')}${data.stats.openTasks > 0 ? ` — ${data.stats.openTasks} ${t('dashboard.openTasksSuffix')}` : ''}`}
-          />
+      {/* ━━━ Compact Header ━━━ */}
+      <div className="animate-fade-up-1 mb-2 flex items-center justify-between rounded-xl px-4 py-3"
+        style={{ background: 'linear-gradient(135deg, #0A3728 0%, #0D6B52 60%, #0F8566 100%)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)' }}>
+            <LayoutDashboard size={18} className="text-[#2DD4BF]" />
+          </div>
+          <div>
+            <h1 className="text-base font-black text-white leading-tight">{t('dashboard.title')}</h1>
+            <p className="text-[11px] text-white/50">{t('dashboard.welcome')}</p>
+          </div>
+        </div>
+        {data.stats.overdueTasks > 0 && (
+          <div className="flex items-center gap-1.5 bg-red-500/20 border border-red-400/30 rounded-lg px-2.5 py-1">
+            <AlertTriangle size={12} className="text-red-400" />
+            <span className="text-[11px] font-bold text-red-300">{data.stats.overdueTasks} {t('dashboard.overdueTasks')}</span>
+          </div>
+        )}
+      </div>
+
+      {/* ━━━ KPI Strip ━━━ */}
+      <div className="animate-fade-up-2 grid grid-cols-3 lg:grid-cols-6 gap-1.5 mb-2">
+        {kpiCards.map(k => {
+          const Icon = k.icon;
+          return (
+            <div key={k.key} className="flex items-center gap-2.5 rounded-lg border border-border bg-card px-3 py-2.5 hover:shadow-sm transition-shadow">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${k.bg}`}>
+                <Icon size={14} className={k.accent} />
+              </div>
+              <div className="min-w-0">
+                <p className={`text-lg font-black leading-none ${k.accent}`}>{k.value}</p>
+                <p className="text-[10px] text-muted-foreground font-medium leading-tight truncate mt-0.5">{k.label}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ━━━ Main 3-Column Grid ━━━ */}
+      <div className="animate-fade-up-3 grid grid-cols-1 lg:grid-cols-12 gap-2 mb-2">
+
+        {/* ── COL 1: Tasks Today ── */}
+        <div className="lg:col-span-4 rounded-xl border border-border bg-card overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/20">
+            <div className="flex items-center gap-2">
+              <CheckSquare size={13} className="text-primary" />
+              <span className="text-xs font-bold text-foreground">{t('dashboard.tasksToday')}</span>
+              <StatusBadge label={String(data.tasksToday.length)} variant="success" className="text-[9px] px-1.5 py-0" />
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto max-h-[340px]">
+            {data.tasksToday.length === 0 ? (
+              <EmptyState icon={CheckCircle2} title={t('tasks.noTasks')} className="py-8" />
+            ) : (
+              <div className="divide-y divide-border/30">
+                {data.tasksToday.map(task => (
+                  <div key={task.id} className="flex items-center gap-2 px-3 py-2 hover:bg-muted/30 transition-colors group">
+                    <Ava name={task.customer.fullName} size="xs" />
+                    <div className="min-w-0 flex-1">
+                      <Link href={`/${locale}/tasks/${task.id}`} className="text-[12px] font-semibold text-foreground hover:text-primary transition-colors block truncate leading-tight">
+                        {task.title}
+                      </Link>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className="text-[9px] text-muted-foreground truncate max-w-[90px]">{task.customer.fullName}</span>
+                        <StatusBadge label={task.priority} variant={PRIORITY_VARIANT[task.priority] || 'default'} className="text-[8px] px-1 py-0 leading-none" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <StatusBadge label={task.status} variant={STATUS_VARIANT[task.status] || 'default'} className="text-[8px] px-1 py-0" />
+                      {(task.status === 'OPEN' || task.status === 'OVERDUE') && (
+                        <Button onClick={() => handleMarkAsDone(task.id)} variant="ghost" size="icon" className="h-6 w-6 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <CheckCircle2 className="size-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="p-5 space-y-5">
-
-          {/* ━━━ KPI Strip ━━━ */}
-          <div className="animate-fade-up-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            {kpiCards.map(k => {
-              const Icon = k.icon;
-              return (
-                <div key={k.key} className="relative rounded-xl border border-border bg-background p-4 hover:shadow-md transition-all group overflow-hidden">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${k.iconBg}`}>
-                      <Icon size={16} className={k.iconColor} />
-                    </div>
-                  </div>
-                  <p className={`text-2xl font-black leading-none mb-1 ${k.color}`}>{k.value}</p>
-                  <p className="text-[11px] text-muted-foreground font-medium leading-tight">{k.label}</p>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* ━━━ Main Content: 2/3 + 1/3 layout ━━━ */}
-          <div className="animate-fade-up-3 grid grid-cols-1 lg:grid-cols-5 gap-4">
-
-            {/* ── LEFT: Tasks Today + Internal Tasks (stacked) ── */}
-            <div className="lg:col-span-3 space-y-4">
-
-              {/* Tasks Today */}
-              <div className="rounded-xl border border-border overflow-hidden bg-background">
-                <SectionHeader
-                  icon={CheckSquare}
-                  title={t('dashboard.tasksToday')}
-                  count={data.tasksToday.length}
-                  countVariant="success"
-                />
-                {data.tasksToday.length === 0 ? (
-                  <EmptyState icon={CheckCircle2} title={t('tasks.noTasks')} className="py-10" />
-                ) : (
-                  <div className="divide-y divide-border/40">
-                    {data.tasksToday.map(task => (
-                      <div key={task.id} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors">
-                        <Ava name={task.customer.fullName} />
-                        <div className="min-w-0 flex-1">
-                          <Link href={`/${locale}/tasks/${task.id}`} className="text-sm font-semibold text-foreground hover:text-primary transition-colors block truncate">
-                            {task.title}
-                          </Link>
-                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                            <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">{task.customer.fullName}</span>
-                            <StatusBadge label={task.status} variant={STATUS_VARIANT[task.status] || 'default'} className="text-[9px] px-1.5 py-0" />
-                            <StatusBadge label={task.priority} variant={PRIORITY_VARIANT[task.priority] || 'default'} className="text-[9px] px-1.5 py-0" />
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {task.dueAt && <span className="text-[10px] text-muted-foreground hidden sm:block">{fmtDue(task.dueAt)}</span>}
-                          {(task.status === 'OPEN' || task.status === 'OVERDUE') && (
-                            <Button onClick={() => handleMarkAsDone(task.id)} variant="ghost" size="icon-sm" className="text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
-                              <CheckCircle2 className="size-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Internal Tasks */}
-              <div className="rounded-xl border border-border overflow-hidden bg-background">
-                <SectionHeader
-                  icon={ClipboardList}
-                  title={t('dashboard.internalTasks')}
-                  count={data.recentInternalTasks.length}
-                  countVariant="info"
-                  action={
-                    <Link href={`/${locale}/internal-tasks`}>
-                      <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-primary">
-                        {t('common.viewAll')} <ArrowRight className="size-3 ms-1 rtl:-scale-x-100" />
-                      </Button>
-                    </Link>
-                  }
-                />
-                {data.recentInternalTasks.length === 0 ? (
-                  <EmptyState icon={ClipboardList} title={t('common.noData')} className="py-10" />
-                ) : (
-                  <div className="divide-y divide-border/40">
-                    {data.recentInternalTasks.map(task => (
-                      <Link key={task.id} href={`/${locale}/internal-tasks/${task.id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors">
-                        <Ava name={task.assignedTo.fullName} gradient={GRADIENTS[1]} />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-foreground truncate">{task.title}</p>
-                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                            <span className="text-[10px] text-muted-foreground">{task.assignedTo.fullName}</span>
-                            <span className="text-[10px] text-muted-foreground/50">•</span>
-                            <span className="text-[10px] text-muted-foreground">{t('dashboard.assignedBy')}: {task.createdBy.fullName}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <StatusBadge label={task.status.replace('_', ' ')} variant={STATUS_VARIANT[task.status] || 'default'} className="text-[9px] px-1.5 py-0" />
-                          {task.dueAt && <span className="text-[10px] text-muted-foreground hidden sm:block">{fmtDue(task.dueAt)}</span>}
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
+        {/* ── COL 2: Internal Tasks ── */}
+        <div className="lg:col-span-4 rounded-xl border border-border bg-card overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/20">
+            <div className="flex items-center gap-2">
+              <ClipboardList size={13} className="text-primary" />
+              <span className="text-xs font-bold text-foreground">{t('dashboard.internalTasks')}</span>
+              <StatusBadge label={String(data.recentInternalTasks.length)} variant="info" className="text-[9px] px-1.5 py-0" />
             </div>
-
-            {/* ── RIGHT: Attention Needed sidebar ── */}
-            <div className="lg:col-span-2">
-              <div className="rounded-xl border border-border overflow-hidden bg-background sticky top-4">
-                <SectionHeader
-                  icon={AlertCircle}
-                  title={t('dashboard.attentionNeeded')}
-                  count={data.issues.customersNoTasks.length + data.issues.customersNotUpdated.length}
-                  countVariant="danger"
-                />
-
-                {/* Customers with no tasks */}
-                <div className="px-4 py-2 bg-muted/40 border-b border-border">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('dashboard.customersNoTasks')}</span>
-                </div>
-                {data.issues.customersNoTasks.length === 0 ? (
-                  <div className="flex items-center gap-2 px-4 py-3 text-muted-foreground border-b border-border/40">
-                    <CheckCircle2 size={12} className="text-emerald-500" /><span className="text-xs">{t('common.noData')}</span>
-                  </div>
-                ) : (
-                  data.issues.customersNoTasks.slice(0, 5).map(c => (
-                    <Link key={c.id} href={`/${locale}/customers/${c.id}`} className="flex items-center gap-2.5 px-4 py-2.5 border-b border-border/40 hover:bg-muted/30 transition-colors">
-                      <Ava name={c.fullName} gradient={GRADIENTS[2]} />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-foreground truncate">{c.fullName}</p>
-                        <p className="text-[10px] text-muted-foreground">{c.owner.fullName}</p>
-                      </div>
-                    </Link>
-                  ))
-                )}
-
-                {/* Customers not updated */}
-                <div className="px-4 py-2 bg-muted/40 border-b border-border">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('dashboard.customersNotUpdated', { days: 7 })}</span>
-                </div>
-                {data.issues.customersNotUpdated.length === 0 ? (
-                  <div className="flex items-center gap-2 px-4 py-3 text-muted-foreground">
-                    <Clock size={12} /><span className="text-xs">{t('common.noData')}</span>
-                  </div>
-                ) : (
-                  data.issues.customersNotUpdated.slice(0, 5).map(c => (
-                    <Link key={c.id} href={`/${locale}/customers/${c.id}`} className="flex items-center justify-between px-4 py-2.5 border-b border-border/40 hover:bg-muted/30 transition-colors last:border-0">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <Ava name={c.fullName} gradient={GRADIENTS[3]} />
-                        <p className="text-xs font-semibold text-foreground truncate">{c.fullName}</p>
-                      </div>
-                      <StatusBadge label={`${daysSince(c.updatedAt)}d`} variant="danger" className="text-[9px] shrink-0" />
-                    </Link>
-                  ))
-                )}
-
-                {/* Pending Approvals mini-card */}
-                {data.pendingApprovals > 0 && (
-                  <Link href={`/${locale}/internal-tasks?status=SUBMITTED`} className="block border-t border-border">
-                    <div className="flex items-center gap-3 px-4 py-3.5 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors">
-                      <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
-                        <ShieldCheck size={14} className="text-amber-600 dark:text-amber-400" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-xs font-bold text-amber-700 dark:text-amber-400">{data.pendingApprovals} {t('dashboard.pendingApprovals')}</p>
-                        <p className="text-[10px] text-amber-600/70 dark:text-amber-500/70">{t('common.viewAll')}</p>
-                      </div>
-                      <ArrowRight size={14} className="text-amber-500 rtl:-scale-x-100" />
+            <Link href={`/${locale}/internal-tasks`} className="text-[10px] text-muted-foreground hover:text-primary transition-colors flex items-center gap-0.5">
+              {t('common.viewAll')} <ChevronRight className="size-3 rtl:-scale-x-100" />
+            </Link>
+          </div>
+          <div className="flex-1 overflow-y-auto max-h-[340px]">
+            {data.recentInternalTasks.length === 0 ? (
+              <EmptyState icon={ClipboardList} title={t('common.noData')} className="py-8" />
+            ) : (
+              <div className="divide-y divide-border/30">
+                {data.recentInternalTasks.map(task => (
+                  <Link key={task.id} href={`/${locale}/internal-tasks/${task.id}`} className="flex items-center gap-2 px-3 py-2 hover:bg-muted/30 transition-colors">
+                    <Ava name={task.assignedTo.fullName} size="xs" gradient={GRADIENTS[1]} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[12px] font-semibold text-foreground truncate leading-tight">{task.title}</p>
+                      <p className="text-[9px] text-muted-foreground mt-0.5 truncate">
+                        {task.assignedTo.fullName} <span className="text-muted-foreground/40">•</span> {task.createdBy.fullName}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <StatusBadge label={task.status.replace('_', ' ')} variant={STATUS_VARIANT[task.status] || 'default'} className="text-[8px] px-1 py-0" />
+                      {task.dueAt && <span className="text-[9px] text-muted-foreground hidden md:block">{fmtDue(task.dueAt)}</span>}
                     </div>
                   </Link>
-                )}
+                ))}
               </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── COL 3: Attention Needed ── */}
+        <div className="lg:col-span-4 rounded-xl border border-border bg-card overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/20">
+            <div className="flex items-center gap-2">
+              <AlertCircle size={13} className="text-destructive" />
+              <span className="text-xs font-bold text-foreground">{t('dashboard.attentionNeeded')}</span>
+              {totalIssues > 0 && <StatusBadge label={String(totalIssues)} variant="danger" className="text-[9px] px-1.5 py-0" />}
             </div>
           </div>
-
-          {/* ━━━ Employee Performance Table ━━━ */}
-          {data.employeeDistribution.length > 0 && (
-            <div className="animate-fade-up-4 rounded-xl border border-border overflow-hidden bg-background">
-              <SectionHeader
-                icon={TrendingUp}
-                title={t('dashboard.teamOverview')}
-                count={data.employeeDistribution.length}
-                countVariant="purple"
-                action={
-                  <Link href={`/${locale}/performance`}>
-                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-primary">
-                      {t('common.viewAll')} <ArrowRight className="size-3 ms-1 rtl:-scale-x-100" />
-                    </Button>
-                  </Link>
-                }
-              />
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-muted/30">
-                      <th className="px-5 py-3 text-start text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('users.fullName')}</th>
-                      <th className="px-4 py-3 text-start text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('customers.title')}</th>
-                      <th className="px-4 py-3 text-start text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('dashboard.openTasks')}</th>
-                      <th className="px-4 py-3 text-start text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('dashboard.completedThisWeek')}</th>
-                      <th className="px-4 py-3 text-start text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('performance.onTimeRate')}</th>
-                      <th className="px-4 py-3 text-start text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('performance.overallRating')}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/40">
-                    {data.employeeDistribution.map((emp, i) => (
-                      <tr key={emp.id} onClick={() => router.push(`/${locale}/performance/${emp.id}`)} className="hover:bg-muted/20 transition-colors cursor-pointer">
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-3">
-                            <Ava name={emp.fullName} gradient={GRADIENTS[i % GRADIENTS.length]} />
-                            <div>
-                              <p className="text-sm font-semibold text-foreground">{emp.fullName}</p>
-                              {emp.jobTitle && <p className="text-[10px] text-muted-foreground">{emp.jobTitle}</p>}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className="text-lg font-black text-primary">{emp.customerCount}</span>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <StatusBadge label={String(emp.openTasksCount)} variant={emp.openTasksCount === 0 ? 'success' : emp.openTasksCount > 5 ? 'danger' : 'warning'} />
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className="text-sm font-semibold text-foreground">{emp.completedInternalTasks}</span>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          {emp.onTimeRate == null
-                            ? <span className="text-xs text-muted-foreground">—</span>
-                            : <StatusBadge label={`${emp.onTimeRate}%`} variant={emp.onTimeRate >= 80 ? 'success' : emp.onTimeRate >= 50 ? 'warning' : 'danger'} dot />
-                          }
-                        </td>
-                        <td className="px-4 py-3.5">
-                          {emp.latestRating == null
-                            ? <span className="text-xs text-muted-foreground">—</span>
-                            : (
-                              <div className="flex gap-0.5">
-                                {[1,2,3,4,5].map(s => (
-                                  <Star key={s} className={`size-3.5 ${emp.latestRating! >= s ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/20'}`} />
-                                ))}
-                              </div>
-                            )
-                          }
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+          <div className="flex-1 overflow-y-auto max-h-[340px]">
+            {/* No tasks customers */}
+            <div className="px-3 py-1.5 bg-muted/40 border-b border-border">
+              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">{t('dashboard.customersNoTasks')}</span>
             </div>
-          )}
+            {data.issues.customersNoTasks.length === 0 ? (
+              <div className="flex items-center gap-1.5 px-3 py-2 text-muted-foreground border-b border-border/30">
+                <CheckCircle2 size={10} className="text-emerald-500" /><span className="text-[10px]">{t('common.noData')}</span>
+              </div>
+            ) : (
+              data.issues.customersNoTasks.slice(0, 4).map(c => (
+                <Link key={c.id} href={`/${locale}/customers/${c.id}`} className="flex items-center gap-2 px-3 py-1.5 border-b border-border/30 hover:bg-muted/30 transition-colors">
+                  <Ava name={c.fullName} size="xs" gradient={GRADIENTS[2]} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-semibold text-foreground truncate">{c.fullName}</p>
+                    <p className="text-[9px] text-muted-foreground">{c.owner.fullName}</p>
+                  </div>
+                </Link>
+              ))
+            )}
 
+            {/* Not updated customers */}
+            <div className="px-3 py-1.5 bg-muted/40 border-b border-border">
+              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">{t('dashboard.customersNotUpdated', { days: 7 })}</span>
+            </div>
+            {data.issues.customersNotUpdated.length === 0 ? (
+              <div className="flex items-center gap-1.5 px-3 py-2 text-muted-foreground">
+                <Clock size={10} /><span className="text-[10px]">{t('common.noData')}</span>
+              </div>
+            ) : (
+              data.issues.customersNotUpdated.slice(0, 4).map(c => (
+                <Link key={c.id} href={`/${locale}/customers/${c.id}`} className="flex items-center justify-between px-3 py-1.5 border-b border-border/30 hover:bg-muted/30 transition-colors last:border-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Ava name={c.fullName} size="xs" gradient={GRADIENTS[3]} />
+                    <p className="text-[11px] font-semibold text-foreground truncate">{c.fullName}</p>
+                  </div>
+                  <StatusBadge label={`${daysSince(c.updatedAt)}d`} variant="danger" className="text-[8px] px-1 shrink-0" />
+                </Link>
+              ))
+            )}
+
+            {/* Pending Approvals */}
+            {data.pendingApprovals > 0 && (
+              <Link href={`/${locale}/internal-tasks?status=SUBMITTED`} className="block border-t border-border">
+                <div className="flex items-center gap-2 px-3 py-2 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors">
+                  <div className="w-6 h-6 rounded-md bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
+                    <ShieldCheck size={11} className="text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 flex-1">{data.pendingApprovals} {t('dashboard.pendingApprovals')}</span>
+                  <ChevronRight size={12} className="text-amber-500 rtl:-scale-x-100" />
+                </div>
+              </Link>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* ━━━ Employee Performance — Compact Table ━━━ */}
+      {data.employeeDistribution.length > 0 && (
+        <div className="animate-fade-up-4 rounded-xl border border-border bg-card overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/20">
+            <div className="flex items-center gap-2">
+              <TrendingUp size={13} className="text-primary" />
+              <span className="text-xs font-bold text-foreground">{t('dashboard.teamOverview')}</span>
+              <StatusBadge label={String(data.employeeDistribution.length)} variant="purple" className="text-[9px] px-1.5 py-0" />
+            </div>
+            <Link href={`/${locale}/performance`} className="text-[10px] text-muted-foreground hover:text-primary transition-colors flex items-center gap-0.5">
+              {t('common.viewAll')} <ChevronRight className="size-3 rtl:-scale-x-100" />
+            </Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-muted/20">
+                  <th className="px-3 py-2 text-start text-[9px] font-bold text-muted-foreground uppercase tracking-wider">{t('users.fullName')}</th>
+                  <th className="px-2 py-2 text-start text-[9px] font-bold text-muted-foreground uppercase tracking-wider">{t('customers.title')}</th>
+                  <th className="px-2 py-2 text-start text-[9px] font-bold text-muted-foreground uppercase tracking-wider">{t('dashboard.openTasks')}</th>
+                  <th className="px-2 py-2 text-start text-[9px] font-bold text-muted-foreground uppercase tracking-wider">{t('dashboard.completedThisWeek')}</th>
+                  <th className="px-2 py-2 text-start text-[9px] font-bold text-muted-foreground uppercase tracking-wider">{t('performance.onTimeRate')}</th>
+                  <th className="px-2 py-2 text-start text-[9px] font-bold text-muted-foreground uppercase tracking-wider">{t('performance.overallRating')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/30">
+                {data.employeeDistribution.map((emp, i) => (
+                  <tr key={emp.id} onClick={() => router.push(`/${locale}/performance/${emp.id}`)} className="hover:bg-muted/20 transition-colors cursor-pointer">
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <Ava name={emp.fullName} size="xs" gradient={GRADIENTS[i % GRADIENTS.length]} />
+                        <div>
+                          <p className="text-[12px] font-semibold text-foreground leading-tight">{emp.fullName}</p>
+                          {emp.jobTitle && <p className="text-[9px] text-muted-foreground">{emp.jobTitle}</p>}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-2 py-2">
+                      <span className="text-sm font-black text-primary">{emp.customerCount}</span>
+                    </td>
+                    <td className="px-2 py-2">
+                      <StatusBadge label={String(emp.openTasksCount)} variant={emp.openTasksCount === 0 ? 'success' : emp.openTasksCount > 5 ? 'danger' : 'warning'} className="text-[9px] px-1.5 py-0" />
+                    </td>
+                    <td className="px-2 py-2">
+                      <span className="text-[12px] font-semibold text-foreground">{emp.completedInternalTasks}</span>
+                    </td>
+                    <td className="px-2 py-2">
+                      {emp.onTimeRate == null
+                        ? <span className="text-[10px] text-muted-foreground">—</span>
+                        : <StatusBadge label={`${emp.onTimeRate}%`} variant={emp.onTimeRate >= 80 ? 'success' : emp.onTimeRate >= 50 ? 'warning' : 'danger'} dot className="text-[9px] px-1.5 py-0" />
+                      }
+                    </td>
+                    <td className="px-2 py-2">
+                      {emp.latestRating == null
+                        ? <span className="text-[10px] text-muted-foreground">—</span>
+                        : (
+                          <div className="flex gap-0.5">
+                            {[1,2,3,4,5].map(s => (
+                              <Star key={s} className={`size-3 ${emp.latestRating! >= s ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/20'}`} />
+                            ))}
+                          </div>
+                        )
+                      }
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
