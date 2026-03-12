@@ -26,7 +26,16 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        jobTitle: true,
+        phone: true,
+        profileImage: true,
+        status: true,
+        lastLoginAt: true,
+        createdAt: true,
         roles: {
           include: {
             role: { select: { id: true, name: true } },
@@ -46,12 +55,9 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash: _passwordHash, ...sanitizedUser } = user;
-
     return NextResponse.json({
       data: {
-        ...sanitizedUser,
+        ...user,
         role: user.roles[0]?.role || null,
         department: user.departments[0]?.department || null,
       },
@@ -114,11 +120,12 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const validatedData = updateProfileSchema.parse(body);
 
-    const updateData: Record<string, string> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {};
 
     if (validatedData.fullName) updateData.fullName = validatedData.fullName;
-    if (validatedData.phone !== undefined) updateData.phone = validatedData.phone;
-    if (validatedData.jobTitle !== undefined) updateData.jobTitle = validatedData.jobTitle;
+    if (validatedData.phone !== undefined) updateData.phone = validatedData.phone || null;
+    if (validatedData.jobTitle !== undefined) updateData.jobTitle = validatedData.jobTitle || null;
 
     // Handle password change
     if (validatedData.newPassword && validatedData.currentPassword) {
@@ -142,7 +149,16 @@ export async function PATCH(request: NextRequest) {
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
       data: updateData,
-      include: {
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        jobTitle: true,
+        phone: true,
+        profileImage: true,
+        status: true,
+        lastLoginAt: true,
+        createdAt: true,
         roles: {
           include: {
             role: { select: { id: true, name: true } },
@@ -158,12 +174,9 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash: _passwordHash, ...sanitizedUser } = updatedUser;
-
     return NextResponse.json({
       data: {
-        ...sanitizedUser,
+        ...updatedUser,
         role: updatedUser.roles[0]?.role || null,
         department: updatedUser.departments[0]?.department || null,
       },
