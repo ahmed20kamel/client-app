@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
-import { randomUUID } from 'crypto';
+import { uploadToCloudinary, deleteFromCloudinary } from '@/lib/cloudinary';
 import { hash, compare } from 'bcryptjs';
 import { z } from 'zod';
-
-const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'profiles');
 
 const updateProfileSchema = z.object({
   fullName: z.string().min(2).optional(),
@@ -94,22 +89,22 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: 'Only image files allowed' }, { status: 400 });
       }
 
-      if (!existsSync(UPLOAD_DIR)) {
-        await mkdir(UPLOAD_DIR, { recursive: true });
+      // Delete old profile image from Cloudinary if exists
+      const existingUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { profileImage: true },
+      });
+      if (existingUser?.profileImage?.includes('cloudinary')) {
+        const oldPublicId = existingUser.profileImage.split('/').slice(-2).join('/').replace(/\.[^/.]+$/, '');
+        await deleteFromCloudinary(oldPublicId).catch(() => {});
       }
 
-      const ext = path.extname(file.name) || '.jpg';
-      const fileName = `${randomUUID()}${ext}`;
-      const filePath = path.join(UPLOAD_DIR, fileName);
-
       const bytes = await file.arrayBuffer();
-      await writeFile(filePath, Buffer.from(bytes));
-
-      const profileImage = `/uploads/profiles/${fileName}`;
+      const { url } = await uploadToCloudinary(Buffer.from(bytes), file.name, 'crm/profiles');
 
       const user = await prisma.user.update({
         where: { id: session.user.id },
-        data: { profileImage },
+        data: { profileImage: url },
       });
 
       return NextResponse.json({ data: { profileImage: user.profileImage } });
