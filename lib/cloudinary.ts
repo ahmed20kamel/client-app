@@ -32,11 +32,17 @@ export async function uploadToCloudinary(
 }
 
 export async function deleteFromCloudinary(publicId: string): Promise<void> {
-  try {
-    await cloudinary.uploader.destroy(publicId, { resource_type: 'auto' });
-  } catch {
-    // ignore errors
+  // Try all resource types since we don't store the type separately
+  const types = ['image', 'video', 'raw'] as const;
+  for (const resourceType of types) {
+    try {
+      const result = await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+      if (result.result === 'ok') return;
+    } catch {
+      // try next type
+    }
   }
+  console.warn('deleteFromCloudinary: could not delete', publicId);
 }
 
 function getMimeType(filename: string): string {

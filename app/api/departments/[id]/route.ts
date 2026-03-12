@@ -119,7 +119,7 @@ export async function PATCH(
     return NextResponse.json({ data: department });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
+      return NextResponse.json({ error: error.issues[0]?.message || 'Validation error' }, { status: 400 });
     }
     console.error('Update department error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

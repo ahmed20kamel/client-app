@@ -121,6 +121,11 @@ export async function DELETE(
 
     if (!attachment) return NextResponse.json({ error: 'Attachment not found' }, { status: 404 });
 
+    // Only uploader or Admin can delete
+    if (attachment.uploadedById !== session.user.id && session.user.role !== 'Admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     await deleteFromCloudinary(attachment.fileName);
     await prisma.attachment.delete({ where: { id: attachmentId } });
 

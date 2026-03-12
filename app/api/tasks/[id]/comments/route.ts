@@ -118,7 +118,7 @@ export async function POST(
     return NextResponse.json({ data: comment }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
+      return NextResponse.json({ error: error.issues[0]?.message || 'Validation error' }, { status: 400 });
     }
     console.error('Create task comment error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
