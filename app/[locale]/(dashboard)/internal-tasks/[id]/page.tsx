@@ -34,6 +34,7 @@ import {
   FileText,
   Image,
   File,
+  Pencil,
 } from 'lucide-react';
 import { DetailSkeleton } from '@/components/ui/page-skeleton';
 
@@ -580,6 +581,17 @@ export default function InternalTaskDetailPage() {
 
         {/* Action Buttons */}
         <div className="flex gap-2 flex-wrap">
+          {/* Creator/Admin: Edit */}
+          {canManage && (task.status === 'OPEN' || task.status === 'IN_PROGRESS' || task.status === 'REJECTED') && (
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/${locale}/internal-tasks/${id}/edit`)}
+            >
+              <Pencil className="size-4" />
+              {t('common.edit')}
+            </Button>
+          )}
+
           {/* Assignee: Start Working */}
           {task.status === 'OPEN' && isAssignee && (
             <Button
