@@ -11,6 +11,7 @@ import { MobileSidebar } from '@/components/MobileSidebar';
 import { SidebarLink } from '@/components/SidebarLink';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Topbar } from '@/components/layout/Topbar';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default async function DashboardLayout({
   children,
@@ -189,7 +190,9 @@ export default async function DashboardLayout({
 
         {/* Page Content - responsive padding */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 mx-auto w-full max-w-[1600px]">
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </main>
       </div>
     </div>
