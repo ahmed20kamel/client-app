@@ -147,25 +147,20 @@ export async function GET(_request: NextRequest) {
       // Employee distribution (admin only)
       canViewAll
         ? prisma.user.findMany({
-            where: {
-              status: 'ACTIVE',
-            },
+            where: { status: 'ACTIVE' },
             select: {
               id: true,
               fullName: true,
+              jobTitle: true,
               _count: {
                 select: {
-                  ownedCustomers: {
-                    where: { deletedAt: null },
-                  },
+                  ownedCustomers: { where: { deletedAt: null } },
+                  assignedTasks: { where: { status: { in: ['OPEN', 'OVERDUE'] } } },
+                  assignedInternalTasks: { where: { status: 'DONE' } },
                 },
               },
             },
-            orderBy: {
-              ownedCustomers: {
-                _count: 'desc',
-              },
-            },
+            orderBy: { ownedCustomers: { _count: 'desc' } },
           })
         : [],
     ]);
@@ -181,6 +176,25 @@ export async function GET(_request: NextRequest) {
 
     const totalEstimatedValue = allCustomersForValues.reduce((sum, c) => sum + (c.estimatedValue || 0), 0);
     const totalWeightedValue = allCustomersForValues.reduce((sum, c) => sum + (c.weightedValue || 0), 0);
+
+    // Get latest performance review per employee (admin only)
+    const latestReviews = canViewAll
+      ? await prisma.performanceReview.findMany({
+          where: { status: 'PUBLISHED' },
+          select: {
+            userId: true,
+            overallRating: true,
+            tasksCompleted: true,
+            tasksOnTime: true,
+            period: true,
+            periodEnd: true,
+          },
+          orderBy: { periodEnd: 'desc' },
+          distinct: ['userId'],
+        })
+      : [];
+
+    const reviewMap = new Map(latestReviews.map((r) => [r.userId, r]));
 
     return NextResponse.json({
       data: {
@@ -198,11 +212,23 @@ export async function GET(_request: NextRequest) {
           customersNotUpdated,
         },
         tasksToday,
-        employeeDistribution: employeeDistribution.map((emp) => ({
-          id: emp.id,
-          fullName: emp.fullName,
-          customerCount: emp._count.ownedCustomers,
-        })),
+        employeeDistribution: employeeDistribution.map((emp) => {
+          const review = reviewMap.get(emp.id);
+          const onTimeRate = review && review.tasksCompleted > 0
+            ? Math.round((review.tasksOnTime / review.tasksCompleted) * 100)
+            : null;
+          return {
+            id: emp.id,
+            fullName: emp.fullName,
+            jobTitle: emp.jobTitle,
+            customerCount: emp._count.ownedCustomers,
+            openTasksCount: emp._count.assignedTasks,
+            completedInternalTasks: emp._count.assignedInternalTasks,
+            latestRating: review?.overallRating ?? null,
+            onTimeRate,
+            reviewPeriod: review?.period ?? null,
+          };
+        }),
       },
     });
   } catch (error) {

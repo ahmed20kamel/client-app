@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import {
@@ -17,10 +17,13 @@ import {
   AlertCircle,
   LayoutDashboard,
   ClipboardCheck,
+  Star,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/PageHeader';
 import { SectionLabel } from '@/components/ui/section-label';
+import { DataTable } from '@/components/ui/data-table';
+import { StatusBadge } from '@/components/ui/status-badge';
 
 interface DashboardData {
   stats: {
@@ -57,7 +60,13 @@ interface DashboardData {
   employeeDistribution: Array<{
     id: string;
     fullName: string;
+    jobTitle: string | null;
     customerCount: number;
+    openTasksCount: number;
+    completedInternalTasks: number;
+    latestRating: number | null;
+    onTimeRate: number | null;
+    reviewPeriod: string | null;
   }>;
 }
 
@@ -65,6 +74,7 @@ export default function DashboardPage() {
   const t = useTranslations();
   const params = useParams();
   const locale = params.locale as string;
+  const router = useRouter();
 
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -445,7 +455,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ====== Employee Distribution ====== */}
+      {/* ====== Employee Performance Table ====== */}
       {data.employeeDistribution.length > 0 && (
         <div className="animate-fade-up-4">
           <SectionLabel>{t('dashboard.employeeDistribution')}</SectionLabel>
@@ -458,37 +468,90 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm font-extrabold text-foreground">{t('dashboard.employeeDistribution')}</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {data.stats.totalCustomers} {t('customers.title')}
-                  </p>
+                  <p className="text-[10px] text-muted-foreground">{data.employeeDistribution.length} {t('users.title')}</p>
                 </div>
               </div>
-              <span className="text-[10px] font-bold bg-muted border border-border px-2.5 py-1 rounded-lg text-muted-foreground">
-                {data.stats.totalCustomers} {t('customers.title')}
-              </span>
             </div>
 
-            <div className="grid grid-cols-[1fr_80px] px-5 py-2 bg-muted/40 border-b border-border">
-              <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest">{t('users.fullName')}</span>
-              <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest">{t('customers.title')}</span>
-            </div>
-
-            {data.employeeDistribution.map((emp, i) => (
-              <div key={emp.id} className="grid grid-cols-[1fr_80px] px-5 py-3 border-b border-border/50 hover:bg-muted/30 transition-colors last:border-0 items-center">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-                    style={{ background: GRADIENTS[i % GRADIENTS.length] }}
-                  >
-                    {emp.fullName.charAt(0)}
-                  </div>
-                  <p className="text-sm font-bold text-foreground">{emp.fullName}</p>
-                </div>
-                <div>
-                  <p className="text-xl font-black text-primary">{emp.customerCount}</p>
-                  <p className="text-[9px] text-muted-foreground">{t('customers.title')}</p>
-                </div>
-              </div>
-            ))}
+            <DataTable
+              rowKey={(row) => row.id}
+              data={data.employeeDistribution}
+              onRowClick={(emp) => router.push(`/${locale}/performance/${emp.id}`)}
+              columns={[
+                {
+                  key: 'fullName',
+                  header: t('users.fullName'),
+                  render: (emp) => (
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                        style={{ background: GRADIENTS[data.employeeDistribution.indexOf(emp) % GRADIENTS.length] }}
+                      >
+                        {emp.fullName.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{emp.fullName}</p>
+                        {emp.jobTitle && <p className="text-xs text-muted-foreground">{emp.jobTitle}</p>}
+                      </div>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'customerCount',
+                  header: t('customers.title'),
+                  render: (emp) => (
+                    <div>
+                      <p className="text-lg font-black text-primary">{emp.customerCount}</p>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'openTasksCount',
+                  header: t('dashboard.openTasks'),
+                  render: (emp) => (
+                    <StatusBadge
+                      label={String(emp.openTasksCount)}
+                      variant={emp.openTasksCount === 0 ? 'success' : emp.openTasksCount > 5 ? 'danger' : 'warning'}
+                    />
+                  ),
+                },
+                {
+                  key: 'completedInternalTasks',
+                  header: t('dashboard.completedThisWeek'),
+                  render: (emp) => (
+                    <span className="text-sm font-semibold text-foreground">{emp.completedInternalTasks}</span>
+                  ),
+                },
+                {
+                  key: 'onTimeRate',
+                  header: t('performance.onTimeRate'),
+                  render: (emp) => {
+                    if (emp.onTimeRate === null) return <span className="text-xs text-muted-foreground">—</span>;
+                    return (
+                      <StatusBadge
+                        label={`${emp.onTimeRate}%`}
+                        variant={emp.onTimeRate >= 80 ? 'success' : emp.onTimeRate >= 50 ? 'warning' : 'danger'}
+                        dot
+                      />
+                    );
+                  },
+                },
+                {
+                  key: 'latestRating',
+                  header: t('performance.overallRating'),
+                  render: (emp) => {
+                    if (emp.latestRating === null) return <span className="text-xs text-muted-foreground">—</span>;
+                    return (
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star key={s} className={`size-3.5 ${emp.latestRating! >= s ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/25'}`} />
+                        ))}
+                      </div>
+                    );
+                  },
+                },
+              ]}
+            />
           </div>
         </div>
       )}

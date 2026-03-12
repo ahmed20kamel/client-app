@@ -7,19 +7,14 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import {
-  Plus,
-  AlertCircle,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  Star,
-  Award,
-} from 'lucide-react';
+import { Plus, Eye, Star, Award } from 'lucide-react';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { PageHeader } from '@/components/PageHeader';
+import { DataTable } from '@/components/ui/data-table';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Pagination } from '@/components/ui/pagination';
+import { StatusBadge } from '@/components/ui/status-badge';
 
 interface PerformanceReview {
   id: string;
@@ -47,21 +42,6 @@ interface PerformanceReview {
   };
 }
 
-const STATUS_CONFIG: Record<string, { color: string; bg: string }> = {
-  DRAFT: { color: 'text-gray-700', bg: 'bg-gray-50 border-gray-200' },
-  PUBLISHED: { color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
-};
-
-const StarDisplay = ({ rating }: { rating: number }) => (
-  <div className="flex gap-0.5">
-    {[1, 2, 3, 4, 5].map((star) => (
-      <Star
-        key={star}
-        className={`size-4 ${rating >= star ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`}
-      />
-    ))}
-  </div>
-);
 
 export default function PerformancePage() {
   const t = useTranslations();
@@ -172,129 +152,106 @@ export default function PerformancePage() {
 
       {/* Table */}
       {loading ? (
-        <TableSkeleton rows={5} columns={5} />
+        <TableSkeleton rows={5} columns={6} />
       ) : reviews.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16">
-          <AlertCircle className="size-12 mb-4 text-muted-foreground/40" />
-          <p className="text-muted-foreground">{t('performance.noReviews')}</p>
-        </div>
+        <EmptyState title={t('performance.noReviews')} />
       ) : (
         <>
           <Card className="shadow-premium overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-muted/30">
-                    <th className="px-7 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
-                      {t('performance.employeePerformance')}
-                    </th>
-                    <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
-                      {t('performance.period')}
-                    </th>
-                    <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
-                      {t('performance.overallRating')}
-                    </th>
-                    <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
-                      {t('performance.tasksCompleted')}
-                    </th>
-                    <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
-                      {t('performance.onTimeRate')}
-                    </th>
-                    <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
-                      {t('common.status')}
-                    </th>
-                    <th className="px-4 py-3 text-end text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
-                      {t('common.actions')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {reviews.map((review) => (
-                    <tr key={review.id} className="hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => router.push(`/${locale}/performance/${review.user.id}`)}>
-                      <td className="px-7 py-4">
-                        <div>
-                          <Link
-                            href={`/${locale}/performance/${review.user.id}`}
-                            className="text-sm font-medium text-primary hover:underline"
-                          >
-                            {review.user.fullName}
-                          </Link>
-                          {review.user.jobTitle && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{review.user.jobTitle}</p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div>
-                          <Badge variant="outline" className="mb-1">
-                            {t(`performance.${review.period.toLowerCase()}`)}
-                          </Badge>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDate(review.periodStart)} - {formatDate(review.periodEnd)}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <StarDisplay rating={review.overallRating} />
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">
-                        {review.tasksCompleted}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span className={`text-sm font-medium ${getOnTimePercentage(review) >= 80 ? 'text-success' : getOnTimePercentage(review) >= 50 ? 'text-warning' : 'text-destructive'}`}>
-                          {getOnTimePercentage(review)}%
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <Badge
-                          variant="outline"
-                          className={`${STATUS_CONFIG[review.status]?.bg} ${STATUS_CONFIG[review.status]?.color} border`}
-                        >
-                          {t(`performance.status${review.status.charAt(0) + review.status.slice(1).toLowerCase()}`)}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-end" onClick={(e) => e.stopPropagation()}>
-                        <Link href={`/${locale}/performance/${review.user.id}`}>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="size-4" />
-                          </Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              rowKey={(r) => r.id}
+              data={reviews}
+              onRowClick={(r) => router.push(`/${locale}/performance/${r.user.id}`)}
+              columns={[
+                {
+                  key: 'user',
+                  header: t('performance.employeePerformance'),
+                  render: (r) => (
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{r.user.fullName}</p>
+                      {r.user.jobTitle && <p className="text-xs text-muted-foreground">{r.user.jobTitle}</p>}
+                    </div>
+                  ),
+                },
+                {
+                  key: 'period',
+                  header: t('performance.period'),
+                  render: (r) => (
+                    <div>
+                      <StatusBadge label={t(`performance.${r.period.toLowerCase()}`)} variant="info" />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formatDate(r.periodStart)} – {formatDate(r.periodEnd)}
+                      </p>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'overallRating',
+                  header: t('performance.overallRating'),
+                  render: (r) => (
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5].map(s => (
+                        <Star key={s} className={`size-4 ${r.overallRating >= s ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/25'}`} />
+                      ))}
+                    </div>
+                  ),
+                },
+                {
+                  key: 'tasksCompleted',
+                  header: t('performance.tasksCompleted'),
+                  render: (r) => <span className="text-sm font-medium">{r.tasksCompleted}</span>,
+                },
+                {
+                  key: 'onTimeRate',
+                  header: t('performance.onTimeRate'),
+                  render: (r) => {
+                    const pct = getOnTimePercentage(r);
+                    return (
+                      <StatusBadge
+                        label={`${pct}%`}
+                        variant={pct >= 80 ? 'success' : pct >= 50 ? 'warning' : 'danger'}
+                        dot
+                      />
+                    );
+                  },
+                },
+                {
+                  key: 'status',
+                  header: t('common.status'),
+                  render: (r) => (
+                    <StatusBadge
+                      label={t(`performance.status${r.status.charAt(0) + r.status.slice(1).toLowerCase()}`)}
+                      variant={r.status === 'PUBLISHED' ? 'success' : 'default'}
+                      dot
+                    />
+                  ),
+                },
+                {
+                  key: 'actions',
+                  header: t('common.actions'),
+                  headerClassName: 'text-end',
+                  className: 'text-end',
+                  render: (r) => (
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Link href={`/${locale}/performance/${r.user.id}`}>
+                        <Button variant="ghost" size="icon-sm">
+                          <Eye className="size-4" />
+                        </Button>
+                      </Link>
+                    </div>
+                  ),
+                },
+              ]}
+            />
           </Card>
 
-          {/* Pagination */}
-          {pagination.totalPages > 1 && (
-            <div className="mt-6 flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                {t('common.showing')} {(pagination.page - 1) * pagination.limit + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} {t('common.of')} {pagination.total} {t('common.results')}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => setPage(page - 1)}
-                  disabled={page === 1}
-                  variant="outline"
-                  size="sm"
-                >
-                  <ChevronLeft className="size-4 rtl:-scale-x-100" />
-                  {t('common.previous')}
-                </Button>
-                <Button
-                  onClick={() => setPage(page + 1)}
-                  disabled={page === pagination.totalPages}
-                  variant="outline"
-                  size="sm"
-                >
-                  {t('common.next')}
-                  <ChevronRight className="size-4 rtl:-scale-x-100" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            total={pagination.total}
+            limit={pagination.limit}
+            onPageChange={setPage}
+          />
         </>
       )}
       </div>
