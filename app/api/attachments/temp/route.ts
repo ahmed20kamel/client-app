@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { writeFile, mkdir, unlink } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
-import { randomUUID } from 'crypto';
+import { uploadToCloudinary, deleteFromCloudinary } from '@/lib/cloudinary';
 
-const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'attachments');
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
@@ -50,19 +46,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File type not allowed' }, { status: 400 });
     }
 
-    // Ensure upload directory exists
-    if (!existsSync(UPLOAD_DIR)) {
-      await mkdir(UPLOAD_DIR, { recursive: true });
-    }
-
-    // Generate unique filename
-    const ext = path.extname(file.name);
-    const fileName = `${randomUUID()}${ext}`;
-    const filePath = path.join(UPLOAD_DIR, fileName);
-
-    // Write file to disk
+    // Upload to Cloudinary
     const bytes = await file.arrayBuffer();
-    await writeFile(filePath, Buffer.from(bytes));
+    const buffer = Buffer.from(bytes);
+    const { url, publicId } = await uploadToCloudinary(buffer, file.name, 'crm/attachments');
 
     // Save to database with tempSessionId instead of customerId
     const attachment = await prisma.attachment.create({
@@ -70,11 +57,11 @@ export async function POST(request: NextRequest) {
         tempSessionId,
         category,
         subcategory: subcategory || null,
-        fileName,
+        fileName: publicId,
         originalName: file.name,
         fileSize: file.size,
         mimeType: file.type,
-        filePath: `/uploads/attachments/${fileName}`,
+        filePath: url,
         uploadedById: session.user.id,
       },
     });
@@ -136,13 +123,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Attachment not found' }, { status: 404 });
     }
 
-    // Delete file from disk
-    const fullPath = path.join(process.cwd(), 'public', attachment.filePath);
-    try {
-      await unlink(fullPath);
-    } catch {
-      // File may not exist
-    }
+    // Delete from Cloudinary
+    await deleteFromCloudinary(attachment.fileName);
 
     await prisma.attachment.delete({
       where: { id: attachmentId },

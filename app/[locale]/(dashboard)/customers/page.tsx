@@ -97,6 +97,7 @@ export default function CustomersPage() {
   const [status, setStatus] = useState('');
   const [leadSource, setLeadSource] = useState('');
   const [emirate, setEmirate] = useState('');
+  const [productType, setProductType] = useState('');
   const [showDeleted, setShowDeleted] = useState(false);
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState({
@@ -120,6 +121,7 @@ export default function CustomersPage() {
       if (status) params.set('status', status);
       if (leadSource) params.set('leadSource', leadSource);
       if (emirate) params.set('emirate', emirate);
+      if (productType) params.set('productType', productType);
       if (showDeleted) params.set('showDeleted', 'true');
 
       const response = await fetch(`/api/customers?${params.toString()}`);
@@ -146,7 +148,7 @@ export default function CustomersPage() {
   useEffect(() => {
     fetchCustomers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, search, customerType, status, leadSource, emirate, showDeleted]);
+  }, [page, search, customerType, status, leadSource, emirate, productType, showDeleted]);
 
   const handleDeleteCustomer = async (id: string) => {
     try {
@@ -195,11 +197,12 @@ export default function CustomersPage() {
     setStatus('');
     setLeadSource('');
     setEmirate('');
+    setProductType('');
     setShowDeleted(false);
     setPage(1);
   };
 
-  const hasActiveFilters = customerType || status || leadSource || emirate || showDeleted;
+  const hasActiveFilters = customerType || status || leadSource || emirate || productType || showDeleted;
 
   return (
     <div className="p-3 md:p-3.5">
@@ -308,6 +311,19 @@ export default function CustomersPage() {
                 <SelectItem value="ALL">{t('customers.customerType')}</SelectItem>
                 <SelectItem value="NEW">{t('customers.typeNew')}</SelectItem>
                 <SelectItem value="EXISTING">{t('customers.typeExisting')}</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Product Type Filter */}
+            <Select value={productType} onValueChange={(val) => { setProductType(val === 'ALL' ? '' : val); setPage(1); }}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={t('customers.productType')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">{t('customers.productType')}</SelectItem>
+                <SelectItem value="LIGHT_STEEL">{t('customers.productTypes.lightSteel')}</SelectItem>
+                <SelectItem value="LIGHT_PAD">{t('customers.productTypes.lightPad')}</SelectItem>
+                <SelectItem value="ALUMINUM">{t('customers.productTypes.aluminum')}</SelectItem>
               </SelectContent>
             </Select>
           </div>

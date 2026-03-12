@@ -171,6 +171,8 @@
     "statusLost": "Lost",
     "projectType": "Project Type",
     "productType": "Product Type",
+    "selectProductType": "Select Project Type",
+    "selectProductTypeDesc": "Choose the product type this customer is interested in before creating the record.",
     "leadSource": "Lead Source",
     "estimatedValue": "Estimated Value (AED)",
     "probability": "Probability (%)",
@@ -265,8 +267,9 @@
       "other": "Other"
     },
     "productTypes": {
-      "framixLgsf": "FRAMIX (LGSF)",
-      "other": "Other"
+      "lightSteel": "Light Steel Frame",
+      "lightPad": "Light Pad",
+      "aluminum": "Aluminum"
     },
     "leadSources": {
       "instagram": "Instagram",

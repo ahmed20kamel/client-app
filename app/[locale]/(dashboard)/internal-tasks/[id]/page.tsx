@@ -28,6 +28,12 @@ import {
   XCircle,
   AlertTriangle,
   RotateCcw,
+  Paperclip,
+  Trash2,
+  Download,
+  FileText,
+  Image,
+  File,
 } from 'lucide-react';
 import { DetailSkeleton } from '@/components/ui/page-skeleton';
 
@@ -94,6 +100,20 @@ interface InternalTask {
   comments: TaskComment[];
   _count: {
     comments: number;
+  };
+}
+
+interface TaskAttachment {
+  id: string;
+  originalName: string;
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  mimeType: string;
+  createdAt: string;
+  uploadedBy: {
+    id: string;
+    fullName: string;
   };
 }
 
@@ -178,6 +198,11 @@ export default function InternalTaskDetailPage() {
   const [newComment, setNewComment] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
+  // Attachment state
+  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [isDeletingAttachment, setIsDeletingAttachment] = useState<string | null>(null);
+
   // Fetch session
   useEffect(() => {
     const fetchSession = async () => {
@@ -222,8 +247,19 @@ export default function InternalTaskDetailPage() {
     }
   };
 
+  const fetchAttachments = async () => {
+    try {
+      const res = await fetch(`/api/internal-tasks/${id}/attachments`);
+      if (res.ok) {
+        const { data } = await res.json();
+        setAttachments(data || []);
+      }
+    } catch { /* ignore */ }
+  };
+
   useEffect(() => {
     fetchTask();
+    fetchAttachments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -378,6 +414,61 @@ export default function InternalTaskDetailPage() {
     } finally {
       setIsSubmittingComment(false);
     }
+  };
+
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingFile(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`/api/internal-tasks/${id}/attachments`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || t('errors.networkError'));
+        return;
+      }
+      const { data } = await res.json();
+      setAttachments((prev) => [data, ...prev]);
+      toast.success(t('messages.uploadSuccess') || 'File uploaded');
+    } catch {
+      toast.error(t('errors.networkError'));
+    } finally {
+      setIsUploadingFile(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    setIsDeletingAttachment(attachmentId);
+    try {
+      const res = await fetch(`/api/internal-tasks/${id}/attachments?attachmentId=${attachmentId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error();
+      setAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
+      toast.success(t('messages.deleteSuccess') || 'Deleted');
+    } catch {
+      toast.error(t('errors.networkError'));
+    } finally {
+      setIsDeletingAttachment(null);
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) return <Image className="size-5 text-blue-500" />;
+    if (mimeType === 'application/pdf') return <FileText className="size-5 text-red-500" />;
+    return <File className="size-5 text-gray-500" />;
   };
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -712,6 +803,91 @@ export default function InternalTaskDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Attachments */}
+          <Card className="shadow-premium">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Paperclip className="size-4" />
+                  {locale === 'ar' ? 'المرفقات' : 'Attachments'} ({attachments.length})
+                </CardTitle>
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={handleUploadFile}
+                    disabled={isUploadingFile}
+                    accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.zip,.rar,.mp4,.mov"
+                  />
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                    {isUploadingFile ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="size-3.5" />
+                    )}
+                    {locale === 'ar' ? 'رفع ملف' : 'Upload'}
+                  </span>
+                </label>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {attachments.length === 0 ? (
+                <div className="text-center py-10 border-2 border-dashed border-border rounded-lg">
+                  <Paperclip className="size-8 mx-auto mb-2 text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground">
+                    {locale === 'ar' ? 'لا توجد مرفقات بعد' : 'No attachments yet'}
+                  </p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">
+                    {locale === 'ar' ? 'اضغط رفع ملف لإضافة مرفق' : 'Click Upload to add a file'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {attachments.map((attachment) => (
+                    <div
+                      key={attachment.id}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors group"
+                    >
+                      <div className="shrink-0">{getFileIcon(attachment.mimeType)}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{attachment.originalName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatFileSize(attachment.fileSize)} · {attachment.uploadedBy.fullName} · {formatDateTime(attachment.createdAt)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <a
+                          href={attachment.filePath}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                          title={locale === 'ar' ? 'تحميل' : 'Download'}
+                        >
+                          <Download className="size-4 text-muted-foreground" />
+                        </a>
+                        {(session?.user?.id === attachment.uploadedBy.id || session?.user?.role === 'Admin') && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAttachment(attachment.id)}
+                            disabled={isDeletingAttachment === attachment.id}
+                            className="p-1.5 rounded-md hover:bg-destructive/10 transition-colors"
+                            title={locale === 'ar' ? 'حذف' : 'Delete'}
+                          >
+                            {isDeletingAttachment === attachment.id ? (
+                              <Loader2 className="size-4 animate-spin text-destructive" />
+                            ) : (
+                              <Trash2 className="size-4 text-destructive" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Comments / Activity Log */}
           <Card className="shadow-premium">

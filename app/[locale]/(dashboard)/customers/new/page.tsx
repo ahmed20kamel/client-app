@@ -10,6 +10,7 @@ import { CITIES, CITY_AREAS, CITY_TRANSLATION_KEY, areaTranslationKey, type City
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -77,6 +78,7 @@ export default function CreateCustomerPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [attachments, setAttachments] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('basic');
+  const [showProductModal, setShowProductModal] = useState(true);
 
   // Generate a stable temp session ID for uploading attachments before customer is saved
   const tempSessionId = useMemo(() => `temp_${crypto.randomUUID()}`, []);
@@ -93,6 +95,16 @@ export default function CreateCustomerPage() {
       .then(res => res.json())
       .then(data => setAttachments(data.data || []))
       .catch(() => {});
+  };
+
+  const cleanupTempAttachments = async () => {
+    if (attachments.length === 0) return;
+    // Delete all temp attachments before navigating away
+    await Promise.allSettled(
+      attachments.map((a) =>
+        fetch(`/api/attachments/temp?attachmentId=${a.id}`, { method: 'DELETE' })
+      )
+    );
   };
 
   const form = useForm<CreateCustomerInput>({
@@ -181,11 +193,14 @@ export default function CreateCustomerPage() {
 
       // Link any uploaded temp attachments to the new customer
       if (attachments.length > 0) {
-        await fetch('/api/attachments/link', {
+        const linkRes = await fetch('/api/attachments/link', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tempSessionId, customerId: customer.id }),
         });
+        if (!linkRes.ok) {
+          console.error('Failed to link attachments to customer');
+        }
       }
 
       toast.success(t('messages.createSuccess', { entity: t('customers.title') }));
@@ -199,6 +214,45 @@ export default function CreateCustomerPage() {
 
   return (
     <div className="p-3 md:p-3.5">
+      {/* Product Type Selection Modal */}
+      <Dialog open={showProductModal} onOpenChange={() => {}}>
+        <DialogContent
+          className="sm:max-w-lg"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          showCloseButton={false}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl">
+              {t('customers.selectProductType')}
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              {t('customers.selectProductTypeDesc')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-3 gap-4 py-4">
+            {[
+              { value: 'LIGHT_STEEL', label: t('customers.productTypes.lightSteel'), icon: '🏗️' },
+              { value: 'LIGHT_PAD', label: t('customers.productTypes.lightPad'), icon: '📦' },
+              { value: 'ALUMINUM', label: t('customers.productTypes.aluminum'), icon: '🪟' },
+            ].map((product) => (
+              <button
+                key={product.value}
+                type="button"
+                onClick={() => {
+                  form.setValue('productType', product.value);
+                  setShowProductModal(false);
+                }}
+                className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-all cursor-pointer"
+              >
+                <span className="text-4xl">{product.icon}</span>
+                <span className="text-sm font-medium text-center">{product.label}</span>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
       {/* Header */}
       <PageHeader
@@ -208,7 +262,7 @@ export default function CreateCustomerPage() {
         actions={
           <Button
             variant="outline"
-            onClick={() => router.push(`/${locale}/customers`)}
+            onClick={async () => { await cleanupTempAttachments(); router.push(`/${locale}/customers`); }}
           >
             <ArrowLeft className="size-4 me-2 rtl:-scale-x-100" />
             {t('common.back')}
@@ -625,8 +679,9 @@ export default function CreateCustomerPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="FRAMIX_LGSF">{t('customers.productTypes.framixLgsf')}</SelectItem>
-                              <SelectItem value="OTHER">{t('customers.productTypes.other')}</SelectItem>
+                              <SelectItem value="LIGHT_STEEL">{t('customers.productTypes.lightSteel')}</SelectItem>
+                              <SelectItem value="LIGHT_PAD">{t('customers.productTypes.lightPad')}</SelectItem>
+                              <SelectItem value="ALUMINUM">{t('customers.productTypes.aluminum')}</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -1068,7 +1123,7 @@ export default function CreateCustomerPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.push(`/${locale}/customers`)}
+              onClick={async () => { await cleanupTempAttachments(); router.push(`/${locale}/customers`); }}
               disabled={isLoading}
             >
               {t('common.cancel')}

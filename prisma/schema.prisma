@@ -47,6 +47,7 @@ model User {
   createdInvoices        Invoice[]            @relation("InvoiceCreator")
   createdPayments        Payment[]            @relation("PaymentCreator")
   createdPurchaseOrders  PurchaseOrder[]      @relation("PurchaseOrderCreator")
+  uploadedAttachments    Attachment[]
 }
 
 model Role {
@@ -152,22 +153,27 @@ model Customer {
 // ==========================================
 
 model Attachment {
-  id            String    @id @default(uuid())
-  customerId    String?
-  tempSessionId String?
-  category      String    // CLIENT_DOCS, DRAWINGS, QUOTATIONS
-  subcategory   String?   // e.g. ARCHITECTURAL, STRUCTURAL, HVAC, ID_CARD, LICENSE, etc.
-  fileName      String
-  originalName  String
-  fileSize      Int
-  mimeType      String
-  filePath      String
-  uploadedById  String
-  createdAt     DateTime  @default(now())
+  id              String        @id @default(uuid())
+  customerId      String?
+  internalTaskId  String?
+  tempSessionId   String?
+  category        String
+  subcategory     String?
+  fileName        String
+  originalName    String
+  fileSize        Int
+  mimeType        String
+  filePath        String
+  uploadedById    String
+  createdAt       DateTime      @default(now())
 
-  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer        Customer?     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  internalTask    InternalTask? @relation(fields: [internalTaskId], references: [id], onDelete: Cascade)
+  uploadedBy      User          @relation(fields: [uploadedById], references: [id])
 
+  @@index([uploadedById])
   @@index([customerId])
+  @@index([internalTaskId])
   @@index([tempSessionId])
   @@index([category])
   @@index([createdAt])
@@ -331,6 +337,7 @@ model InternalTask {
   category        TaskCategory?        @relation(fields: [categoryId], references: [id])
   comments        InternalTaskComment[]
   rating          TaskRating?
+  attachments     Attachment[]
 
   @@index([assignedToId])
   @@index([createdById])

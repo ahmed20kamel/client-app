@@ -171,6 +171,8 @@
     "statusLost": "خسارة",
     "projectType": "نوع المشروع",
     "productType": "نوع المنتج",
+    "selectProductType": "اختر نوع المشروع",
+    "selectProductTypeDesc": "اختر نوع المنتج الذي يهتم به العميل قبل إنشاء السجل.",
     "leadSource": "مصدر العميل",
     "estimatedValue": "القيمة الإجمالية للعقود (درهم)",
     "probability": "احتمالية الإغلاق (%)",
@@ -265,8 +267,9 @@
       "other": "أخرى"
     },
     "productTypes": {
-      "framixLgsf": "FRAMIX (LGSF)",
-      "other": "أخرى"
+      "lightSteel": "لايت ستيل",
+      "lightPad": "لايت باد",
+      "aluminum": "ألومنيوم"
     },
     "leadSources": {
       "instagram": "إنستجرام",

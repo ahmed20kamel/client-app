@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
     const emirate = searchParams.get('emirate') || '';
     const leadSource = searchParams.get('leadSource') || '';
     const projectType = searchParams.get('projectType') || '';
+    const productType = searchParams.get('productType') || '';
 
     // Build where clause
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -85,6 +86,10 @@ export async function GET(request: NextRequest) {
 
     if (projectType) {
       where.projectType = projectType;
+    }
+
+    if (productType) {
+      where.productType = productType;
     }
 
     // Get total count

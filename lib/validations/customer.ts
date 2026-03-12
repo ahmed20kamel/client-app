@@ -63,8 +63,9 @@ export const PROJECT_TYPES = [
 
 // Product type options
 export const PRODUCT_TYPES = [
-  'FRAMIX_LGSF',
-  'OTHER',
+  'LIGHT_STEEL',
+  'LIGHT_PAD',
+  'ALUMINUM',
 ] as const;
 
 // Lead source options
