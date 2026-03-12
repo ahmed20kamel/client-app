@@ -108,7 +108,9 @@ export async function PATCH(request: NextRequest) {
       }
 
       const bytes = await file.arrayBuffer();
+      console.log('[profile] Uploading to Cloudinary, cloud_name:', process.env.CLOUDINARY_CLOUD_NAME, 'api_key set:', !!process.env.CLOUDINARY_API_KEY, 'secret set:', !!process.env.CLOUDINARY_API_SECRET);
       const { url } = await uploadToCloudinary(Buffer.from(bytes), file.name, 'crm/profiles');
+      console.log('[profile] Upload success:', url);
 
       const user = await prisma.user.update({
         where: { id: session.user.id },
@@ -192,7 +194,7 @@ export async function PATCH(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message || 'Validation error' }, { status: 400 });
     }
-    console.error('Update profile error:', error instanceof Error ? error.message : error);
+    console.error('Update profile error:', error instanceof Error ? { message: error.message, stack: error.stack } : error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
