@@ -74,6 +74,9 @@ const CATEGORY_LABELS: Record<string, string> = {
   CLIENT_DOCS: 'clientDocs',
   DRAWINGS: 'drawings',
   QUOTATIONS: 'quotations',
+  BOQ: 'boq',
+  SPECIFICATIONS: 'specifications',
+  REPORTS: 'reports',
 };
 
 interface Customer {
@@ -622,7 +625,7 @@ export default function CustomerDetailsPage() {
               </div>
             ) : (
               <div className="space-y-6">
-                {(['CLIENT_DOCS', 'QUOTATIONS', 'DRAWINGS'] as const).map((category) => {
+                {(['CLIENT_DOCS', 'QUOTATIONS', 'BOQ', 'SPECIFICATIONS', 'REPORTS', 'DRAWINGS'] as const).map((category) => {
                   const categoryAttachments = attachments.filter(a => a.category === category);
                   if (categoryAttachments.length === 0) return null;
                   return (

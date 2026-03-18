@@ -55,7 +55,8 @@
     "bulkDeleteConfirm": "Delete {count} items?",
     "bulkDeleteConfirmDesc": "This will permanently delete the selected items.",
     "clear": "Clear",
-    "new": "New"
+    "new": "New",
+    "add": "Add"
   },
   "auth": {
     "login": "Login",
@@ -211,7 +212,8 @@
     "cities": {
       "abuDhabi": "Abu Dhabi",
       "alDhafra": "Al Dhafra",
-      "alAin": "Al Ain"
+      "alAin": "Al Ain",
+      "riyadh": "Riyadh"
     },
     "areas": {
       "khalifaCity": "Khalifa City",
@@ -261,6 +263,25 @@
       "alHayer": "Al Hayer",
       "mezyad": "Mezyad",
       "alAinIndustrial": "Al Ain Industrial",
+      "alOlaya": "Al Olaya",
+      "alMalaz": "Al Malaz",
+      "alMurabba": "Al Murabba",
+      "alNaseem": "Al Naseem",
+      "alRawdahRiyadh": "Al Rawdah",
+      "alSulaimaniyah": "Al Sulaimaniyah",
+      "alWorood": "Al Worood",
+      "alNakheel": "Al Nakheel",
+      "hittin": "Hittin",
+      "alYasmin": "Al Yasmin",
+      "alRahmaniyah": "Al Rahmaniyah",
+      "alAqiq": "Al Aqiq",
+      "alSahafah": "Al Sahafah",
+      "alNarjis": "Al Narjis",
+      "irqah": "Irqah",
+      "alDirah": "Al Dirah",
+      "alBatha": "Al Batha",
+      "alShifa": "Al Shifa",
+      "alAziziyah": "Al Aziziyah",
       "other": "Other"
     },
     "projectTypes": {
@@ -471,11 +492,19 @@
     "drawingsDesc": "Architectural, structural, HVAC, and other technical drawings",
     "quotations": "Quotations",
     "quotationsDesc": "Price quotes, proposals, and financial documents",
+    "boq": "Bill of Quantities",
+    "boqDesc": "Bill of quantities and cost breakdown documents",
+    "specifications": "Specifications",
+    "specificationsDesc": "Technical specifications and material specs",
+    "reports": "Reports",
+    "reportsDesc": "Project reports, inspection reports, and assessments",
     "dropHere": "Drag & drop files here, or click to browse",
-    "maxSize": "Max 10MB per file",
+    "maxSize": "No size limit - files over 15MB are auto-compressed",
     "uploading": "Uploading...",
+    "compressing": "Compressing file...",
+    "compressed": "File compressed: {original} → {compressed}",
     "uploadSuccess": "File uploaded successfully",
-    "fileTooLarge": "File is too large (max 10MB)",
+    "fileTooLarge": "File is too large",
     "noAttachments": "No attachments yet",
     "subcategories": {
       "idCard": "ID Card / Passport",

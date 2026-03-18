@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
 import {
@@ -91,7 +92,11 @@ export default function EditCustomerPage() {
   const watchEstimatedValue = form.watch('estimatedValue');
   const watchProbability = form.watch('probability');
   const watchedCity = form.watch('city') as City | '';
-  const availableAreas = watchedCity && CITY_AREAS[watchedCity] ? CITY_AREAS[watchedCity] : [];
+  const [customCities, setCustomCities] = useState<string[]>([]);
+  const [customAreas, setCustomAreas] = useState<string[]>([]);
+  const allCities = [...CITIES, ...customCities.filter(c => !(CITIES as readonly string[]).includes(c))];
+  const baseAreas = watchedCity && CITY_AREAS[watchedCity as City] ? CITY_AREAS[watchedCity as City] : [];
+  const availableAreas = [...baseAreas, ...customAreas.filter(a => !baseAreas.includes(a))];
 
   const weightedValue = (watchEstimatedValue || 0) * (watchProbability || 0) / 100;
 
@@ -348,23 +353,20 @@ export default function EditCustomerPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t('customers.contactPerson')}</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ''} disabled={isLoading}>
-                            <FormControl>
-                              <SelectTrigger className="w-full">
-                                <div className="flex items-center gap-2">
-                                  <UserCheck className="size-4 text-muted-foreground" />
-                                  <SelectValue placeholder={t('common.select')} />
-                                </div>
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {users.map((user) => (
-                                <SelectItem key={user.id} value={user.fullName}>
-                                  {user.fullName}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <SearchableSelect
+                              options={users.map((user) => ({
+                                value: user.fullName,
+                                label: user.fullName,
+                              }))}
+                              value={field.value || ''}
+                              onValueChange={field.onChange}
+                              placeholder={t('common.select')}
+                              searchPlaceholder={t('common.search')}
+                              disabled={isLoading}
+                              icon={<UserCheck className="size-4 text-muted-foreground" />}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -441,26 +443,26 @@ export default function EditCustomerPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t('customers.emirate')}</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ''} disabled={isLoading}>
-                            <FormControl>
-                              <SelectTrigger className="w-full">
-                                <div className="flex items-center gap-2">
-                                  <MapPin className="size-4 text-muted-foreground" />
-                                  <SelectValue placeholder={t('common.select')} />
-                                </div>
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="ABU_DHABI">{t('customers.emirates.abuDhabi')}</SelectItem>
-                              <SelectItem value="DUBAI">{t('customers.emirates.dubai')}</SelectItem>
-                              <SelectItem value="SHARJAH">{t('customers.emirates.sharjah')}</SelectItem>
-                              <SelectItem value="AJMAN">{t('customers.emirates.ajman')}</SelectItem>
-                              <SelectItem value="UMM_AL_QUWAIN">{t('customers.emirates.ummAlQuwain')}</SelectItem>
-                              <SelectItem value="RAS_AL_KHAIMAH">{t('customers.emirates.rasAlKhaimah')}</SelectItem>
-                              <SelectItem value="FUJAIRAH">{t('customers.emirates.fujairah')}</SelectItem>
-                              <SelectItem value="AL_AIN">{t('customers.emirates.alAin')}</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <SearchableSelect
+                              options={[
+                                { value: 'ABU_DHABI', label: t('customers.emirates.abuDhabi') },
+                                { value: 'DUBAI', label: t('customers.emirates.dubai') },
+                                { value: 'SHARJAH', label: t('customers.emirates.sharjah') },
+                                { value: 'AJMAN', label: t('customers.emirates.ajman') },
+                                { value: 'UMM_AL_QUWAIN', label: t('customers.emirates.ummAlQuwain') },
+                                { value: 'RAS_AL_KHAIMAH', label: t('customers.emirates.rasAlKhaimah') },
+                                { value: 'FUJAIRAH', label: t('customers.emirates.fujairah') },
+                                { value: 'AL_AIN', label: t('customers.emirates.alAin') },
+                              ]}
+                              value={field.value || ''}
+                              onValueChange={field.onChange}
+                              placeholder={t('common.select')}
+                              searchPlaceholder={t('common.search')}
+                              disabled={isLoading}
+                              icon={<MapPin className="size-4 text-muted-foreground" />}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -473,30 +475,32 @@ export default function EditCustomerPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t('customers.city')}</FormLabel>
-                          <Select
-                            onValueChange={(val) => {
-                              field.onChange(val);
-                              form.setValue('area', '');
-                            }}
-                            value={field.value || ''}
-                            disabled={isLoading}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="w-full">
-                                <div className="flex items-center gap-2">
-                                  <MapPin className="size-4 text-muted-foreground" />
-                                  <SelectValue placeholder={t('common.select')} />
-                                </div>
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {CITIES.map((city) => (
-                                <SelectItem key={city} value={city}>
-                                  {t(`customers.cities.${CITY_TRANSLATION_KEY[city]}`)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <SearchableSelect
+                              options={allCities.map((city) => {
+                                const key = CITY_TRANSLATION_KEY[city as City];
+                                const translationKey = key ? `customers.cities.${key}` : '';
+                                const translated = translationKey ? t(translationKey) : city;
+                                return {
+                                  value: city,
+                                  label: translated === translationKey ? city : translated,
+                                };
+                              })}
+                              value={field.value || ''}
+                              onValueChange={(val) => {
+                                field.onChange(val);
+                                form.setValue('area', '');
+                                setCustomAreas([]);
+                              }}
+                              placeholder={t('common.select')}
+                              searchPlaceholder={t('common.search')}
+                              disabled={isLoading}
+                              icon={<MapPin className="size-4 text-muted-foreground" />}
+                              allowCreate
+                              onCreateOption={(val) => setCustomCities((prev) => [...prev, val])}
+                              createLabel={t('common.add')}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -509,27 +513,27 @@ export default function EditCustomerPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t('customers.area')}</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value || ''}
-                            disabled={isLoading || !watchedCity}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="w-full">
-                                <div className="flex items-center gap-2">
-                                  <MapPin className="size-4 text-muted-foreground" />
-                                  <SelectValue placeholder={t('common.select')} />
-                                </div>
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {availableAreas.map((area) => (
-                                <SelectItem key={area} value={area}>
-                                  {t(`customers.areas.${areaTranslationKey(area)}`)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <SearchableSelect
+                              options={availableAreas.map((area) => {
+                                const key = `customers.areas.${areaTranslationKey(area)}`;
+                                const translated = t(key);
+                                return {
+                                  value: area,
+                                  label: translated === key ? area : translated,
+                                };
+                              })}
+                              value={field.value || ''}
+                              onValueChange={field.onChange}
+                              placeholder={t('common.select')}
+                              searchPlaceholder={t('common.search')}
+                              disabled={isLoading || !watchedCity}
+                              icon={<MapPin className="size-4 text-muted-foreground" />}
+                              allowCreate
+                              onCreateOption={(val) => setCustomAreas((prev) => [...prev, val])}
+                              createLabel={t('common.add')}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -566,17 +570,19 @@ export default function EditCustomerPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t('customers.customerType')} *</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
-                            <FormControl>
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder={t('common.select')} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="NEW">{t('customers.typeNew')}</SelectItem>
-                              <SelectItem value="EXISTING">{t('customers.typeExisting')}</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <SearchableSelect
+                              options={[
+                                { value: 'NEW', label: t('customers.typeNew') },
+                                { value: 'EXISTING', label: t('customers.typeExisting') },
+                              ]}
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              placeholder={t('common.select')}
+                              searchPlaceholder={t('common.search')}
+                              disabled={isLoading}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -607,26 +613,26 @@ export default function EditCustomerPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t('customers.projectType')}</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ''} disabled={isLoading}>
-                            <FormControl>
-                              <SelectTrigger className="w-full">
-                                <div className="flex items-center gap-2">
-                                  <Briefcase className="size-4 text-muted-foreground" />
-                                  <SelectValue placeholder={t('common.select')} />
-                                </div>
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="VILLA">{t('customers.projectTypes.villa')}</SelectItem>
-                              <SelectItem value="ANNEX">{t('customers.projectTypes.annex')}</SelectItem>
-                              <SelectItem value="GUARD_ROOM">{t('customers.projectTypes.guardRoom')}</SelectItem>
-                              <SelectItem value="WAREHOUSE">{t('customers.projectTypes.warehouse')}</SelectItem>
-                              <SelectItem value="OFFICE">{t('customers.projectTypes.office')}</SelectItem>
-                              <SelectItem value="COMMERCIAL">{t('customers.projectTypes.commercial')}</SelectItem>
-                              <SelectItem value="RESIDENTIAL">{t('customers.projectTypes.residential')}</SelectItem>
-                              <SelectItem value="OTHER">{t('customers.projectTypes.other')}</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <SearchableSelect
+                              options={[
+                                { value: 'VILLA', label: t('customers.projectTypes.villa') },
+                                { value: 'ANNEX', label: t('customers.projectTypes.annex') },
+                                { value: 'GUARD_ROOM', label: t('customers.projectTypes.guardRoom') },
+                                { value: 'WAREHOUSE', label: t('customers.projectTypes.warehouse') },
+                                { value: 'OFFICE', label: t('customers.projectTypes.office') },
+                                { value: 'COMMERCIAL', label: t('customers.projectTypes.commercial') },
+                                { value: 'RESIDENTIAL', label: t('customers.projectTypes.residential') },
+                                { value: 'OTHER', label: t('customers.projectTypes.other') },
+                              ]}
+                              value={field.value || ''}
+                              onValueChange={field.onChange}
+                              placeholder={t('common.select')}
+                              searchPlaceholder={t('common.search')}
+                              disabled={isLoading}
+                              icon={<Briefcase className="size-4 text-muted-foreground" />}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -639,17 +645,19 @@ export default function EditCustomerPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t('customers.productType')}</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ''} disabled={isLoading}>
-                            <FormControl>
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder={t('common.select')} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="FRAMIX_LGSF">{t('customers.productTypes.framixLgsf')}</SelectItem>
-                              <SelectItem value="OTHER">{t('customers.productTypes.other')}</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <SearchableSelect
+                              options={[
+                                { value: 'FRAMIX_LGSF', label: t('customers.productTypes.framixLgsf') },
+                                { value: 'OTHER', label: t('customers.productTypes.other') },
+                              ]}
+                              value={field.value || ''}
+                              onValueChange={field.onChange}
+                              placeholder={t('common.select')}
+                              searchPlaceholder={t('common.search')}
+                              disabled={isLoading}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -776,26 +784,26 @@ export default function EditCustomerPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t('customers.leadSource')}</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ''} disabled={isLoading}>
-                            <FormControl>
-                              <SelectTrigger className="w-full">
-                                <div className="flex items-center gap-2">
-                                  <Megaphone className="size-4 text-muted-foreground" />
-                                  <SelectValue placeholder={t('common.select')} />
-                                </div>
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="INSTAGRAM">{t('customers.leadSources.instagram')}</SelectItem>
-                              <SelectItem value="FACEBOOK">{t('customers.leadSources.facebook')}</SelectItem>
-                              <SelectItem value="WEBSITE">{t('customers.leadSources.website')}</SelectItem>
-                              <SelectItem value="CONSULTANT">{t('customers.leadSources.consultant')}</SelectItem>
-                              <SelectItem value="REFERRAL">{t('customers.leadSources.referral')}</SelectItem>
-                              <SelectItem value="EXHIBITION">{t('customers.leadSources.exhibition')}</SelectItem>
-                              <SelectItem value="COLD_CALL">{t('customers.leadSources.coldCall')}</SelectItem>
-                              <SelectItem value="OTHER">{t('customers.leadSources.other')}</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <SearchableSelect
+                              options={[
+                                { value: 'INSTAGRAM', label: t('customers.leadSources.instagram') },
+                                { value: 'FACEBOOK', label: t('customers.leadSources.facebook') },
+                                { value: 'WEBSITE', label: t('customers.leadSources.website') },
+                                { value: 'CONSULTANT', label: t('customers.leadSources.consultant') },
+                                { value: 'REFERRAL', label: t('customers.leadSources.referral') },
+                                { value: 'EXHIBITION', label: t('customers.leadSources.exhibition') },
+                                { value: 'COLD_CALL', label: t('customers.leadSources.coldCall') },
+                                { value: 'OTHER', label: t('customers.leadSources.other') },
+                              ]}
+                              value={field.value || ''}
+                              onValueChange={field.onChange}
+                              placeholder={t('common.select')}
+                              searchPlaceholder={t('common.search')}
+                              disabled={isLoading}
+                              icon={<Megaphone className="size-4 text-muted-foreground" />}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -808,31 +816,31 @@ export default function EditCustomerPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t('common.status')} *</FormLabel>
-                          <Select
-                            onValueChange={(value) => {
-                              const newStatus = value as LeadStatus;
-                              field.onChange(newStatus);
-                              form.setValue('probability', STATUS_PROBABILITY_MAP[newStatus]);
-                            }}
-                            value={field.value}
-                            disabled={isLoading}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder={t('common.select')} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="NEW_INQUIRY">{t('customers.statusNewInquiry')} (10%)</SelectItem>
-                              <SelectItem value="QUOTATION_SENT">{t('customers.statusQuotationSent')} (30%)</SelectItem>
-                              <SelectItem value="TECHNICAL_DISCUSSION">{t('customers.statusTechnicalDiscussion')} (50%)</SelectItem>
-                              <SelectItem value="NEGOTIATION">{t('customers.statusNegotiation')} (70%)</SelectItem>
-                              <SelectItem value="FINAL_OFFER">{t('customers.statusFinalOffer')} (85%)</SelectItem>
-                              <SelectItem value="VERBAL_APPROVAL">{t('customers.statusVerbalApproval')} (95%)</SelectItem>
-                              <SelectItem value="WON">{t('customers.statusWon')} (100%)</SelectItem>
-                              <SelectItem value="LOST">{t('customers.statusLost')} (0%)</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <SearchableSelect
+                              options={[
+                                { value: 'NEW_INQUIRY', label: `${t('customers.statusNewInquiry')} (10%)` },
+                                { value: 'QUOTATION_SENT', label: `${t('customers.statusQuotationSent')} (30%)` },
+                                { value: 'TECHNICAL_DISCUSSION', label: `${t('customers.statusTechnicalDiscussion')} (50%)` },
+                                { value: 'NEGOTIATION', label: `${t('customers.statusNegotiation')} (70%)` },
+                                { value: 'FINAL_OFFER', label: `${t('customers.statusFinalOffer')} (85%)` },
+                                { value: 'VERBAL_APPROVAL', label: `${t('customers.statusVerbalApproval')} (95%)` },
+                                { value: 'WON', label: `${t('customers.statusWon')} (100%)` },
+                                { value: 'LOST', label: `${t('customers.statusLost')} (0%)` },
+                              ]}
+                              value={field.value}
+                              onValueChange={(value) => {
+                                const newStatus = value as LeadStatus;
+                                field.onChange(newStatus);
+                                if (newStatus) {
+                                  form.setValue('probability', STATUS_PROBABILITY_MAP[newStatus]);
+                                }
+                              }}
+                              placeholder={t('common.select')}
+                              searchPlaceholder={t('common.search')}
+                              disabled={isLoading}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1047,6 +1055,66 @@ export default function EditCustomerPage() {
                       <FileUploadZone
                         customerId={id}
                         category="QUOTATIONS"
+                        attachments={attachments}
+                        onUploadComplete={fetchAttachments}
+                        disabled={isLoading}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* BOQ, Specifications & Reports */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card className="shadow-premium">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <FileSpreadsheet className="size-4 text-orange-500" />
+                        {t('attachments.boq')}
+                      </CardTitle>
+                      <CardDescription className="text-xs">{t('attachments.boqDesc')}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <FileUploadZone
+                        customerId={id}
+                        category="BOQ"
+                        attachments={attachments}
+                        onUploadComplete={fetchAttachments}
+                        disabled={isLoading}
+                      />
+                    </CardContent>
+                  </Card>
+
+                  <Card className="shadow-premium">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <FileText className="size-4 text-violet-500" />
+                        {t('attachments.specifications')}
+                      </CardTitle>
+                      <CardDescription className="text-xs">{t('attachments.specificationsDesc')}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <FileUploadZone
+                        customerId={id}
+                        category="SPECIFICATIONS"
+                        attachments={attachments}
+                        onUploadComplete={fetchAttachments}
+                        disabled={isLoading}
+                      />
+                    </CardContent>
+                  </Card>
+
+                  <Card className="shadow-premium">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <FileText className="size-4 text-amber-500" />
+                        {t('attachments.reports')}
+                      </CardTitle>
+                      <CardDescription className="text-xs">{t('attachments.reportsDesc')}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <FileUploadZone
+                        customerId={id}
+                        category="REPORTS"
                         attachments={attachments}
                         onUploadComplete={fetchAttachments}
                         disabled={isLoading}

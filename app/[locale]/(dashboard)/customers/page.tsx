@@ -41,6 +41,7 @@ import {
   Calendar,
   UserCheck,
   AlertCircle,
+  Package,
 } from 'lucide-react';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { PageHeader } from '@/components/PageHeader';
@@ -58,6 +59,7 @@ interface Customer {
   status: string;
   emirate: string | null;
   leadSource: string | null;
+  productType: string | null;
   estimatedValue: number | null;
   probability: number | null;
   weightedValue: number | null;
@@ -72,6 +74,12 @@ interface Customer {
     tasks: number;
   };
 }
+
+const PRODUCT_TYPE_TRANSLATION_MAP: Record<string, string> = {
+  LIGHT_STEEL: 'lightSteel',
+  LIGHT_PAD: 'lightPad',
+  ALUMINUM: 'aluminum',
+};
 
 const STATUS_TRANSLATION_MAP: Record<string, string> = {
   NEW_INQUIRY: 'statusNewInquiry',
@@ -520,6 +528,12 @@ export default function CustomersPage() {
                       </div>
                     </th>
                     <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
+                      <div className="flex items-center justify-center gap-1">
+                        <Package className="size-3" />
+                        {t('customers.productType')}
+                      </div>
+                    </th>
+                    <th className="px-4 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
                       {t('common.actions')}
                     </th>
                   </tr>
@@ -593,6 +607,15 @@ export default function CustomersPage() {
                         </td>
                         <td className="px-4 py-4 text-center text-sm text-muted-foreground">
                           {customer.owner.fullName}
+                        </td>
+                        <td className="px-4 py-4 text-center text-sm text-muted-foreground">
+                          {customer.productType ? (
+                            <Badge variant="outline" className="text-xs">
+                              {t(`customers.productTypes.${PRODUCT_TYPE_TRANSLATION_MAP[customer.productType] || 'lightSteel'}`)}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
                         </td>
                         <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                           {customer.deletedAt ? (

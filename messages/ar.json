@@ -55,7 +55,8 @@
     "bulkDeleteConfirm": "حذف {count} عناصر؟",
     "bulkDeleteConfirmDesc": "سيتم حذف العناصر المحددة نهائياً.",
     "clear": "مسح",
-    "new": "جديد"
+    "new": "جديد",
+    "add": "إضافة"
   },
   "auth": {
     "login": "تسجيل الدخول",
@@ -211,7 +212,8 @@
     "cities": {
       "abuDhabi": "أبوظبي",
       "alDhafra": "الظفرة",
-      "alAin": "العين"
+      "alAin": "العين",
+      "riyadh": "الرياض"
     },
     "areas": {
       "khalifaCity": "مدينة خليفة",
@@ -261,6 +263,25 @@
       "alHayer": "الهير",
       "mezyad": "مزيد",
       "alAinIndustrial": "العين الصناعية",
+      "alOlaya": "العليا",
+      "alMalaz": "الملز",
+      "alMurabba": "المربع",
+      "alNaseem": "النسيم",
+      "alRawdahRiyadh": "الروضة",
+      "alSulaimaniyah": "السليمانية",
+      "alWorood": "الورود",
+      "alNakheel": "النخيل",
+      "hittin": "حطين",
+      "alYasmin": "الياسمين",
+      "alRahmaniyah": "الرحمانية",
+      "alAqiq": "العقيق",
+      "alSahafah": "الصحافة",
+      "alNarjis": "النرجس",
+      "irqah": "عرقة",
+      "alDirah": "الديرة",
+      "alBatha": "البطحاء",
+      "alShifa": "الشفا",
+      "alAziziyah": "العزيزية",
       "other": "أخرى"
     },
     "projectTypes": {
@@ -471,11 +492,19 @@
     "drawingsDesc": "مخططات معمارية، إنشائية، تكييف، وغيرها من الرسومات الفنية",
     "quotations": "عروض الأسعار",
     "quotationsDesc": "عروض الأسعار، المقترحات، والمستندات المالية",
+    "boq": "جدول الكميات",
+    "boqDesc": "جداول الكميات وتفاصيل التكاليف",
+    "specifications": "المواصفات",
+    "specificationsDesc": "المواصفات الفنية ومواصفات المواد",
+    "reports": "التقارير",
+    "reportsDesc": "تقارير المشروع، تقارير الفحص، والتقييمات",
     "dropHere": "اسحب الملفات هنا أو اضغط للتصفح",
-    "maxSize": "الحد الأقصى 10 ميجابايت لكل ملف",
+    "maxSize": "بدون حد للحجم - الملفات أكبر من 15 ميجا يتم ضغطها تلقائياً",
     "uploading": "جاري الرفع...",
+    "compressing": "جاري ضغط الملف...",
+    "compressed": "تم ضغط الملف: {original} ← {compressed}",
     "uploadSuccess": "تم رفع الملف بنجاح",
-    "fileTooLarge": "الملف كبير جداً (الحد الأقصى 10 ميجابايت)",
+    "fileTooLarge": "الملف كبير جداً",
     "noAttachments": "لا توجد مرفقات بعد",
     "subcategories": {
       "idCard": "الهوية / جواز السفر",

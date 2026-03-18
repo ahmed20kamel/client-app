@@ -28,6 +28,8 @@ interface FileUploadZoneProps {
   disabled?: boolean;
 }
 
+const COMPRESS_THRESHOLD = 15 * 1024 * 1024; // 15MB
+
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -38,6 +40,59 @@ function getFileIcon(mimeType: string) {
   if (mimeType.startsWith('image/')) return <Image className="size-5 text-blue-500" />;
   if (mimeType === 'application/pdf') return <FileText className="size-5 text-red-500" />;
   return <File className="size-5 text-muted-foreground" />;
+}
+
+async function compressImage(file: File, maxSizeMB: number = 10): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement('canvas');
+
+      // Scale down if very large
+      let { width, height } = img;
+      const maxDim = 4096;
+      if (width > maxDim || height > maxDim) {
+        const ratio = Math.min(maxDim / width, maxDim / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Try decreasing quality until under target size
+      let quality = 0.8;
+      const tryCompress = () => {
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) { resolve(file); return; }
+            if (blob.size > maxSizeMB * 1024 * 1024 && quality > 0.1) {
+              quality -= 0.1;
+              tryCompress();
+            } else {
+              const compressed = new window.File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(compressed);
+            }
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      tryCompress();
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file); // fallback: return original
+    };
+    img.src = url;
+  });
 }
 
 export function FileUploadZone({
@@ -51,6 +106,7 @@ export function FileUploadZone({
 }: FileUploadZoneProps) {
   const t = useTranslations();
   const [uploading, setUploading] = useState(false);
+  const [compressing, setCompressing] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -61,15 +117,23 @@ export function FileUploadZone({
   );
 
   const uploadFile = useCallback(async (file: File) => {
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error(t('attachments.fileTooLarge'));
-      return;
+    let fileToUpload = file;
+
+    // Auto-compress images > 15MB
+    if (file.size > COMPRESS_THRESHOLD && file.type.startsWith('image/')) {
+      setCompressing(true);
+      try {
+        fileToUpload = await compressImage(file);
+        toast.info(t('attachments.compressed', { original: formatFileSize(file.size), compressed: formatFileSize(fileToUpload.size) }));
+      } finally {
+        setCompressing(false);
+      }
     }
 
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', fileToUpload);
       formData.append('category', category);
       if (subcategory) formData.append('subcategory', subcategory);
 
@@ -155,7 +219,12 @@ export function FileUploadZone({
           disabled={disabled}
           accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.doc,.docx,.xls,.xlsx,.dwg,.dxf,.zip,.rar"
         />
-        {uploading ? (
+        {compressing ? (
+          <div className="flex items-center justify-center gap-2">
+            <Loader2 className="size-4 text-orange-500 animate-spin" />
+            <p className="text-xs text-muted-foreground">{t('attachments.compressing')}</p>
+          </div>
+        ) : uploading ? (
           <div className="flex items-center justify-center gap-2">
             <Loader2 className="size-4 text-primary animate-spin" />
             <p className="text-xs text-muted-foreground">{t('attachments.uploading')}</p>
