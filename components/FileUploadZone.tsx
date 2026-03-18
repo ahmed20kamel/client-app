@@ -132,10 +132,21 @@ async function compressFileGzip(file: File): Promise<File> {
   }
 }
 
-// Main compress function: images via Canvas, everything else via gzip
+// File types that are already compressed (gzip won't help)
+const ALREADY_COMPRESSED_TYPES = [
+  'application/pdf',
+  'application/zip', 'application/x-rar-compressed',
+  'application/gzip', 'application/x-gzip',
+];
+
+// Main compress function: images via Canvas, skip already-compressed formats, gzip the rest
 async function compressFile(file: File): Promise<File> {
   if (file.type.startsWith('image/')) {
     return compressImage(file);
+  }
+  // PDFs, ZIPs, RARs are already compressed - just upload directly
+  if (ALREADY_COMPRESSED_TYPES.includes(file.type)) {
+    return file;
   }
   return compressFileGzip(file);
 }
@@ -164,12 +175,12 @@ export function FileUploadZone({
   const uploadFile = useCallback(async (file: File) => {
     let fileToUpload = file;
 
-    // Auto-compress ANY file > 15MB
+    // Auto-compress files > 15MB (images get resized, others get gzipped, PDFs/ZIPs skip)
     if (file.size > COMPRESS_THRESHOLD) {
       setCompressing(true);
       try {
         fileToUpload = await compressFile(file);
-        if (fileToUpload.size < file.size) {
+        if (fileToUpload !== file && fileToUpload.size < file.size) {
           toast.info(t('attachments.compressed', {
             original: formatFileSize(file.size),
             compressed: formatFileSize(fileToUpload.size),

@@ -11,15 +11,36 @@ export async function uploadToCloudinary(
   originalName: string,
   folder: string = 'attachments'
 ): Promise<{ url: string; publicId: string }> {
-  const base64 = buffer.toString('base64');
   const mimeType = getMimeType(originalName);
-  const dataUri = `data:${mimeType};base64,${base64}`;
-
   const publicId = `${Date.now()}-${originalName.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9]/g, '_')}`;
 
   const isImage = mimeType.startsWith('image/');
   const isVideo = mimeType.startsWith('video/');
   const resourceType = isImage ? 'image' : isVideo ? 'video' : 'raw';
+
+  // Use stream upload for large files (> 5MB) to avoid base64 memory issues
+  if (buffer.length > 5 * 1024 * 1024) {
+    const result = await new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder,
+          resource_type: resourceType,
+          public_id: publicId,
+          use_filename: false,
+        },
+        (error, result) => {
+          if (error || !result) return reject(error || new Error('Upload failed'));
+          resolve(result);
+        }
+      );
+      uploadStream.end(buffer);
+    });
+    return { url: result.secure_url, publicId: result.public_id };
+  }
+
+  // Small files: use base64 data URI (faster)
+  const base64 = buffer.toString('base64');
+  const dataUri = `data:${mimeType};base64,${base64}`;
 
   const result = await cloudinary.uploader.upload(dataUri, {
     folder,
