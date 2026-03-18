@@ -115,7 +115,7 @@ export function FileUploadZone({
     a => a.category === category && (subcategory ? a.subcategory === subcategory : true)
   );
 
-  // Direct upload to Cloudinary for large files (bypasses Vercel 4.5MB body limit)
+  // Chunked upload to Cloudinary for large files (bypasses Vercel 4.5MB limit + Cloudinary 10MB limit)
   const uploadDirectToCloudinary = useCallback(async (file: File): Promise<{ url: string; publicId: string } | null> => {
     try {
       // 1. Get signed upload params from our API
@@ -123,24 +123,51 @@ export function FileUploadZone({
       if (!signRes.ok) return null;
       const { signature, timestamp, folder, cloudName, apiKey } = await signRes.json();
 
-      // 2. Upload directly to Cloudinary
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('signature', signature);
-      formData.append('timestamp', timestamp.toString());
-      formData.append('folder', folder);
-      formData.append('api_key', apiKey);
-      formData.append('resource_type', 'raw');
+      const CHUNK_SIZE = 6 * 1024 * 1024; // 6MB chunks
+      const totalSize = file.size;
+      const uniqueUploadId = `upload_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
-      const uploadRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`,
-        { method: 'POST', body: formData }
-      );
+      let resultData: { secure_url: string; public_id: string } | null = null;
 
-      if (!uploadRes.ok) return null;
-      const result = await uploadRes.json();
-      return { url: result.secure_url, publicId: result.public_id };
-    } catch {
+      for (let start = 0; start < totalSize; start += CHUNK_SIZE) {
+        const end = Math.min(start + CHUNK_SIZE, totalSize);
+        const chunk = file.slice(start, end);
+
+        const formData = new FormData();
+        formData.append('file', chunk);
+        formData.append('signature', signature);
+        formData.append('timestamp', timestamp.toString());
+        formData.append('folder', folder);
+        formData.append('api_key', apiKey);
+
+        const uploadRes = await fetch(
+          `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`,
+          {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-Unique-Upload-Id': uniqueUploadId,
+              'Content-Range': `bytes ${start}-${end - 1}/${totalSize}`,
+            },
+          }
+        );
+
+        if (!uploadRes.ok) {
+          const errData = await uploadRes.json().catch(() => ({}));
+          console.error('Chunk upload failed:', errData);
+          return null;
+        }
+
+        // The last chunk returns the final result
+        if (end >= totalSize) {
+          resultData = await uploadRes.json();
+        }
+      }
+
+      if (!resultData) return null;
+      return { url: resultData.secure_url, publicId: resultData.public_id };
+    } catch (err) {
+      console.error('Direct upload error:', err);
       return null;
     }
   }, []);
