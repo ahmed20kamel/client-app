@@ -42,6 +42,7 @@ function getFileIcon(mimeType: string) {
   return <File className="size-5 text-muted-foreground" />;
 }
 
+// Compress image using Canvas - reduce quality and dimensions
 async function compressImage(file: File, maxSizeMB: number = 10): Promise<File> {
   return new Promise((resolve) => {
     const img = new window.Image();
@@ -50,7 +51,6 @@ async function compressImage(file: File, maxSizeMB: number = 10): Promise<File> 
       URL.revokeObjectURL(url);
       const canvas = document.createElement('canvas');
 
-      // Scale down if very large
       let { width, height } = img;
       const maxDim = 4096;
       if (width > maxDim || height > maxDim) {
@@ -64,7 +64,6 @@ async function compressImage(file: File, maxSizeMB: number = 10): Promise<File> 
       const ctx = canvas.getContext('2d')!;
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Try decreasing quality until under target size
       let quality = 0.8;
       const tryCompress = () => {
         canvas.toBlob(
@@ -89,10 +88,56 @@ async function compressImage(file: File, maxSizeMB: number = 10): Promise<File> 
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      resolve(file); // fallback: return original
+      resolve(file);
     };
     img.src = url;
   });
+}
+
+// Compress any file using gzip (CompressionStream API)
+async function compressFileGzip(file: File): Promise<File> {
+  try {
+    // Check if CompressionStream is available
+    if (typeof CompressionStream === 'undefined') {
+      return file; // fallback: return original if not supported
+    }
+
+    const stream = file.stream();
+    const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
+    const reader = compressedStream.getReader();
+    const chunks: BlobPart[] = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(new Uint8Array(value) as unknown as BlobPart);
+    }
+
+    const compressedBlob = new Blob(chunks, { type: 'application/gzip' });
+
+    // Only use compressed version if it's actually smaller
+    if (compressedBlob.size >= file.size) {
+      return file;
+    }
+
+    const compressedFile = new window.File(
+      [compressedBlob],
+      file.name + '.gz',
+      { type: 'application/gzip', lastModified: Date.now() }
+    );
+
+    return compressedFile;
+  } catch {
+    return file; // fallback on error
+  }
+}
+
+// Main compress function: images via Canvas, everything else via gzip
+async function compressFile(file: File): Promise<File> {
+  if (file.type.startsWith('image/')) {
+    return compressImage(file);
+  }
+  return compressFileGzip(file);
 }
 
 export function FileUploadZone({
@@ -119,12 +164,17 @@ export function FileUploadZone({
   const uploadFile = useCallback(async (file: File) => {
     let fileToUpload = file;
 
-    // Auto-compress images > 15MB
-    if (file.size > COMPRESS_THRESHOLD && file.type.startsWith('image/')) {
+    // Auto-compress ANY file > 15MB
+    if (file.size > COMPRESS_THRESHOLD) {
       setCompressing(true);
       try {
-        fileToUpload = await compressImage(file);
-        toast.info(t('attachments.compressed', { original: formatFileSize(file.size), compressed: formatFileSize(fileToUpload.size) }));
+        fileToUpload = await compressFile(file);
+        if (fileToUpload.size < file.size) {
+          toast.info(t('attachments.compressed', {
+            original: formatFileSize(file.size),
+            compressed: formatFileSize(fileToUpload.size),
+          }));
+        }
       } finally {
         setCompressing(false);
       }

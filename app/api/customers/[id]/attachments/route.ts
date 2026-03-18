@@ -17,6 +17,7 @@ const ALLOWED_TYPES = [
   'application/vnd.dwg', 'application/x-dwg', 'image/vnd.dwg',
   'application/dxf', 'image/vnd.dxf',
   'application/zip', 'application/x-rar-compressed',
+  'application/gzip', 'application/x-gzip',
 ];
 
 // GET /api/customers/[id]/attachments - List attachments
