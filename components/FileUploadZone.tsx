@@ -94,63 +94,6 @@ async function compressImage(file: File, maxSizeMB: number = 10): Promise<File> 
   });
 }
 
-// Compress any file using gzip (CompressionStream API)
-async function compressFileGzip(file: File): Promise<File> {
-  try {
-    // Check if CompressionStream is available
-    if (typeof CompressionStream === 'undefined') {
-      return file; // fallback: return original if not supported
-    }
-
-    const stream = file.stream();
-    const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
-    const reader = compressedStream.getReader();
-    const chunks: BlobPart[] = [];
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(new Uint8Array(value) as unknown as BlobPart);
-    }
-
-    const compressedBlob = new Blob(chunks, { type: 'application/gzip' });
-
-    // Only use compressed version if it's actually smaller
-    if (compressedBlob.size >= file.size) {
-      return file;
-    }
-
-    const compressedFile = new window.File(
-      [compressedBlob],
-      file.name + '.gz',
-      { type: 'application/gzip', lastModified: Date.now() }
-    );
-
-    return compressedFile;
-  } catch {
-    return file; // fallback on error
-  }
-}
-
-// File types that are already compressed (gzip won't help)
-const ALREADY_COMPRESSED_TYPES = [
-  'application/pdf',
-  'application/zip', 'application/x-rar-compressed',
-  'application/gzip', 'application/x-gzip',
-];
-
-// Main compress function: images via Canvas, skip already-compressed formats, gzip the rest
-async function compressFile(file: File): Promise<File> {
-  if (file.type.startsWith('image/')) {
-    return compressImage(file);
-  }
-  // PDFs, ZIPs, RARs are already compressed - just upload directly
-  if (ALREADY_COMPRESSED_TYPES.includes(file.type)) {
-    return file;
-  }
-  return compressFileGzip(file);
-}
-
 export function FileUploadZone({
   customerId,
   tempSessionId,
@@ -172,15 +115,45 @@ export function FileUploadZone({
     a => a.category === category && (subcategory ? a.subcategory === subcategory : true)
   );
 
+  // Direct upload to Cloudinary for large files (bypasses Vercel 4.5MB body limit)
+  const uploadDirectToCloudinary = useCallback(async (file: File): Promise<{ url: string; publicId: string } | null> => {
+    try {
+      // 1. Get signed upload params from our API
+      const signRes = await fetch('/api/attachments/sign');
+      if (!signRes.ok) return null;
+      const { signature, timestamp, folder, cloudName, apiKey } = await signRes.json();
+
+      // 2. Upload directly to Cloudinary
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('signature', signature);
+      formData.append('timestamp', timestamp.toString());
+      formData.append('folder', folder);
+      formData.append('api_key', apiKey);
+      formData.append('resource_type', 'raw');
+
+      const uploadRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`,
+        { method: 'POST', body: formData }
+      );
+
+      if (!uploadRes.ok) return null;
+      const result = await uploadRes.json();
+      return { url: result.secure_url, publicId: result.public_id };
+    } catch {
+      return null;
+    }
+  }, []);
+
   const uploadFile = useCallback(async (file: File) => {
     let fileToUpload = file;
 
-    // Auto-compress files > 15MB (images get resized, others get gzipped, PDFs/ZIPs skip)
-    if (file.size > COMPRESS_THRESHOLD) {
+    // Auto-compress images > 15MB
+    if (file.size > COMPRESS_THRESHOLD && file.type.startsWith('image/')) {
       setCompressing(true);
       try {
-        fileToUpload = await compressFile(file);
-        if (fileToUpload !== file && fileToUpload.size < file.size) {
+        fileToUpload = await compressImage(file);
+        if (fileToUpload.size < file.size) {
           toast.info(t('attachments.compressed', {
             original: formatFileSize(file.size),
             compressed: formatFileSize(fileToUpload.size),
@@ -193,28 +166,62 @@ export function FileUploadZone({
 
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', fileToUpload);
-      formData.append('category', category);
-      if (subcategory) formData.append('subcategory', subcategory);
+      const VERCEL_LIMIT = 4 * 1024 * 1024; // 4MB - Vercel serverless body limit
 
-      let url: string;
-      if (isTemp) {
-        formData.append('tempSessionId', tempSessionId!);
-        url = '/api/attachments/temp';
+      if (fileToUpload.size > VERCEL_LIMIT) {
+        // Large file: upload directly to Cloudinary, then save record
+        const result = await uploadDirectToCloudinary(fileToUpload);
+        if (!result) {
+          toast.error(t('common.error'));
+          return;
+        }
+
+        // Save the attachment record to our DB
+        const saveRes = await fetch('/api/attachments/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerId: customerId || null,
+            tempSessionId: isTemp ? tempSessionId : null,
+            category,
+            subcategory: subcategory || null,
+            fileName: result.publicId,
+            originalName: file.name,
+            fileSize: file.size,
+            mimeType: file.type,
+            filePath: result.url,
+          }),
+        });
+
+        if (!saveRes.ok) {
+          toast.error(t('common.error'));
+          return;
+        }
       } else {
-        url = `/api/customers/${customerId}/attachments`;
-      }
+        // Small file: upload through our API (normal flow)
+        const formData = new FormData();
+        formData.append('file', fileToUpload);
+        formData.append('category', category);
+        if (subcategory) formData.append('subcategory', subcategory);
 
-      const res = await fetch(url, {
-        method: 'POST',
-        body: formData,
-      });
+        let url: string;
+        if (isTemp) {
+          formData.append('tempSessionId', tempSessionId!);
+          url = '/api/attachments/temp';
+        } else {
+          url = `/api/customers/${customerId}/attachments`;
+        }
 
-      if (!res.ok) {
-        const error = await res.json();
-        toast.error(error.error || t('common.error'));
-        return;
+        const res = await fetch(url, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          toast.error(error.error || t('common.error'));
+          return;
+        }
       }
 
       toast.success(t('attachments.uploadSuccess'));
@@ -224,7 +231,7 @@ export function FileUploadZone({
     } finally {
       setUploading(false);
     }
-  }, [customerId, tempSessionId, isTemp, category, subcategory, onUploadComplete, t]);
+  }, [customerId, tempSessionId, isTemp, category, subcategory, onUploadComplete, t, uploadDirectToCloudinary]);
 
   const handleFiles = useCallback((files: FileList | null) => {
     if (!files) return;
