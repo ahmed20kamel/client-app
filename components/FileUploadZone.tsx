@@ -115,58 +115,45 @@ export function FileUploadZone({
     a => a.category === category && (subcategory ? a.subcategory === subcategory : true)
   );
 
-  // Chunked upload through our server API for large files (bypasses Vercel 4.5MB body limit)
-  const uploadViaChunks = useCallback(async (file: File): Promise<boolean> => {
+  // Direct upload to Cloudinary for large files (bypasses Vercel 4.5MB body limit)
+  // PDFs/docs upload as 'raw' resource type (100MB limit), images as 'image' (10MB limit)
+  const uploadDirectToCloudinary = useCallback(async (file: File): Promise<{ url: string; publicId: string } | null> => {
     try {
-      const CHUNK_SIZE = 3 * 1024 * 1024; // 3MB chunks (under Vercel 4.5MB limit)
-      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-      const uploadId = `upload_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      // 1. Get signed upload params from our API
+      const signRes = await fetch('/api/attachments/sign');
+      if (!signRes.ok) return null;
+      const { signature, timestamp, folder, cloudName, apiKey } = await signRes.json();
 
-      // Send each chunk to our server
-      for (let i = 0; i < totalChunks; i++) {
-        const start = i * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, file.size);
-        const chunk = file.slice(start, end);
+      // Determine resource type - images go as 'image', everything else as 'raw'
+      const isImage = file.type.startsWith('image/');
+      const resourceType = isImage ? 'image' : 'raw';
 
-        const formData = new FormData();
-        formData.append('chunk', chunk);
-        formData.append('uploadId', uploadId);
-        formData.append('chunkIndex', i.toString());
+      // 2. Upload directly to Cloudinary (no size limit from browser to Cloudinary for raw files)
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('signature', signature);
+      formData.append('timestamp', timestamp.toString());
+      formData.append('folder', folder);
+      formData.append('api_key', apiKey);
 
-        const res = await fetch('/api/attachments/chunk', {
-          method: 'POST',
-          body: formData,
-        });
+      const uploadRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
+        { method: 'POST', body: formData }
+      );
 
-        if (!res.ok) {
-          console.error('Chunk upload failed at index', i);
-          return false;
-        }
+      if (!uploadRes.ok) {
+        const errData = await uploadRes.json().catch(() => ({}));
+        console.error('Cloudinary upload failed:', errData);
+        return null;
       }
 
-      // Tell server to reassemble and upload to Cloudinary
-      const completeRes = await fetch('/api/attachments/chunk/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          uploadId,
-          totalChunks,
-          customerId: customerId || null,
-          tempSessionId: isTemp ? tempSessionId : null,
-          category,
-          subcategory: subcategory || null,
-          originalName: file.name,
-          fileSize: file.size,
-          mimeType: file.type,
-        }),
-      });
-
-      return completeRes.ok;
+      const resultData = await uploadRes.json();
+      return { url: resultData.secure_url, publicId: resultData.public_id };
     } catch (err) {
-      console.error('Chunked upload error:', err);
-      return false;
+      console.error('Direct upload error:', err);
+      return null;
     }
-  }, [customerId, tempSessionId, isTemp, category, subcategory]);
+  }, []);
 
   const uploadFile = useCallback(async (file: File) => {
     let fileToUpload = file;
@@ -192,9 +179,31 @@ export function FileUploadZone({
       const VERCEL_LIMIT = 3 * 1024 * 1024; // 3MB - safe limit under Vercel 4.5MB body limit
 
       if (fileToUpload.size > VERCEL_LIMIT) {
-        // Large file: upload in chunks through our server
-        const success = await uploadViaChunks(fileToUpload);
-        if (!success) {
+        // Large file: upload directly to Cloudinary, then save record via our API
+        const result = await uploadDirectToCloudinary(fileToUpload);
+        if (!result) {
+          toast.error(t('common.error'));
+          return;
+        }
+
+        // Save the attachment record to our DB
+        const saveRes = await fetch('/api/attachments/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerId: customerId || null,
+            tempSessionId: isTemp ? tempSessionId : null,
+            category,
+            subcategory: subcategory || null,
+            fileName: result.publicId,
+            originalName: file.name,
+            fileSize: file.size,
+            mimeType: file.type,
+            filePath: result.url,
+          }),
+        });
+
+        if (!saveRes.ok) {
           toast.error(t('common.error'));
           return;
         }
@@ -232,7 +241,7 @@ export function FileUploadZone({
     } finally {
       setUploading(false);
     }
-  }, [customerId, tempSessionId, isTemp, category, subcategory, onUploadComplete, t, uploadViaChunks]);
+  }, [customerId, tempSessionId, isTemp, category, subcategory, onUploadComplete, t, uploadDirectToCloudinary]);
 
   const handleFiles = useCallback((files: FileList | null) => {
     if (!files) return;
