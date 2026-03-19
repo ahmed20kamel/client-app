@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
       data: {
         fullName: validatedData.fullName,
         fullNameAr: validatedData.fullNameAr || null,
-        nationalId: validatedData.nationalId,
+        nationalId: validatedData.nationalId || null,
         phone: validatedData.phone && validatedData.phone !== '+971' ? validatedData.phone : null,
         email: validatedData.email || null,
         company: validatedData.company || null,
