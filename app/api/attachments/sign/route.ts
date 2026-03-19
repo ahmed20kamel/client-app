@@ -19,7 +19,7 @@ export async function GET() {
     const timestamp = Math.round(Date.now() / 1000);
     const folder = 'crm/attachments';
 
-    const paramsToSign = { timestamp, folder, type: 'upload' as const };
+    const paramsToSign = { timestamp, folder, access_mode: 'public' };
 
     const signature = cloudinary.utils.api_sign_request(
       paramsToSign,
@@ -30,7 +30,7 @@ export async function GET() {
       signature,
       timestamp,
       folder,
-      type: 'upload',
+      accessMode: 'public',
       cloudName: process.env.CLOUDINARY_CLOUD_NAME,
       apiKey: process.env.CLOUDINARY_API_KEY,
     });
