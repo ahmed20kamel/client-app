@@ -27,6 +27,7 @@ export async function uploadToCloudinary(
           resource_type: resourceType,
           public_id: publicId,
           use_filename: false,
+          access_mode: 'public',
         },
         (error, result) => {
           if (error || !result) return reject(error || new Error('Upload failed'));
@@ -47,6 +48,7 @@ export async function uploadToCloudinary(
     resource_type: resourceType,
     public_id: publicId,
     use_filename: false,
+    access_mode: 'public',
   });
 
   return { url: result.secure_url, publicId: result.public_id };
