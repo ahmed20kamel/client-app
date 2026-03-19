@@ -123,13 +123,19 @@ export function FileUploadZone({
       if (!signRes.ok) return null;
       const { cloudName, uploadPreset } = await signRes.json();
 
-      // 2. Upload directly to Cloudinary with unsigned preset (files are public by default)
+      // 2. Upload directly to Cloudinary with unsigned preset
+      // Use 'raw' for non-image/video files (PDFs, docs, etc.) - always public
+      // Use 'image' for images, 'video' for videos
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+      const resourceType = isImage ? 'image' : isVideo ? 'video' : 'raw';
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', uploadPreset);
 
       const uploadRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+        `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
         { method: 'POST', body: formData }
       );
 
