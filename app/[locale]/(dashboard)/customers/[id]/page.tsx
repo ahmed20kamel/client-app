@@ -669,7 +669,7 @@ export default function CustomerDetailsPage() {
                               </p>
                               <div className="absolute top-2 end-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <a
-                                  href={`/api/attachments/download?id=${attachment.id}`}
+                                  href={attachment.filePath}
                                   download={attachment.originalName}
                                   target="_blank"
                                   rel="noopener noreferrer"
