@@ -352,7 +352,7 @@ export default function CustomerDetailsPage() {
                 {customer.emirate && (
                   <div className="flex items-center gap-3 text-sm">
                     <MapPin className="size-4 text-muted-foreground shrink-0" />
-                    <span>{t(`customers.${EMIRATE_TRANSLATION_MAP[customer.emirate]}`)}</span>
+                    <span>{EMIRATE_TRANSLATION_MAP[customer.emirate] ? t(`customers.${EMIRATE_TRANSLATION_MAP[customer.emirate]}`) : customer.emirate}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-3 text-sm">
@@ -441,9 +441,9 @@ export default function CustomerDetailsPage() {
                   <InfoItem icon={Mail} label={t('common.email')} value={customer.email} />
                   <InfoItem icon={Building2} label={t('customers.company')} value={customer.company} />
                   <InfoItem icon={Hash} label={t('customers.nationalId')} value={customer.nationalId} />
-                  <InfoItem icon={MapPin} label={t('customers.emirate')} value={customer.emirate ? t(`customers.${EMIRATE_TRANSLATION_MAP[customer.emirate]}`) : null} />
-                  <InfoItem icon={MapPin} label={t('customers.city')} value={customer.city ? t(`customers.cities.${CITY_TRANSLATION_KEY[customer.city as City]}`) : null} />
-                  <InfoItem icon={MapPin} label={t('customers.area')} value={customer.area ? t(`customers.areas.${areaTranslationKey(customer.area)}`) : null} />
+                  <InfoItem icon={MapPin} label={t('customers.emirate')} value={customer.emirate ? (EMIRATE_TRANSLATION_MAP[customer.emirate] ? t(`customers.${EMIRATE_TRANSLATION_MAP[customer.emirate]}`) : customer.emirate) : null} />
+                  <InfoItem icon={MapPin} label={t('customers.city')} value={customer.city ? (CITY_TRANSLATION_KEY[customer.city as City] && t.has(`customers.cities.${CITY_TRANSLATION_KEY[customer.city as City]}`) ? t(`customers.cities.${CITY_TRANSLATION_KEY[customer.city as City]}`) : customer.city) : null} />
+                  <InfoItem icon={MapPin} label={t('customers.area')} value={customer.area ? (t.has(`customers.areas.${areaTranslationKey(customer.area)}`) ? t(`customers.areas.${areaTranslationKey(customer.area)}`) : customer.area) : null} />
                   <InfoItem icon={MapPin} label={t('customers.basin')} value={customer.basin} />
                   <InfoItem icon={User} label={t('customers.customerType')} value={customer.customerType === 'NEW' ? t('customers.typeNew') : customer.customerType === 'EXISTING' ? t('customers.typeExisting') : customer.customerType} />
                   <InfoItem icon={UserCheck} label={t('customers.owner')} value={customer.owner.fullName} />

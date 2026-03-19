@@ -519,10 +519,9 @@ export default function CreateCustomerPage() {
                               options={allCities.map((city) => {
                                 const key = CITY_TRANSLATION_KEY[city as City];
                                 const translationKey = key ? `customers.cities.${key}` : '';
-                                const translated = translationKey ? t(translationKey) : city;
                                 return {
                                   value: city,
-                                  label: translated === translationKey ? city : translated,
+                                  label: translationKey && t.has(translationKey) ? t(translationKey) : city,
                                 };
                               })}
                               value={field.value || ''}
@@ -556,10 +555,9 @@ export default function CreateCustomerPage() {
                             <SearchableSelect
                               options={availableAreas.map((area) => {
                                 const key = `customers.areas.${areaTranslationKey(area)}`;
-                                const translated = t(key);
                                 return {
                                   value: area,
-                                  label: translated === key ? area : translated,
+                                  label: t.has(key) ? t(key) : area,
                                 };
                               })}
                               value={field.value || ''}

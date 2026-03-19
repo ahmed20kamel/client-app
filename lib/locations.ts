@@ -1,6 +1,6 @@
 // Abu Dhabi Emirate - Cities, Areas, and Basins
 
-export const CITIES = ['ABU_DHABI', 'AL_DHAFRA', 'AL_AIN', 'RIYADH'] as const;
+export const CITIES = ['ABU_DHABI', 'AL_DHAFRA', 'AL_AIN'] as const;
 export type City = (typeof CITIES)[number];
 
 // Areas per city
@@ -30,6 +30,7 @@ export const CITY_AREAS: Record<City, string[]> = {
     'BETWEEN_TWO_BRIDGES',
     'OFFICERS_CITY',
     'ZAYED_MILITARY_CITY',
+    'AL_RIYADH',
     'OTHER',
   ],
   AL_DHAFRA: [
@@ -61,28 +62,6 @@ export const CITY_AREAS: Record<City, string[]> = {
     'AL_AIN_INDUSTRIAL',
     'OTHER',
   ],
-  RIYADH: [
-    'AL_OLAYA',
-    'AL_MALAZ',
-    'AL_MURABBA',
-    'AL_NASEEM',
-    'AL_RAWDAH_RIYADH',
-    'AL_SULAIMANIYAH',
-    'AL_WOROOD',
-    'AL_NAKHEEL',
-    'HITTIN',
-    'AL_YASMIN',
-    'AL_RAHMANIYAH',
-    'AL_AQIQ',
-    'AL_SAHAFAH',
-    'AL_NARJIS',
-    'IRQAH',
-    'AL_DIRAH',
-    'AL_BATHA',
-    'AL_SHIFA',
-    'AL_AZIZIYAH',
-    'OTHER',
-  ],
 };
 
 // Map SNAKE_CASE to camelCase translation keys
@@ -93,7 +72,6 @@ export const CITY_TRANSLATION_KEY: Record<City, string> = {
   ABU_DHABI: 'abuDhabi',
   AL_DHAFRA: 'alDhafra',
   AL_AIN: 'alAin',
-  RIYADH: 'riyadh',
 };
 
 export const areaTranslationKey = (area: string) => snakeToCamel(area);

@@ -212,8 +212,7 @@
     "cities": {
       "abuDhabi": "أبوظبي",
       "alDhafra": "الظفرة",
-      "alAin": "العين",
-      "riyadh": "الرياض"
+      "alAin": "العين"
     },
     "areas": {
       "khalifaCity": "مدينة خليفة",
@@ -240,6 +239,7 @@
       "betweenTwoBridges": "بين الجسرين",
       "officersCity": "مدينة الضباط",
       "zayedMilitaryCity": "مدينة زايد العسكرية",
+      "alRiyadh": "الرياض",
       "madinatZayed": "مدينة زايد",
       "ghayathi": "غياثي",
       "liwa": "ليوا",

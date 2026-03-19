@@ -212,8 +212,7 @@
     "cities": {
       "abuDhabi": "Abu Dhabi",
       "alDhafra": "Al Dhafra",
-      "alAin": "Al Ain",
-      "riyadh": "Riyadh"
+      "alAin": "Al Ain"
     },
     "areas": {
       "khalifaCity": "Khalifa City",
@@ -240,6 +239,7 @@
       "betweenTwoBridges": "Between Two Bridges",
       "officersCity": "Officers City",
       "zayedMilitaryCity": "Zayed Military City",
+      "alRiyadh": "Al Riyadh",
       "madinatZayed": "Madinat Zayed",
       "ghayathi": "Ghayathi",
       "liwa": "Liwa",
