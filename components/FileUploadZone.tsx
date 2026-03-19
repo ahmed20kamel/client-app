@@ -115,30 +115,21 @@ export function FileUploadZone({
     a => a.category === category && (subcategory ? a.subcategory === subcategory : true)
   );
 
-  // Direct upload to Cloudinary for large files (bypasses Vercel 4.5MB body limit)
-  // PDFs/docs upload as 'raw' resource type (100MB limit), images as 'image' (10MB limit)
+  // Direct unsigned upload to Cloudinary for large files (bypasses Vercel 4.5MB body limit)
   const uploadDirectToCloudinary = useCallback(async (file: File): Promise<{ url: string; publicId: string } | null> => {
     try {
-      // 1. Get signed upload params from our API
+      // 1. Get upload preset from our API
       const signRes = await fetch('/api/attachments/sign');
       if (!signRes.ok) return null;
-      const { signature, timestamp, folder, accessMode, cloudName, apiKey } = await signRes.json();
+      const { cloudName, uploadPreset } = await signRes.json();
 
-      // Determine resource type - images go as 'image', everything else as 'raw'
-      const isImage = file.type.startsWith('image/');
-      const resourceType = isImage ? 'image' : 'raw';
-
-      // 2. Upload directly to Cloudinary (no size limit from browser to Cloudinary for raw files)
+      // 2. Upload directly to Cloudinary with unsigned preset (files are public by default)
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('signature', signature);
-      formData.append('timestamp', timestamp.toString());
-      formData.append('folder', folder);
-      formData.append('access_mode', accessMode);
-      formData.append('api_key', apiKey);
+      formData.append('upload_preset', uploadPreset);
 
       const uploadRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
+        `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
         { method: 'POST', body: formData }
       );
 
@@ -333,7 +324,7 @@ export function FileUploadZone({
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <a
-                  href={`/api/attachments/download?id=${attachment.id}`}
+                  href={attachment.filePath}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={e => e.stopPropagation()}

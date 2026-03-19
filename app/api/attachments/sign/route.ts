@@ -8,7 +8,23 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// GET /api/attachments/sign - Generate a signed upload params for direct Cloudinary upload
+const PRESET_NAME = 'crm_public_upload';
+
+// Ensure the unsigned upload preset exists
+async function ensurePreset() {
+  try {
+    await cloudinary.api.upload_preset(PRESET_NAME);
+  } catch {
+    // Preset doesn't exist, create it
+    await cloudinary.api.create_upload_preset({
+      name: PRESET_NAME,
+      unsigned: true,
+      folder: 'crm/attachments',
+    });
+  }
+}
+
+// GET /api/attachments/sign - Return cloud name and upload preset for unsigned upload
 export async function GET() {
   try {
     const session = await auth();
@@ -16,23 +32,11 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const timestamp = Math.round(Date.now() / 1000);
-    const folder = 'crm/attachments';
-
-    const paramsToSign = { timestamp, folder, access_mode: 'public' };
-
-    const signature = cloudinary.utils.api_sign_request(
-      paramsToSign,
-      process.env.CLOUDINARY_API_SECRET!
-    );
+    await ensurePreset();
 
     return NextResponse.json({
-      signature,
-      timestamp,
-      folder,
-      accessMode: 'public',
       cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-      apiKey: process.env.CLOUDINARY_API_KEY,
+      uploadPreset: PRESET_NAME,
     });
   } catch (error) {
     console.error('Sign upload error:', error);

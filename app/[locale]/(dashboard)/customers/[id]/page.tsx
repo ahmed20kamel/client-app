@@ -651,7 +651,7 @@ export default function CustomerDetailsPage() {
                                 <div className="mb-2 rounded-lg overflow-hidden bg-muted/30 aspect-video flex items-center justify-center">
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img
-                                    src={`/api/attachments/download?id=${attachment.id}`}
+                                    src={attachment.filePath}
                                     alt={attachment.originalName}
                                     className="object-contain max-h-full max-w-full"
                                   />
@@ -669,7 +669,7 @@ export default function CustomerDetailsPage() {
                               </p>
                               <div className="absolute top-2 end-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <a
-                                  href={`/api/attachments/download?id=${attachment.id}`}
+                                  href={attachment.filePath}
                                   download={attachment.originalName}
                                   target="_blank"
                                   rel="noopener noreferrer"
