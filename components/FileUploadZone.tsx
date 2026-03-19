@@ -122,7 +122,7 @@ export function FileUploadZone({
       // 1. Get signed upload params from our API
       const signRes = await fetch('/api/attachments/sign');
       if (!signRes.ok) return null;
-      const { signature, timestamp, folder, cloudName, apiKey } = await signRes.json();
+      const { signature, timestamp, folder, type, cloudName, apiKey } = await signRes.json();
 
       // Determine resource type - images go as 'image', everything else as 'raw'
       const isImage = file.type.startsWith('image/');
@@ -134,6 +134,7 @@ export function FileUploadZone({
       formData.append('signature', signature);
       formData.append('timestamp', timestamp.toString());
       formData.append('folder', folder);
+      formData.append('type', type);
       formData.append('api_key', apiKey);
 
       const uploadRes = await fetch(
