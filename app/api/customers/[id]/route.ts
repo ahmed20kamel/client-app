@@ -145,7 +145,9 @@ export async function PATCH(
     }
 
     // Handle empty string → null for optional string fields
+    if (!validatedData.nationalId) updateData.nationalId = null;
     if (validatedData.email === '') updateData.email = null;
+    if (validatedData.phone === '' || validatedData.phone === '+971') updateData.phone = null;
     if (validatedData.city === '') updateData.city = null;
     if (validatedData.area === '') updateData.area = null;
     if (validatedData.basin === '') updateData.basin = null;
