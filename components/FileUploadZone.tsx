@@ -61,35 +61,87 @@ export function FileUploadZone({
   );
 
   const uploadFile = useCallback(async (file: File) => {
-    if (file.size > 10 * 1024 * 1024) {
+    const MAX_SIZE = 100 * 1024 * 1024; // 100MB
+    if (file.size > MAX_SIZE) {
       toast.error(t('attachments.fileTooLarge'));
       return;
     }
 
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('category', category);
-      if (subcategory) formData.append('subcategory', subcategory);
+      const VERCEL_LIMIT = 4 * 1024 * 1024; // 4MB
 
-      let url: string;
-      if (isTemp) {
-        formData.append('tempSessionId', tempSessionId!);
-        url = '/api/attachments/temp';
+      if (file.size > VERCEL_LIMIT) {
+        // Large file: upload direct to Cloudinary from browser
+        const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+        const isImage = file.type.startsWith('image/');
+        const isVideo = file.type.startsWith('video/');
+        const resourceType = isImage ? 'image' : isVideo ? 'video' : 'raw';
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'crm_unsigned');
+        formData.append('folder', 'crm/attachments');
+
+        const uploadRes = await fetch(
+          `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
+          { method: 'POST', body: formData }
+        );
+
+        if (!uploadRes.ok) {
+          console.error('Cloudinary upload failed:', await uploadRes.text());
+          toast.error(t('common.error'));
+          return;
+        }
+
+        const result = await uploadRes.json();
+
+        // Save record to DB
+        const saveRes = await fetch('/api/attachments/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerId: customerId || null,
+            tempSessionId: isTemp ? tempSessionId : null,
+            category,
+            subcategory: subcategory || null,
+            fileName: result.public_id,
+            originalName: file.name,
+            fileSize: file.size,
+            mimeType: file.type,
+            filePath: result.secure_url,
+          }),
+        });
+
+        if (!saveRes.ok) {
+          toast.error(t('common.error'));
+          return;
+        }
       } else {
-        url = `/api/customers/${customerId}/attachments`;
-      }
+        // Small file: upload through server API
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('category', category);
+        if (subcategory) formData.append('subcategory', subcategory);
 
-      const res = await fetch(url, {
-        method: 'POST',
-        body: formData,
-      });
+        let url: string;
+        if (isTemp) {
+          formData.append('tempSessionId', tempSessionId!);
+          url = '/api/attachments/temp';
+        } else {
+          url = `/api/customers/${customerId}/attachments`;
+        }
 
-      if (!res.ok) {
-        const error = await res.json();
-        toast.error(error.error || t('common.error'));
-        return;
+        const res = await fetch(url, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          toast.error(error.error || t('common.error'));
+          return;
+        }
       }
 
       toast.success(t('attachments.uploadSuccess'));
