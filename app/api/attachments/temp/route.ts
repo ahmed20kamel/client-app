@@ -4,9 +4,9 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { uploadToCloudinary, deleteFromCloudinary } from '@/lib/cloudinary';
 
-export const maxDuration = 120;
+export const maxDuration = 30;
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
   'application/pdf',
@@ -17,7 +17,6 @@ const ALLOWED_TYPES = [
   'application/vnd.dwg', 'application/x-dwg', 'image/vnd.dwg',
   'application/dxf', 'image/vnd.dxf',
   'application/zip', 'application/x-rar-compressed',
-  'application/gzip', 'application/x-gzip',
 ];
 
 // POST /api/attachments/temp - Upload file with a temp sessionId (no customer yet)
@@ -44,7 +43,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
     }
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ error: 'File too large (max 100MB)' }, { status: 400 });
+      return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 });
     }
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json({ error: 'File type not allowed' }, { status: 400 });

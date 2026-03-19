@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { Upload, FileText, Image, File, Loader2, Download, Trash2 } from 'lucide-react';
+import { Upload, X, FileText, Image, File, Loader2, Download, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -61,58 +61,34 @@ export function FileUploadZone({
   );
 
   const uploadFile = useCallback(async (file: File) => {
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error(t('attachments.fileTooLarge'));
+      return;
+    }
+
     setUploading(true);
     try {
-      // 1. Get upload config from our API
-      const signRes = await fetch('/api/attachments/sign');
-      if (!signRes.ok) {
-        toast.error(t('common.error'));
-        return;
-      }
-      const { cloudName, uploadPreset } = await signRes.json();
-
-      // 2. Upload directly to Cloudinary from browser (bypasses Vercel body limit)
-      const isImage = file.type.startsWith('image/');
-      const isVideo = file.type.startsWith('video/');
-      const resourceType = isImage ? 'image' : isVideo ? 'video' : 'raw';
-
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('upload_preset', uploadPreset);
+      formData.append('category', category);
+      if (subcategory) formData.append('subcategory', subcategory);
 
-      const uploadRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
-        { method: 'POST', body: formData }
-      );
-
-      if (!uploadRes.ok) {
-        const errData = await uploadRes.json().catch(() => ({}));
-        console.error('Cloudinary upload failed:', errData);
-        toast.error(t('common.error'));
-        return;
+      let url: string;
+      if (isTemp) {
+        formData.append('tempSessionId', tempSessionId!);
+        url = '/api/attachments/temp';
+      } else {
+        url = `/api/customers/${customerId}/attachments`;
       }
 
-      const resultData = await uploadRes.json();
-
-      // 3. Save the attachment record to our DB
-      const saveRes = await fetch('/api/attachments/save', {
+      const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerId: customerId || null,
-          tempSessionId: isTemp ? tempSessionId : null,
-          category,
-          subcategory: subcategory || null,
-          fileName: resultData.public_id,
-          originalName: file.name,
-          fileSize: file.size,
-          mimeType: file.type,
-          filePath: resultData.secure_url,
-        }),
+        body: formData,
       });
 
-      if (!saveRes.ok) {
-        toast.error(t('common.error'));
+      if (!res.ok) {
+        const error = await res.json();
+        toast.error(error.error || t('common.error'));
         return;
       }
 
