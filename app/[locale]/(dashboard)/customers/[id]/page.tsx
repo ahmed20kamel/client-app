@@ -156,8 +156,9 @@ const PROJECT_TYPE_MAP: Record<string, string> = {
 };
 
 const PRODUCT_TYPE_MAP: Record<string, string> = {
-  FRAMIX_LGSF: 'productTypes.framixLgsf',
-  OTHER: 'productTypes.other',
+  LIGHT_STEEL: 'productTypes.lightSteel',
+  LIGHT_PAD: 'productTypes.lightPad',
+  ALUMINUM: 'productTypes.aluminum',
 };
 
 const LEAD_SOURCE_MAP: Record<string, string> = {
@@ -474,8 +475,8 @@ export default function CustomerDetailsPage() {
                   {t('customers.projectDetails')}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  <InfoItem icon={Briefcase} label={t('customers.projectType')} value={customer.projectType ? t(`customers.${PROJECT_TYPE_MAP[customer.projectType]}`) : null} />
-                  <InfoItem icon={Briefcase} label={t('customers.productType')} value={customer.productType ? t(`customers.${PRODUCT_TYPE_MAP[customer.productType]}`) : null} />
+                  <InfoItem icon={Briefcase} label={t('customers.projectType')} value={customer.projectType ? (PROJECT_TYPE_MAP[customer.projectType] ? t(`customers.${PROJECT_TYPE_MAP[customer.projectType]}`) : customer.projectType) : null} />
+                  <InfoItem icon={Briefcase} label={t('customers.productType')} value={customer.productType ? (PRODUCT_TYPE_MAP[customer.productType] ? t(`customers.${PRODUCT_TYPE_MAP[customer.productType]}`) : customer.productType) : null} />
                   <InfoItem icon={Ruler} label={t('customers.projectSize')} value={customer.projectSize ? `${customer.projectSize} m\u00B2` : null} />
                   <InfoItem icon={CreditCard} label={t('customers.paymentTerms')} value={customer.paymentTerms} />
                 </div>
@@ -514,7 +515,7 @@ export default function CustomerDetailsPage() {
               {t('customers.leadInfo')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              <InfoItem icon={Megaphone} label={t('customers.leadSource')} value={customer.leadSource ? t(`customers.${LEAD_SOURCE_MAP[customer.leadSource]}`) : null} />
+              <InfoItem icon={Megaphone} label={t('customers.leadSource')} value={customer.leadSource ? (LEAD_SOURCE_MAP[customer.leadSource] ? t(`customers.${LEAD_SOURCE_MAP[customer.leadSource]}`) : customer.leadSource) : null} />
               <InfoItem icon={DollarSign} label={t('customers.estimatedValue')} value={customer.estimatedValue ? `${t('common.currency')} ${customer.estimatedValue.toLocaleString()}` : null} />
               <InfoItem icon={Percent} label={t('customers.probability')} value={customer.probability != null ? `${customer.probability}%` : null} />
               <InfoItem icon={TrendingUp} label={t('customers.weightedValue')} value={customer.weightedValue ? `${t('common.currency')} ${customer.weightedValue.toLocaleString()}` : null} />

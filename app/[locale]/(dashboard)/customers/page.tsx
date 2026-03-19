@@ -611,7 +611,7 @@ export default function CustomersPage() {
                         <td className="px-4 py-4 text-center text-sm text-muted-foreground">
                           {customer.productType ? (
                             <Badge variant="outline" className="text-xs">
-                              {t(`customers.productTypes.${PRODUCT_TYPE_TRANSLATION_MAP[customer.productType] || 'lightSteel'}`)}
+                              {PRODUCT_TYPE_TRANSLATION_MAP[customer.productType] ? t(`customers.productTypes.${PRODUCT_TYPE_TRANSLATION_MAP[customer.productType]}`) : customer.productType}
                             </Badge>
                           ) : (
                             <span className="text-muted-foreground">-</span>
