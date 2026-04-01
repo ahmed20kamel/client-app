@@ -47,6 +47,8 @@ model User {
   createdInvoices        Invoice[]            @relation("InvoiceCreator")
   createdPayments        Payment[]            @relation("PaymentCreator")
   createdPurchaseOrders  PurchaseOrder[]      @relation("PurchaseOrderCreator")
+  createdTaxInvoices     TaxInvoice[]         @relation("TaxInvoiceCreator")
+  createdDeliveryNotes   DeliveryNote[]       @relation("DeliveryNoteCreator")
   uploadedAttachments    Attachment[]
 }
 
@@ -137,6 +139,8 @@ model Customer {
   attachments     Attachment[]
   quotations      Quotation[]
   invoices        Invoice[]
+  taxInvoices     TaxInvoice[]
+  deliveryNotes   DeliveryNote[]
 
   @@index([ownerId])
   @@index([phone])
@@ -441,7 +445,9 @@ model Product {
   description     String?
   descriptionAr   String?
   categoryId      String?
-  unitOfMeasure   String          @default("PIECE") // PIECE, KG, METER, LITER, BOX, CARTON, PALLET
+  productCode     String?                              // LBS, LPD, etc.
+  size            String?                              // e.g. 10x20, 60x60
+  unitOfMeasure   String          @default("PIECE")   // PIECE, LM (Linear Meter), Nos, KG, METER, LITER, BOX, CARTON, PALLET
   minStockLevel   Int             @default(0)
   maxStockLevel   Int?
   currentStock    Int             @default(0)
@@ -460,9 +466,11 @@ model Product {
   createdBy       User             @relation("ProductCreator", fields: [createdById], references: [id])
   stockMovements  StockMovement[]
   suppliers       ProductSupplier[]
-  quotationItems  QuotationItem[]
-  invoiceItems    InvoiceItem[]
+  quotationItems     QuotationItem[]
+  invoiceItems       InvoiceItem[]
   purchaseOrderItems PurchaseOrderItem[]
+  taxInvoiceItems    TaxInvoiceItem[]
+  deliveryNoteItems  DeliveryNoteItem[]
 
   @@index([categoryId])
   @@index([createdById])
@@ -538,6 +546,9 @@ model Quotation {
   id              String          @id @default(uuid())
   quotationNumber String          @unique
   customerId      String
+  engineerName    String?                             // المهندس المسؤول
+  mobileNumber    String?                             // رقم الموبايل
+  projectName     String?                             // اسم المشروع
   subject         String?
   notes           String?
   terms           String?
@@ -545,14 +556,17 @@ model Quotation {
   subtotal        Float           @default(0)
   discountPercent Float           @default(0)
   discountAmount  Float           @default(0)
-  taxPercent      Float           @default(5) // UAE VAT 5%
+  taxPercent      Float           @default(5)         // UAE VAT 5%
   taxAmount       Float           @default(0)
+  deliveryCharges Float           @default(0)
   total           Float           @default(0)
-  status          String          @default("DRAFT") // DRAFT, SENT, APPROVED, REJECTED, EXPIRED, CONVERTED
+  status          String          @default("DRAFT")  // DRAFT, SENT, APPROVED, REJECTED, EXPIRED, CONVERTED
   sentAt          DateTime?
   approvedAt      DateTime?
   rejectedAt      DateTime?
   rejectionReason String?
+  lpoNumber       String?                             // LPO Number (after approval)
+  paymentTerms    String?                             // Cash / Cheque / Transfer
   createdById     String
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -561,6 +575,8 @@ model Quotation {
   createdBy       User            @relation("QuotationCreator", fields: [createdById], references: [id])
   items           QuotationItem[]
   invoices        Invoice[]
+  taxInvoices     TaxInvoice[]
+  deliveryNotes   DeliveryNote[]
 
   @@index([customerId])
   @@index([createdById])
@@ -570,18 +586,22 @@ model Quotation {
 }
 
 model QuotationItem {
-  id          String    @id @default(uuid())
-  quotationId String
-  productId   String?
-  description String
-  quantity    Float     @default(1)
-  unitPrice   Float     @default(0)
-  discount    Float     @default(0) // per-line discount %
-  total       Float     @default(0)
-  sortOrder   Int       @default(0)
+  id              String    @id @default(uuid())
+  quotationId     String
+  productId       String?
+  description     String
+  quantity        Float     @default(1)
+  length          Float?                  // for LitBeam (Linear Meter calculation)
+  linearMeters    Float?                  // total LM = qty * length
+  size            String?                 // product size label e.g. 10x20
+  unit            String?                 // LM or Nos
+  unitPrice       Float     @default(0)
+  discount        Float     @default(0)  // per-line discount %
+  total           Float     @default(0)
+  sortOrder       Int       @default(0)
 
-  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
-  product     Product?  @relation(fields: [productId], references: [id])
+  quotation       Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  product         Product?  @relation(fields: [productId], references: [id])
 
   @@index([quotationId])
   @@index([productId])
@@ -660,6 +680,130 @@ model Payment {
   @@index([createdById])
   @@index([paidAt])
   @@index([paymentNumber])
+}
+
+// ==========================================
+// Tax Invoices
+// ==========================================
+
+model TaxInvoice {
+  id              String           @id @default(uuid())
+  invoiceNumber   String           @unique           // SC-671/26 format
+  quotationId     String
+  customerId      String
+  customerTrn     String?                            // Customer TRN
+  ourVatReg       String?                            // Our VAT Registration #
+  dnNumber        String?                            // Delivery Note reference
+  engineerName    String?
+  mobileNumber    String?
+  projectName     String?
+  notes           String?
+  terms           String?
+  subtotal        Float            @default(0)
+  taxPercent      Float            @default(5)
+  taxAmount       Float            @default(0)
+  deliveryCharges Float            @default(0)
+  total           Float            @default(0)
+  status          String           @default("DRAFT") // DRAFT, SENT, PAID, CANCELLED
+  sentAt          DateTime?
+  lpoNumber       String?
+  paymentTerms    String?
+  createdById     String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  quotation       Quotation        @relation(fields: [quotationId], references: [id])
+  customer        Customer         @relation(fields: [customerId], references: [id])
+  createdBy       User             @relation("TaxInvoiceCreator", fields: [createdById], references: [id])
+  items           TaxInvoiceItem[]
+  deliveryNotes   DeliveryNote[]
+
+  @@index([quotationId])
+  @@index([customerId])
+  @@index([createdById])
+  @@index([status])
+  @@index([createdAt])
+  @@index([invoiceNumber])
+}
+
+model TaxInvoiceItem {
+  id           String     @id @default(uuid())
+  taxInvoiceId String
+  productId    String?
+  description  String
+  quantity     Float      @default(1)
+  length       Float?
+  linearMeters Float?
+  size         String?
+  unit         String?
+  unitPrice    Float      @default(0)
+  total        Float      @default(0)
+  sortOrder    Int        @default(0)
+
+  taxInvoice   TaxInvoice @relation(fields: [taxInvoiceId], references: [id], onDelete: Cascade)
+  product      Product?   @relation(fields: [productId], references: [id])
+
+  @@index([taxInvoiceId])
+  @@index([productId])
+}
+
+// ==========================================
+// Delivery Notes
+// ==========================================
+
+model DeliveryNote {
+  id             String             @id @default(uuid())
+  dnNumber       String             @unique           // DN-1251/2026 format
+  quotationId    String?
+  taxInvoiceId   String?
+  customerId     String
+  engineerName   String?
+  mobileNumber   String?
+  projectName    String?
+  salesmanSign   String?            // Salesman signature (name or image URL)
+  receiverName   String?
+  receiverSign   String?            // Receiver signature (name or image URL)
+  notes          String?
+  status         String             @default("DRAFT") // DRAFT, DELIVERED, RETURNED
+  deliveredAt    DateTime?
+  createdById    String
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  quotation      Quotation?         @relation(fields: [quotationId], references: [id])
+  taxInvoice     TaxInvoice?        @relation(fields: [taxInvoiceId], references: [id])
+  customer       Customer           @relation(fields: [customerId], references: [id])
+  createdBy      User               @relation("DeliveryNoteCreator", fields: [createdById], references: [id])
+  items          DeliveryNoteItem[]
+
+  @@index([quotationId])
+  @@index([taxInvoiceId])
+  @@index([customerId])
+  @@index([createdById])
+  @@index([status])
+  @@index([createdAt])
+  @@index([dnNumber])
+}
+
+model DeliveryNoteItem {
+  id             String       @id @default(uuid())
+  deliveryNoteId String
+  productId      String?
+  description    String
+  quantity       Float        @default(1)
+  length         Float?
+  linearMeters   Float?
+  size           String?
+  unit           String?
+  unitPrice      Float        @default(0)
+  total          Float        @default(0)
+  sortOrder      Int          @default(0)
+
+  deliveryNote   DeliveryNote @relation(fields: [deliveryNoteId], references: [id], onDelete: Cascade)
+  product        Product?     @relation(fields: [productId], references: [id])
+
+  @@index([deliveryNoteId])
+  @@index([productId])
 }
 
 // ==========================================

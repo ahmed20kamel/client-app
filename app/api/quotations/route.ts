@@ -4,7 +4,26 @@ import { prisma } from '@/lib/prisma';
 import { createQuotationSchema } from '@/lib/validations/quotation';
 import { z } from 'zod';
 
-// GET /api/quotations - List quotations with filters and pagination
+// Helper: generate serial SC-LBS-XXX-YY
+async function generateQuotationNumber(productCode: string = 'LBS'): Promise<string> {
+  const year = new Date().getFullYear().toString().slice(-2);
+  const prefix = `SC-${productCode}`;
+  const lastRecord = await prisma.quotation.findFirst({
+    where: { quotationNumber: { startsWith: prefix } },
+    orderBy: { createdAt: 'desc' },
+    select: { quotationNumber: true },
+  });
+  let seq = 1;
+  if (lastRecord?.quotationNumber) {
+    const parts = lastRecord.quotationNumber.split('-');
+    // SC-LBS-257-26 → parts[2] = '257'
+    const lastSeq = parseInt(parts[2]);
+    if (!isNaN(lastSeq)) seq = lastSeq + 1;
+  }
+  return `${prefix}-${seq}-${year}`;
+}
+
+// GET /api/quotations
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -26,31 +45,21 @@ export async function GET(request: NextRequest) {
       where.OR = [
         { quotationNumber: { contains: search, mode: 'insensitive' } },
         { subject: { contains: search, mode: 'insensitive' } },
-        { customer: { name: { contains: search, mode: 'insensitive' } } },
+        { projectName: { contains: search, mode: 'insensitive' } },
+        { engineerName: { contains: search, mode: 'insensitive' } },
+        { customer: { fullName: { contains: search, mode: 'insensitive' } } },
       ];
     }
-
-    if (status) {
-      where.status = status;
-    }
-
-    if (customerId) {
-      where.customerId = customerId;
-    }
+    if (status) where.status = status;
+    if (customerId) where.customerId = customerId;
 
     const total = await prisma.quotation.count({ where });
-
     const quotations = await prisma.quotation.findMany({
       where,
       include: {
-        customer: true,
-        createdBy: {
-          select: {
-            id: true,
-            fullName: true,
-          },
-        },
-        items: true,
+        customer: { select: { id: true, fullName: true } },
+        createdBy: { select: { id: true, fullName: true } },
+        items: { orderBy: { sortOrder: 'asc' } },
       },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
@@ -59,23 +68,15 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       data: quotations,
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
   } catch (error) {
     console.error('Get quotations error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-// POST /api/quotations - Create new quotation
+// POST /api/quotations
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -86,27 +87,30 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createQuotationSchema.parse(body);
 
-    // Auto-generate quotation number
-    const lastRecord = await prisma.quotation.findFirst({
-      orderBy: { createdAt: 'desc' },
-      select: { quotationNumber: true },
-    });
-    const year = new Date().getFullYear();
-    let seq = 1;
-    if (lastRecord?.quotationNumber) {
-      const parts = lastRecord.quotationNumber.split('-');
-      if (parts[1] === String(year)) seq = parseInt(parts[2]) + 1;
+    // Determine product code from first item's product
+    let productCode = 'LBS';
+    if (validatedData.items[0]?.productId) {
+      const product = await prisma.product.findUnique({
+        where: { id: validatedData.items[0].productId },
+        select: { productCode: true },
+      });
+      if (product?.productCode) productCode = product.productCode;
     }
-    const quotationNumber = `QUO-${year}-${String(seq).padStart(4, '0')}`;
 
-    // Calculate totals
+    const quotationNumber = await generateQuotationNumber(productCode);
+
     const itemsData = validatedData.items.map((item, index) => {
       const lineDiscount = item.discount || 0;
-      const lineTotal = item.quantity * item.unitPrice * (1 - lineDiscount / 100);
+      const lm = item.linearMeters ?? (item.quantity * (item.length ?? 1));
+      const lineTotal = lm * item.unitPrice * (1 - lineDiscount / 100);
       return {
         productId: item.productId || null,
         description: item.description,
         quantity: item.quantity,
+        length: item.length ?? null,
+        linearMeters: item.unit === 'LM' ? lm : null,
+        size: item.size ?? null,
+        unit: item.unit ?? null,
         unitPrice: item.unitPrice,
         discount: lineDiscount,
         total: lineTotal,
@@ -119,37 +123,40 @@ export async function POST(request: NextRequest) {
     const discountAmount = subtotal * discountPercent / 100;
     const taxPercent = validatedData.taxPercent ?? 5;
     const taxAmount = (subtotal - discountAmount) * taxPercent / 100;
-    const total = subtotal - discountAmount + taxAmount;
+    const deliveryCharges = validatedData.deliveryCharges ?? 0;
+    const total = subtotal - discountAmount + taxAmount + deliveryCharges;
+
+    // validUntil default: 30 days from now
+    const validUntilDate = validatedData.validUntil
+      ? new Date(validatedData.validUntil)
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
     const result = await prisma.$transaction(async (tx) => {
       const quotation = await tx.quotation.create({
         data: {
           quotationNumber,
           customerId: validatedData.customerId,
+          engineerName: validatedData.engineerName || null,
+          mobileNumber: validatedData.mobileNumber || null,
+          projectName: validatedData.projectName || null,
           subject: validatedData.subject || null,
           notes: validatedData.notes || null,
           terms: validatedData.terms || null,
-          validUntil: validatedData.validUntil ? new Date(validatedData.validUntil) : null,
+          validUntil: validUntilDate,
           subtotal,
           discountPercent,
           discountAmount,
           taxPercent,
           taxAmount,
+          deliveryCharges,
           total,
           createdById: session.user.id,
-          items: {
-            create: itemsData,
-          },
+          items: { create: itemsData },
         },
         include: {
-          customer: true,
-          createdBy: {
-            select: {
-              id: true,
-              fullName: true,
-            },
-          },
-          items: true,
+          customer: { select: { id: true, fullName: true } },
+          createdBy: { select: { id: true, fullName: true } },
+          items: { orderBy: { sortOrder: 'asc' } },
         },
       });
       return quotation;
@@ -163,11 +170,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
     console.error('Create quotation error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
