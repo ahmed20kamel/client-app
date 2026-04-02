@@ -295,8 +295,12 @@ export default function CreateQuotationPage() {
                           <SelectTrigger className="flex-1">
                             <SelectValue placeholder={t('clients.selectClient')} />
                           </SelectTrigger>
-                          <SelectContent>
-                            {clients.map(c => (
+                          <SelectContent position="popper" sideOffset={4}>
+                            {clients.length === 0 ? (
+                              <div className="py-6 text-center text-sm text-muted-foreground">
+                                {t('common.noData')} — <button type="button" className="text-primary underline" onClick={() => setShowClientModal(true)}>{t('clients.create')}</button>
+                              </div>
+                            ) : clients.map(c => (
                               <SelectItem key={c.id} value={c.id}>
                                 {c.companyName}{c.trn ? ` — TRN: ${c.trn}` : ''}
                               </SelectItem>
@@ -307,9 +311,10 @@ export default function CreateQuotationPage() {
                           <UserPlus className="size-4" />
                         </Button>
                       </div>
-                      {selectedClient?.phone && (
+                      {selectedClient && (
                         <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
-                          <Phone className="size-3" />{selectedClient.phone}
+                          <Building2 className="size-3" />{selectedClient.companyName}
+                          {selectedClient.phone && <><span className="mx-1">·</span><Phone className="size-3" />{selectedClient.phone}</>}
                         </p>
                       )}
                     </div>

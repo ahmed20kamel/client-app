@@ -112,6 +112,7 @@
     "escalation": "Escalation Rules",
     "inventory": "Inventory",
     "suppliers": "Suppliers",
+    "clients": "Clients",
     "quotations": "Quotations",
     "taxInvoices": "Tax Invoices",
     "deliveryNotes": "Delivery Notes",

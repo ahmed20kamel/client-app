@@ -112,6 +112,7 @@
     "escalation": "قواعد التصعيد",
     "inventory": "المخزون",
     "suppliers": "الموردون",
+    "clients": "العملاء (B2B)",
     "quotations": "عروض الأسعار",
     "taxInvoices": "الفواتير الضريبية",
     "deliveryNotes": "مذكرات التسليم",

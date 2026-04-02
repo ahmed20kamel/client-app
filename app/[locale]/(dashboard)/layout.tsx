@@ -39,6 +39,7 @@ export default async function DashboardLayout({
         { href: `/${locale}/internal-tasks`, label: t('navigation.internalTasks'), icon: 'ClipboardList' },
         { href: `/${locale}/approvals`, label: t('navigation.approvals'), icon: 'CheckCircle2' },
         { href: `/${locale}/reports`, label: t('navigation.reports'), icon: 'BarChart3' },
+        { href: `/${locale}/clients`, label: t('navigation.clients'), icon: 'Building2' },
         { href: `/${locale}/quotations`, label: t('navigation.quotations'), icon: 'FileText' },
         { href: `/${locale}/tax-invoices`, label: t('navigation.taxInvoices'), icon: 'Receipt' },
         { href: `/${locale}/delivery-notes`, label: t('navigation.deliveryNotes'), icon: 'Package2' },
