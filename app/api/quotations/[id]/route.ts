@@ -24,6 +24,8 @@ export async function GET(
       where: { id },
       include: {
         customer: true,
+        client: { include: { engineers: { orderBy: { name: 'asc' } } } },
+        engineer: true,
         createdBy: { select: { id: true, fullName: true } },
         items: {
           include: { product: true },
@@ -157,7 +159,7 @@ export async function PATCH(
         return tx.quotation.update({
           where: { id },
           data: {
-            customerId: validatedData.customerId,
+            customerId: validatedData.customerId ?? undefined,
             engineerName: validatedData.engineerName,
             mobileNumber: validatedData.mobileNumber,
             projectName: validatedData.projectName,

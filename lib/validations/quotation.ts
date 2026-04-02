@@ -17,7 +17,9 @@ const quotationItemSchema = z.object({
 // ─── Create Quotation ──────────────────────────────────────────────────────────
 
 export const createQuotationSchema = z.object({
-  customerId: z.string().uuid('Invalid customer ID'),
+  customerId: z.string().uuid('Invalid customer ID').optional().nullable(),
+  clientId: z.string().uuid().optional().nullable(),
+  engineerId: z.string().uuid().optional().nullable(),
   engineerName: z.string().optional().nullable(),
   mobileNumber: z.string().optional().nullable(),
   projectName: z.string().optional().nullable(),
@@ -34,7 +36,9 @@ export const createQuotationSchema = z.object({
 // ─── Update Quotation ──────────────────────────────────────────────────────────
 
 export const updateQuotationSchema = z.object({
-  customerId: z.string().uuid('Invalid customer ID').optional(),
+  customerId: z.string().uuid('Invalid customer ID').optional().nullable(),
+  clientId: z.string().uuid().optional().nullable(),
+  engineerId: z.string().uuid().optional().nullable(),
   engineerName: z.string().optional().nullable(),
   mobileNumber: z.string().optional().nullable(),
   projectName: z.string().optional().nullable(),

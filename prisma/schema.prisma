@@ -50,6 +50,8 @@ model User {
   createdTaxInvoices     TaxInvoice[]         @relation("TaxInvoiceCreator")
   createdDeliveryNotes   DeliveryNote[]       @relation("DeliveryNoteCreator")
   uploadedAttachments    Attachment[]
+  createdClients         Client[]             @relation("ClientCreator")
+  createdTaxPayments     TaxInvoicePayment[]  @relation("TaxPaymentCreator")
 }
 
 model Role {
@@ -417,6 +419,51 @@ model PerformanceReview {
 }
 
 // ==========================================
+// Clients & Engineers (Sales Documents)
+// ==========================================
+
+model Client {
+  id          String     @id @default(uuid())
+  companyName String
+  trn         String?    // Tax Registration Number
+  address     String?
+  phone       String?
+  email       String?
+  notes       String?
+  status      String     @default("ACTIVE") // ACTIVE, INACTIVE
+  createdById String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  createdBy   User       @relation("ClientCreator", fields: [createdById], references: [id])
+  engineers   Engineer[]
+  quotations  Quotation[]
+  taxInvoices TaxInvoice[]
+  deliveryNotes DeliveryNote[]
+
+  @@index([companyName])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Engineer {
+  id        String   @id @default(uuid())
+  clientId  String
+  name      String
+  mobile    String?
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  quotations  Quotation[]
+  taxInvoices TaxInvoice[]
+  deliveryNotes DeliveryNote[]
+
+  @@index([clientId])
+}
+
+// ==========================================
 // Inventory Management
 // ==========================================
 
@@ -546,8 +593,10 @@ model Quotation {
   id              String          @id @default(uuid())
   quotationNumber String          @unique
   customerId      String
-  engineerName    String?                             // المهندس المسؤول
-  mobileNumber    String?                             // رقم الموبايل
+  clientId        String?                             // FK to Client model
+  engineerId      String?                             // FK to Engineer model
+  engineerName    String?                             // fallback / override
+  mobileNumber    String?                             // fallback / override
   projectName     String?                             // اسم المشروع
   subject         String?
   notes           String?
@@ -572,6 +621,8 @@ model Quotation {
   updatedAt       DateTime        @updatedAt
 
   customer        Customer        @relation(fields: [customerId], references: [id])
+  client          Client?         @relation(fields: [clientId], references: [id])
+  engineer        Engineer?       @relation(fields: [engineerId], references: [id])
   createdBy       User            @relation("QuotationCreator", fields: [createdById], references: [id])
   items           QuotationItem[]
   invoices        Invoice[]
@@ -579,6 +630,8 @@ model Quotation {
   deliveryNotes   DeliveryNote[]
 
   @@index([customerId])
+  @@index([clientId])
+  @@index([engineerId])
   @@index([createdById])
   @@index([status])
   @@index([createdAt])
@@ -691,6 +744,8 @@ model TaxInvoice {
   invoiceNumber   String           @unique           // SC-671/26 format
   quotationId     String
   customerId      String
+  clientId        String?                            // FK to Client model
+  engineerId      String?                            // FK to Engineer model
   customerTrn     String?                            // Customer TRN
   ourVatReg       String?                            // Our VAT Registration #
   dnNumber        String?                            // Delivery Note reference
@@ -704,7 +759,8 @@ model TaxInvoice {
   taxAmount       Float            @default(0)
   deliveryCharges Float            @default(0)
   total           Float            @default(0)
-  status          String           @default("DRAFT") // DRAFT, SENT, PAID, CANCELLED
+  paidAmount      Float            @default(0)       // sum of confirmed payments
+  status          String           @default("DRAFT") // DRAFT, SENT, UNPAID, PARTIAL, PAID, CANCELLED
   sentAt          DateTime?
   lpoNumber       String?
   paymentTerms    String?
@@ -714,16 +770,43 @@ model TaxInvoice {
 
   quotation       Quotation        @relation(fields: [quotationId], references: [id])
   customer        Customer         @relation(fields: [customerId], references: [id])
+  client          Client?          @relation(fields: [clientId], references: [id])
+  engineer        Engineer?        @relation(fields: [engineerId], references: [id])
   createdBy       User             @relation("TaxInvoiceCreator", fields: [createdById], references: [id])
   items           TaxInvoiceItem[]
   deliveryNotes   DeliveryNote[]
+  payments        TaxInvoicePayment[]
 
   @@index([quotationId])
   @@index([customerId])
+  @@index([clientId])
+  @@index([engineerId])
   @@index([createdById])
   @@index([status])
   @@index([createdAt])
   @@index([invoiceNumber])
+}
+
+model TaxInvoicePayment {
+  id          String   @id @default(uuid())
+  invoiceId   String
+  amount      Float
+  method      String   @default("Cash") // Cash, Cheque, Bank Transfer
+  paymentDate DateTime @default(now())
+  reference   String?  // cheque number, transfer ref
+  notes       String?
+  status      String   @default("CONFIRMED") // PENDING, CONFIRMED
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  invoice     TaxInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  createdBy   User       @relation("TaxPaymentCreator", fields: [createdById], references: [id])
+
+  @@index([invoiceId])
+  @@index([createdById])
+  @@index([paymentDate])
+  @@index([status])
 }
 
 model TaxInvoiceItem {
@@ -757,6 +840,8 @@ model DeliveryNote {
   quotationId    String?
   taxInvoiceId   String?
   customerId     String
+  clientId       String?
+  engineerId     String?
   engineerName   String?
   mobileNumber   String?
   projectName    String?
@@ -773,12 +858,16 @@ model DeliveryNote {
   quotation      Quotation?         @relation(fields: [quotationId], references: [id])
   taxInvoice     TaxInvoice?        @relation(fields: [taxInvoiceId], references: [id])
   customer       Customer           @relation(fields: [customerId], references: [id])
+  client         Client?            @relation(fields: [clientId], references: [id])
+  engineer       Engineer?          @relation(fields: [engineerId], references: [id])
   createdBy      User               @relation("DeliveryNoteCreator", fields: [createdById], references: [id])
   items          DeliveryNoteItem[]
 
   @@index([quotationId])
   @@index([taxInvoiceId])
   @@index([customerId])
+  @@index([clientId])
+  @@index([engineerId])
   @@index([createdById])
   @@index([status])
   @@index([createdAt])

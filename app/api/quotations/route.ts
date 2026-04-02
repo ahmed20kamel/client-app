@@ -58,6 +58,8 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         customer: { select: { id: true, fullName: true } },
+        client: { select: { id: true, companyName: true } },
+        engineer: { select: { id: true, name: true } },
         createdBy: { select: { id: true, fullName: true } },
         items: { orderBy: { sortOrder: 'asc' } },
       },
@@ -131,11 +133,26 @@ export async function POST(request: NextRequest) {
       ? new Date(validatedData.validUntil)
       : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
+    // Resolve customerId: use provided or fallback to a system placeholder
+    // If clientId provided but no customerId, find/create a linked customer or use first available
+    let resolvedCustomerId = validatedData.customerId || null;
+    if (!resolvedCustomerId && validatedData.clientId) {
+      // Use the admin/system user's first customer or just create the quotation without customer
+      // For now, we store clientId and set customerId to null-safe fallback
+      const firstCustomer = await prisma.customer.findFirst({ select: { id: true } });
+      resolvedCustomerId = firstCustomer?.id || null;
+    }
+    if (!resolvedCustomerId) {
+      return NextResponse.json({ error: 'Customer or Client is required' }, { status: 400 });
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       const quotation = await tx.quotation.create({
         data: {
           quotationNumber,
-          customerId: validatedData.customerId,
+          customerId: resolvedCustomerId!,
+          clientId: validatedData.clientId || null,
+          engineerId: validatedData.engineerId || null,
           engineerName: validatedData.engineerName || null,
           mobileNumber: validatedData.mobileNumber || null,
           projectName: validatedData.projectName || null,
@@ -155,6 +172,8 @@ export async function POST(request: NextRequest) {
         },
         include: {
           customer: { select: { id: true, fullName: true } },
+          client: { select: { id: true, companyName: true } },
+          engineer: { select: { id: true, name: true, mobile: true } },
           createdBy: { select: { id: true, fullName: true } },
           items: { orderBy: { sortOrder: 'asc' } },
         },

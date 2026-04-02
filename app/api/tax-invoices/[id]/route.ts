@@ -20,13 +20,12 @@ export async function GET(
       where: { id },
       include: {
         customer: true,
+        client: { select: { id: true, companyName: true, trn: true } },
+        engineer: { select: { id: true, name: true, mobile: true } },
         quotation: {
           select: {
-            id: true,
-            quotationNumber: true,
-            status: true,
-            lpoNumber: true,
-            paymentTerms: true,
+            id: true, quotationNumber: true, status: true,
+            lpoNumber: true, paymentTerms: true,
           },
         },
         createdBy: { select: { id: true, fullName: true } },
@@ -36,6 +35,10 @@ export async function GET(
         },
         deliveryNotes: {
           select: { id: true, dnNumber: true, status: true, createdAt: true },
+        },
+        payments: {
+          include: { createdBy: { select: { fullName: true } } },
+          orderBy: { paymentDate: 'desc' },
         },
       },
     });
