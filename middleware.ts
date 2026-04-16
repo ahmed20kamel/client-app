@@ -8,9 +8,10 @@ const intlMiddleware = createMiddleware({
   localePrefix: 'always',
 });
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'crm-pro-secret-key-change-in-production'
-);
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is not set');
+}
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
 // Public routes that don't require authentication
 const publicPaths = [
@@ -19,10 +20,15 @@ const publicPaths = [
   '/reset-password',
 ];
 
-// Routes that non-admin (Employee) users are allowed to access
+// Routes that non-admin (Employee/Manager) users are allowed to access
 const employeeAllowedPaths = [
   '/internal-tasks',
   '/profile',
+  '/notifications',
+  '/approvals',
+  '/dashboard',
+  '/tasks',
+  '/performance',
 ];
 
 function isPublicPath(pathname: string): boolean {
@@ -41,10 +47,13 @@ function isEmployeeAllowedPath(pathname: string): boolean {
   return employeeAllowedPaths.some((p) => pathWithoutLocale.startsWith(p));
 }
 
-async function getUserRoleFromToken(token: string): Promise<string | null> {
+async function getTokenPayload(token: string): Promise<{ role: string; id: string } | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    return (payload.role as string) || null;
+    const role = payload.role as string;
+    const id = payload.id as string;
+    if (!role || !id) return null;
+    return { role, id };
   } catch {
     return null;
   }
@@ -74,9 +83,20 @@ export default async function middleware(request: NextRequest) {
       return NextResponse.redirect(signInUrl);
     }
 
-    // Check role-based access: non-admin users can only access internal-tasks and profile
-    const role = await getUserRoleFromToken(sessionCookie.value);
-    if (role && role !== 'Admin' && !isPublicPath(pathname) && !isEmployeeAllowedPath(pathname)) {
+    // Decode token — if invalid/expired, force re-login
+    const tokenPayload = await getTokenPayload(sessionCookie.value);
+    if (!tokenPayload) {
+      const localeMatch = pathname.match(/^\/(en|ar)/);
+      const locale = localeMatch ? localeMatch[1] : 'en';
+      const signInUrl = new URL(`/${locale}/login`, request.url);
+      const response = NextResponse.redirect(signInUrl);
+      response.cookies.delete('crm-session');
+      return response;
+    }
+
+    // Check role-based access: non-admin users can only access allowed paths
+    const { role } = tokenPayload;
+    if (role !== 'Admin' && !isPublicPath(pathname) && !isEmployeeAllowedPath(pathname)) {
       const localeMatch = pathname.match(/^\/(en|ar)/);
       const locale = localeMatch ? localeMatch[1] : 'en';
       const redirectUrl = new URL(`/${locale}/internal-tasks`, request.url);

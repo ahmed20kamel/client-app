@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { can } from '@/lib/permissions';
+import { z } from 'zod';
+
+const createNotificationSchema = z.object({
+  userId: z.string().min(1),
+  type: z.string().min(1),
+  title: z.string().min(1).max(200),
+  message: z.string().min(1).max(1000),
+  link: z.string().optional().nullable(),
+});
 
 // GET /api/notifications - Get user notifications
 export async function GET(request: NextRequest) {
@@ -12,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const unreadOnly = searchParams.get('unreadOnly') === 'true';
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
     const offset = parseInt(searchParams.get('offset') || '0');
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -58,7 +68,20 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userId, type, title, message, link } = body;
+    const parsed = createNotificationSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message || 'Validation error' },
+        { status: 400 }
+      );
+    }
+    const { userId, type, title, message, link } = parsed.data;
+
+    // Only allow creating notifications for yourself, or admins for others
+    const isAdmin = await can(session.user.id, 'user.manage');
+    if (userId !== session.user.id && !isAdmin) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const notification = await prisma.notification.create({
       data: {

@@ -95,8 +95,8 @@
     "invalid_reset_link": "رابط إعادة التعيين غير صالح أو منتهي الصلاحية",
     "invalid_or_expired_token": "رابط إعادة التعيين غير صالح أو منتهي الصلاحية",
     "demo_credentials": "بيانات تجريبية:",
-    "hero_title": "أدر عملاءك باحترافية",
-    "hero_subtitle": "نظام إدارة العملاء المتكامل"
+    "hero_title": "أدر أعمالك باحترافية",
+    "hero_subtitle": "منصة الإدارة المتكاملة"
   },
   "navigation": {
     "dashboard": "لوحة التحكم",
@@ -139,6 +139,9 @@
     "internalTasks": "المهام الداخلية",
     "internalTasksDesc": "المهام النشطة المسندة لفريقك",
     "pendingApprovals": "في انتظار الموافقة",
+    "invoicedThisMonth": "الفواتير هذا الشهر",
+    "outstandingAmount": "الرصيد المستحق",
+    "quotationConversionRate": "معدل تحويل العروض (90 يوم)",
     "assignedBy": "بواسطة",
     "teamOverview": "نظرة عامة على الفريق",
     "attentionNeeded": "يحتاج انتباه"
@@ -510,6 +513,9 @@
     "uploadSuccess": "تم رفع الملف بنجاح",
     "fileTooLarge": "الملف كبير جداً",
     "noAttachments": "لا توجد مرفقات بعد",
+    "upload": "رفع ملف",
+    "uploaded": "تم رفع الملف",
+    "deleted": "تم حذف المرفق",
     "subcategories": {
       "idCard": "الهوية / جواز السفر",
       "license": "الرخصة",
@@ -921,10 +927,14 @@
     "deleted": "تم حذف عرض السعر",
     "statusDraft": "مسودة",
     "statusSent": "مرسل",
+    "statusClientApproved": "موافقة العميل",
+    "statusClientRejected": "رفض العميل",
     "statusApproved": "معتمد",
+    "statusConfirmed": "تأكيد مالي",
     "statusRejected": "مرفوض",
     "statusExpired": "منتهي",
     "statusConverted": "محول لفاتورة",
+    "paymentTermsRequired": "طريقة الدفع مطلوبة",
     "noQuotations": "لا توجد عروض أسعار",
     "searchPlaceholder": "البحث في عروض الأسعار...",
     "allStatuses": "جميع الحالات",
@@ -956,7 +966,12 @@
     "convertedSuccess": "تم إنشاء فاتورة من عرض السعر",
     "notesAndTerms": "الملاحظات والشروط",
     "totals": "الإجماليات",
-    "selectClientFilter": "تصفية حسب العميل"
+    "selectClientFilter": "تصفية حسب العميل",
+    "financeConfirmation": "تأكيد المالية",
+    "paymentType": "نوع الدفع",
+    "depositDue": "الدفعة المقدمة",
+    "remainingAfterDeposit": "المتبقي بعد العربون",
+    "itemsValidationError": "يجب أن تحتوي جميع العناصر على وصف وسعر أكبر من 0"
   },
   "taxInvoices": {
     "title": "الفواتير الضريبية",
@@ -977,6 +992,7 @@
     "sourceQuotation": "عرض السعر المصدر",
     "quotationRef": "مرجع عرض السعر",
     "mustBeApproved": "يجب أن يكون عرض السعر معتمداً قبل إنشاء الفاتورة",
+    "mustBeConfirmed": "يجب تأكيد التمويل قبل إنشاء الفاتورة الضريبية",
     "selectQuotation": "الرجاء اختيار عرض سعر أولاً",
     "generateInvoice": "إنشاء الفاتورة الضريبية",
     "createDN": "إنشاء مذكرة تسليم",
@@ -1114,7 +1130,11 @@
     "receipt": "إيصال",
     "printReceipt": "طباعة الإيصال",
     "remainingBalance": "المبلغ المتبقي",
-    "overpayment": "تحذير: المبلغ يتجاوز الرصيد المتبقي"
+    "overpayment": "تحذير: المبلغ يتجاوز الرصيد المتبقي",
+    "selectMethod": "اختر طريقة الدفع",
+    "selectInvoiceFirst": "اختر الفاتورة أولاً",
+    "amountRequired": "المبلغ مطلوب",
+    "methodRequired": "طريقة الدفع مطلوبة"
   },
   "purchaseOrders": {
     "title": "أوامر الشراء",

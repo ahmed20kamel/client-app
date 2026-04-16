@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { DetailSkeleton } from '@/components/ui/page-skeleton';
 import { StatusBadge } from '@/components/StatusBadge';
+import { fmtAmount, formatDate } from '@/lib/utils';
 
 interface POItem {
   id: string;
@@ -196,17 +197,7 @@ export default function PurchaseOrderDetailPage() {
     }
   };
 
-  const formatAmount = (val: number) => {
-    return val.toLocaleString(locale === 'ar' ? 'ar-AE' : 'en-AE', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE');
-  };
+  const formatAmount = (val: number) => fmtAmount(val, locale);
 
   if (loading) {
     return (
@@ -328,8 +319,8 @@ export default function PurchaseOrderDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               <InfoItem icon={ShoppingCart} label={t('purchaseOrders.poNumber')} value={po.poNumber} />
               <InfoItem icon={Truck} label={t('purchaseOrders.supplier')} value={po.supplier.name} />
-              <InfoItem icon={Calendar} label={t('purchaseOrders.expectedDate')} value={formatDate(po.expectedDate)} />
-              <InfoItem icon={Calendar} label={t('common.createdAt')} value={formatDate(po.createdAt)} />
+              <InfoItem icon={Calendar} label={t('purchaseOrders.expectedDate')} value={formatDate(po.expectedDate, locale)} />
+              <InfoItem icon={Calendar} label={t('common.createdAt')} value={formatDate(po.createdAt, locale)} />
               {po.subject && <InfoItem icon={FileText} label={t('purchaseOrders.subject')} value={po.subject} />}
             </div>
 

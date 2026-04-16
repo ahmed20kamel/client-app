@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { can } from '@/lib/permissions';
 import { processEscalations } from '@/lib/escalation';
 import { prisma } from '@/lib/prisma';
+import { timingSafeEqual } from 'crypto';
 
 // POST /api/cron/escalate - Run escalation engine
 // Can be triggered by cron job or manually by admin
@@ -12,7 +13,13 @@ export async function POST(request: NextRequest) {
     const cronSecret = request.headers.get('x-cron-secret');
     const expectedSecret = process.env.CRON_SECRET;
 
-    if (cronSecret && expectedSecret && cronSecret === expectedSecret) {
+    const isValidCronSecret =
+      cronSecret &&
+      expectedSecret &&
+      cronSecret.length === expectedSecret.length &&
+      timingSafeEqual(Buffer.from(cronSecret), Buffer.from(expectedSecret));
+
+    if (isValidCronSecret) {
       // Mark overdue tasks
       await prisma.task.updateMany({
         where: { status: 'OPEN', dueAt: { lt: new Date() } },

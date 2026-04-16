@@ -32,7 +32,7 @@ export async function GET(
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
 
     const [comments, total] = await Promise.all([
       prisma.taskComment.findMany({
@@ -102,17 +102,17 @@ export async function POST(
       },
     });
 
-    // Notify task assignee if commenter is not the assignee
+    // Notify task assignee — fire and forget
     if (task.assignedToId !== session.user.id) {
-      await prisma.notification.create({
+      prisma.notification.create({
         data: {
           userId: task.assignedToId,
           type: 'TASK_COMMENT',
           title: 'New comment on your task',
           message: `New comment on "${task.title}"`,
-          link: `/en/tasks/${id}`,
+          link: `/tasks/${id}`,
         },
-      });
+      }).catch((err) => console.error('Notification error:', err));
     }
 
     return NextResponse.json({ data: comment }, { status: 201 });

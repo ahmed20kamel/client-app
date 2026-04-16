@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { DetailSkeleton } from '@/components/ui/page-skeleton';
 import { StatusBadge } from '@/components/StatusBadge';
+import { fmtAmount } from '@/lib/utils';
 
 interface SupplierProduct {
   id: string;
@@ -270,7 +271,7 @@ export default function SupplierDetailsPage() {
                         )}
                         {sp.unitCost != null && (
                           <div>
-                            <span className="font-medium">Unit Cost:</span> {sp.unitCost.toLocaleString(locale === 'ar' ? 'ar-AE' : 'en-AE')}
+                            <span className="font-medium">Unit Cost:</span> {fmtAmount(sp.unitCost, locale)}
                           </div>
                         )}
                         {sp.leadTimeDays != null && (
@@ -318,7 +319,7 @@ export default function SupplierDetailsPage() {
                             {sp.supplierSku || <span className="text-muted-foreground">-</span>}
                           </td>
                           <td className="px-4 py-4 text-center text-sm text-muted-foreground">
-                            {sp.unitCost != null ? sp.unitCost.toLocaleString(locale === 'ar' ? 'ar-AE' : 'en-AE') : <span className="text-muted-foreground">-</span>}
+                            {sp.unitCost != null ? fmtAmount(sp.unitCost, locale) : <span className="text-muted-foreground">-</span>}
                           </td>
                           <td className="px-4 py-4 text-center text-sm text-muted-foreground">
                             {sp.leadTimeDays != null ? sp.leadTimeDays : <span className="text-muted-foreground">-</span>}

@@ -23,7 +23,7 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
   const resend = getResend();
   if (!resend) {
     console.warn('RESEND_API_KEY not set, skipping email send');
-    console.log(`[Email Preview] To: ${to} | Subject: ${subject}`);
+    console.warn(`[Email] Skipped send — To: ${to} | Subject: ${subject}`);
     return null;
   }
 
@@ -214,6 +214,52 @@ export async function sendTaskStatusEmail(
     to,
     subject: isAr ? `تحديث المهمة: ${taskTitle}` : `Task Update: ${taskTitle}`,
     html: wrapInTemplate(content, locale),
+  });
+}
+
+// Quotation sent to client email
+export async function sendQuotationEmail(params: {
+  to: string;
+  clientName: string;
+  quotationNumber: string;
+  projectName: string | null;
+  engineerName: string | null;
+  subtotal: number;
+  taxAmount: number;
+  total: number;
+  quotationUrl: string;
+  companyName?: string;
+}) {
+  const { to, clientName, quotationNumber, projectName, engineerName, subtotal, taxAmount, total, quotationUrl, companyName } = params;
+  const fullUrl = `${APP_URL}${quotationUrl}`;
+  const fmt = (n: number) => n.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const content = `
+    <h2>Quotation ${quotationNumber}</h2>
+    <p>Dear ${clientName},</p>
+    <p>Please find your quotation details below. ${projectName ? `This quotation is for project: <strong>${projectName}</strong>.` : ''}</p>
+    <div class="info-box">
+      <p><strong>Quotation #:</strong> ${quotationNumber}</p>
+      ${projectName ? `<p><strong>Project:</strong> ${projectName}</p>` : ''}
+      ${engineerName ? `<p><strong>Engineer:</strong> ${engineerName}</p>` : ''}
+      <p style="margin-top: 12px; border-top: 1px solid #e4e4e7; padding-top: 10px;">
+        <strong>Subtotal:</strong> AED ${fmt(subtotal)}<br/>
+        <strong>VAT (5%):</strong> AED ${fmt(taxAmount)}<br/>
+        <strong style="font-size: 16px;">Total: AED ${fmt(total)}</strong>
+      </p>
+    </div>
+    <p>To view the full quotation details, please click the button below:</p>
+    <a href="${fullUrl}" class="button">View Quotation</a>
+    <p style="font-size: 12px; color: #a1a1aa;">
+      This quotation was sent by ${companyName || 'our team'}.
+      If you have any questions, please don't hesitate to contact us.
+    </p>
+  `;
+
+  return sendEmail({
+    to,
+    subject: `Quotation ${quotationNumber}${projectName ? ` — ${projectName}` : ''}`,
+    html: wrapInTemplate(content, 'en'),
   });
 }
 

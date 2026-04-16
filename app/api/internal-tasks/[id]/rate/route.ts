@@ -73,14 +73,14 @@ export async function POST(
       },
     });
 
-    // Notify assignee
-    await createNotification({
+    // Notify assignee — fire and forget
+    createNotification({
       userId: task.assignedToId,
       type: 'INTERNAL_TASK_RATED',
       title: 'Task Rated',
       message: `Your task "${task.title}" has been rated ${validatedData.rating}/5`,
-      link: `/en/internal-tasks/${task.id}`,
-    });
+      link: `/internal-tasks/${task.id}`,
+    }).catch((err) => console.error('Notification error:', err));
 
     return NextResponse.json({ data: rating }, { status: 201 });
   } catch (error) {

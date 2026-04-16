@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { can } from '@/lib/permissions';
 import { z } from 'zod';
 
 const createClientSchema = z.object({
@@ -8,7 +9,7 @@ const createClientSchema = z.object({
   trn: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
-  email: z.string().email().optional().nullable(),
+  email: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
 });
 
@@ -17,6 +18,12 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const canView = await can(session.user.id, 'customer.view.all');
+    const canViewOwn = await can(session.user.id, 'customer.view.own');
+    if (!canView && !canViewOwn) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const search = request.nextUrl.searchParams.get('search') || '';
     const includeEngineers = request.nextUrl.searchParams.get('engineers') === 'true';
@@ -50,6 +57,11 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const canCreate = await can(session.user.id, 'customer.create');
+    if (!canCreate) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const body = await request.json();
     const data = createClientSchema.parse(body);

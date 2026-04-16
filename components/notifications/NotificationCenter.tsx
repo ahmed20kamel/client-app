@@ -173,7 +173,8 @@ export function NotificationCenter() {
       markAsRead(notification.id);
     }
     if (notification.link) {
-      router.push(notification.link);
+      const href = notification.link.startsWith(`/${locale}/`) ? notification.link : `/${locale}${notification.link}`;
+      router.push(href);
       setIsOpen(false);
     }
   };

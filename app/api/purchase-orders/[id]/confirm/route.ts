@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/logger';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
@@ -11,6 +12,9 @@ export async function POST(
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (session.user.role !== 'Admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { id } = await params;
@@ -50,7 +54,7 @@ export async function POST(
 
     return NextResponse.json({ data: updated });
   } catch (error) {
-    console.error('Confirm purchase order error:', error);
+    logError('Confirm purchase order error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

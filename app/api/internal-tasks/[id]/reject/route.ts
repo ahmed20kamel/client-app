@@ -42,66 +42,44 @@ export async function POST(
     const body = await request.json();
     const validatedData = rejectTaskSchema.parse(body);
 
-    // Update task status to REJECTED
-    const updatedTask = await prisma.internalTask.update({
-      where: { id },
-      data: {
-        status: 'REJECTED',
-        rejectionReason: validatedData.rejectionReason,
-      },
-      include: {
-        assignedTo: {
-          select: {
-            id: true,
-            fullName: true,
-          },
+    // Atomically update task + create comment
+    const updatedTask = await prisma.$transaction(async (tx) => {
+      const updated = await tx.internalTask.update({
+        where: { id },
+        data: {
+          status: 'REJECTED',
+          rejectionReason: validatedData.rejectionReason,
         },
-        createdBy: {
-          select: {
-            id: true,
-            fullName: true,
-          },
+        include: {
+          assignedTo: { select: { id: true, fullName: true } },
+          createdBy: { select: { id: true, fullName: true } },
+          department: { select: { id: true, name: true, nameAr: true } },
+          category: { select: { id: true, name: true, nameAr: true, color: true } },
+          rating: true,
+          _count: { select: { comments: true } },
         },
-        department: {
-          select: {
-            id: true,
-            name: true,
-            nameAr: true,
-          },
+      });
+
+      await tx.internalTaskComment.create({
+        data: {
+          internalTaskId: id,
+          userId: session.user.id,
+          content: `Task rejected: ${validatedData.rejectionReason}`,
+          type: 'REJECTION',
         },
-        category: {
-          select: {
-            id: true,
-            name: true,
-            nameAr: true,
-            color: true,
-          },
-        },
-        rating: true,
-        _count: {
-          select: { comments: true },
-        },
-      },
+      });
+
+      return updated;
     });
 
-    // Create REJECTION comment with reason
-    await prisma.internalTaskComment.create({
-      data: {
-        internalTaskId: id,
-        userId: session.user.id,
-        content: `Task rejected: ${validatedData.rejectionReason}`,
-        type: 'REJECTION',
-      },
-    });
-
-    // Notify assignee
-    await createNotification({
+    // Notify assignee — fire and forget
+    createNotification({
       userId: task.assignedToId,
       type: 'INTERNAL_TASK_REJECTED',
       title: 'Task Rejected',
       message: `Your task "${task.title}" has been rejected: ${validatedData.rejectionReason}`,
-      link: `/en/internal-tasks/${task.id}`,
-    });
+      link: `/internal-tasks/${task.id}`,
+    }).catch((err) => console.error('Notification error:', err));
 
     return NextResponse.json({ data: updatedTask });
   } catch (error) {

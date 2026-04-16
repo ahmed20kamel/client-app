@@ -43,13 +43,12 @@ export default async function DashboardLayout({
         { href: `/${locale}/quotations`, label: t('navigation.quotations'), icon: 'FileText' },
         { href: `/${locale}/tax-invoices`, label: t('navigation.taxInvoices'), icon: 'Receipt' },
         { href: `/${locale}/delivery-notes`, label: t('navigation.deliveryNotes'), icon: 'Package2' },
-        { href: `/${locale}/invoices`, label: t('navigation.invoices'), icon: 'FileText' },
-        { href: `/${locale}/payments`, label: t('navigation.payments'), icon: 'CreditCard' },
         { href: `/${locale}/inventory`, label: t('navigation.inventory'), icon: 'Package' },
         { href: `/${locale}/suppliers`, label: t('navigation.suppliers'), icon: 'Truck' },
         { href: `/${locale}/purchase-orders`, label: t('navigation.purchaseOrders'), icon: 'ShoppingCart' },
         { href: `/${locale}/users`, label: t('navigation.users'), icon: 'UserCog' },
         { href: `/${locale}/performance`, label: t('navigation.performance'), icon: 'TrendingUp' },
+        { href: `/${locale}/accounts`, label: 'Accounts', icon: 'Wallet' },
       ]
     : [
         { href: `/${locale}/internal-tasks`, label: t('navigation.internalTasks'), icon: 'ClipboardList' },
@@ -81,13 +80,12 @@ export default async function DashboardLayout({
       <aside className="hidden lg:block fixed top-0 start-0 z-40 w-60 h-screen">
         <div className="h-full flex flex-col bg-sidebar text-sidebar-foreground">
           {/* Logo */}
-          <div className="h-16 flex items-center px-6 border-b border-sidebar-border">
-            <div className="flex items-center gap-3">
-              <Image src="/logo.svg" alt="Logo" width={36} height={36} className="brightness-0 invert" />
-              <div>
-                <h1 className="text-lg font-bold text-sidebar-foreground">CRM Pro</h1>
-                <p className="text-[10px] text-sidebar-foreground/50 font-medium tracking-wider uppercase">Enterprise</p>
-              </div>
+          <div className="flex flex-col items-center justify-center py-5 px-6 border-b border-sidebar-border gap-3">
+            <div className="w-full flex items-center justify-center">
+              <Image src="/logo.svg" alt="SCoRD Logo" width={100} height={100} loading="eager" className="brightness-0 invert object-contain" style={{ height: 'auto' }} />
+            </div>
+            <div className="w-full flex items-center justify-center">
+              <p className="text-[10px] font-semibold text-sidebar-foreground/35 tracking-[0.18em] uppercase">Management System</p>
             </div>
           </div>
 
@@ -160,7 +158,7 @@ export default async function DashboardLayout({
               userRole={session.user?.role || ''}
               initials={initials}
             />
-            <Image src="/logo.svg" alt="Logo" width={28} height={28} className="lg:hidden" />
+            <Image src="/logo.svg" alt="SCoRD Logo" width={32} height={32} loading="eager" className="lg:hidden object-contain" style={{ height: 'auto' }} />
           </div>
 
           {/* Breadcrumbs - hidden on mobile */}

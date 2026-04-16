@@ -216,7 +216,7 @@ export async function PATCH(
         const { passwordHash: _passwordHash, ...sanitizedUser } = updatedUser;
 
         // Log audit
-        await logAudit({
+        logAudit({
           actorUserId: session.user.id,
           action: 'user.updated',
           entityType: 'User',
@@ -233,7 +233,7 @@ export async function PATCH(
             status: updatedUser.status,
             role: updatedUser.roles[0]?.role.name,
           },
-        });
+        }).catch((err) => console.error("Audit log error:", err));
 
         return NextResponse.json({
           data: {
@@ -249,7 +249,7 @@ export async function PATCH(
     const { passwordHash: _passwordHash, ...sanitizedUser } = user;
 
     // Log audit
-    await logAudit({
+    logAudit({
       actorUserId: session.user.id,
       action: 'user.updated',
       entityType: 'User',
@@ -266,7 +266,7 @@ export async function PATCH(
         status: user.status,
         role: user.roles[0]?.role.name,
       },
-    });
+    }).catch((err) => console.error("Audit log error:", err));
 
     return NextResponse.json({
       data: {
@@ -332,14 +332,14 @@ export async function DELETE(
     });
 
     // Log audit
-    await logAudit({
+    logAudit({
       actorUserId: session.user.id,
       action: 'user.disabled',
       entityType: 'User',
       entityId: id,
       before: { status: user.status },
       after: { status: 'DISABLED' },
-    });
+    }).catch((err) => console.error("Audit log error:", err));
 
     return NextResponse.json({
       message: 'User disabled successfully',

@@ -47,6 +47,7 @@ import {
 } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
+import { formatDate } from '@/lib/utils';
 
 interface InventoryCategory {
   id: string;
@@ -475,7 +476,7 @@ export default function ProductDetailPage() {
                     <Calendar className="size-4 text-muted-foreground shrink-0" />
                     <div>
                       <p className="text-[11px] text-muted-foreground font-medium">{t('common.createdAt')}</p>
-                      <p className="font-bold">{new Date(product.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE')}</p>
+                      <p className="font-bold">{formatDate(product.createdAt, locale)}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -732,7 +733,7 @@ export default function ProductDetailPage() {
                                   {getMovementLabel(movement.type)}
                                 </span>
                                 <span className="text-xs text-muted-foreground">
-                                  {new Date(movement.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE')}
+                                  {formatDate(movement.createdAt, locale)}
                                 </span>
                               </div>
                               <div className="grid grid-cols-3 gap-2 text-xs">
@@ -814,7 +815,7 @@ export default function ProductDetailPage() {
                                     {movement.reason || '-'}
                                   </td>
                                   <td className="px-4 py-3 text-center text-sm text-muted-foreground">
-                                    {new Date(movement.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE')}
+                                    {formatDate(movement.createdAt, locale)}
                                   </td>
                                   <td className="px-4 py-3 text-start text-sm text-muted-foreground">
                                     {movement.createdBy.fullName}

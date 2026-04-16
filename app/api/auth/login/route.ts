@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
 import { compare } from 'bcryptjs';
 import { createSessionToken, setSessionCookie } from '@/lib/auth';
+import { loginLimiter } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
+  // Rate limit: 5 attempts per minute per IP
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip') ?? 'unknown';
+  try {
+    await loginLimiter.check(5, ip);
+  } catch {
+    return NextResponse.json({ error: 'Too many login attempts. Please wait a minute.' }, { status: 429 });
+  }
+
   try {
     const { email, password } = await request.json();
 
@@ -83,7 +93,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Login error:', error);
+    logError('Login error:', error);
     return NextResponse.json(
       { error: 'An error occurred during login' },
       { status: 500 }

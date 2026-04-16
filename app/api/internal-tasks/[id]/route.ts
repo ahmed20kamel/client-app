@@ -134,46 +134,7 @@ export async function PATCH(
       updateData.dueAt = validatedData.dueAt ? new Date(validatedData.dueAt) : null;
     }
 
-    // Update task
-    const task = await prisma.internalTask.update({
-      where: { id },
-      data: updateData,
-      include: {
-        assignedTo: {
-          select: {
-            id: true,
-            fullName: true,
-          },
-        },
-        createdBy: {
-          select: {
-            id: true,
-            fullName: true,
-          },
-        },
-        department: {
-          select: {
-            id: true,
-            name: true,
-            nameAr: true,
-          },
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-            nameAr: true,
-            color: true,
-          },
-        },
-        rating: true,
-        _count: {
-          select: { comments: true },
-        },
-      },
-    });
-
-    // Create SYSTEM comment for changes
+    // Build change log before updating
     const changes: string[] = [];
     if (validatedData.title && validatedData.title !== existingTask.title) {
       changes.push(`Title changed to "${validatedData.title}"`);
@@ -188,16 +149,34 @@ export async function PATCH(
       changes.push('Due date updated');
     }
 
-    if (changes.length > 0) {
-      await prisma.internalTaskComment.create({
-        data: {
-          internalTaskId: id,
-          userId: session.user.id,
-          content: changes.join('. '),
-          type: 'SYSTEM',
+    // Atomically update task + create SYSTEM comment if needed
+    const task = await prisma.$transaction(async (tx) => {
+      const updated = await tx.internalTask.update({
+        where: { id },
+        data: updateData,
+        include: {
+          assignedTo: { select: { id: true, fullName: true } },
+          createdBy: { select: { id: true, fullName: true } },
+          department: { select: { id: true, name: true, nameAr: true } },
+          category: { select: { id: true, name: true, nameAr: true, color: true } },
+          rating: true,
+          _count: { select: { comments: true } },
         },
       });
-    }
+
+      if (changes.length > 0) {
+        await tx.internalTaskComment.create({
+          data: {
+            internalTaskId: id,
+            userId: session.user.id,
+            content: changes.join('. '),
+            type: 'SYSTEM',
+          },
+        });
+      }
+
+      return updated;
+    });
 
     return NextResponse.json({ data: task });
   } catch (error) {

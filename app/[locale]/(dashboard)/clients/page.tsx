@@ -11,6 +11,7 @@ import {
   Building2, Plus, Search, Phone, Mail, MapPin, FileText,
   Pencil, Trash2, Loader2, ChevronRight, Users, UserPlus, X,
 } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
 
 interface Engineer { id: string; name: string; mobile: string | null; email: string | null; }
 interface Client {
@@ -131,20 +132,16 @@ export default function ClientsPage() {
 
       {/* Header */}
       <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-6 py-5">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Building2 className="size-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">{t('clients.title')}</h1>
-              <p className="text-sm text-muted-foreground">{clients.length} {t('clients.title').toLowerCase()}</p>
-            </div>
-          </div>
-          <Button onClick={openCreate} className="btn-premium">
-            <Plus className="size-4 me-1.5" />{t('clients.create')}
-          </Button>
-        </div>
+        <PageHeader
+          title={t('clients.title')}
+          subtitle={`${clients.length} ${t('clients.title').toLowerCase()}`}
+          icon={Building2}
+          actions={
+            <Button onClick={openCreate} className="btn-premium" size="sm">
+              <Plus className="size-4 me-1.5" />{t('clients.create')}
+            </Button>
+          }
+        />
 
         {/* Search */}
         <div className="px-6 pb-5">

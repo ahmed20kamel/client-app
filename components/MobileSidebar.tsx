@@ -45,6 +45,7 @@ import {
   Receipt,
   CreditCard,
   ShoppingCart,
+  Wallet,
 } from 'lucide-react';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -64,6 +65,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Receipt,
   CreditCard,
   ShoppingCart,
+  Wallet,
 };
 
 export function MobileSidebar({
@@ -99,17 +101,13 @@ export function MobileSidebar({
         >
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
           {/* Header */}
-          <div className="h-16 flex items-center justify-between px-5 border-b border-sidebar-border">
-            <div className="flex items-center gap-3">
-              <Image src="/logo.svg" alt="Logo" width={32} height={32} className="brightness-0 invert" />
-              <div>
-                <h2 className="text-base font-bold text-sidebar-foreground">CRM Pro</h2>
-                <p className="text-[10px] text-sidebar-foreground/50 font-medium">Enterprise</p>
-              </div>
+          <div className="flex items-center justify-between px-5 py-4 border-b border-sidebar-border">
+            <div className="flex items-center justify-center flex-1">
+              <Image src="/logo.svg" alt="SCoRD Logo" width={56} height={56} loading="eager" className="brightness-0 invert object-contain" style={{ height: 'auto' }} />
             </div>
             <button
               onClick={() => setOpen(false)}
-              className="p-1.5 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground/60 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground/60 transition-colors shrink-0"
             >
               <X className="size-4" />
             </button>

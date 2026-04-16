@@ -26,30 +26,79 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (from) dateFilter.gte = new Date(from);
     if (to) { const toDate = new Date(to); toDate.setHours(23, 59, 59, 999); dateFilter.lte = toDate; }
 
+    // ── Quotations ────────────────────────────────────────────────────────────
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = { clientId: id };
-    if (from || to) where.createdAt = dateFilter;
-    if (status) where.status = status;
+    const qWhere: any = { clientId: id };
+    if (from || to) qWhere.createdAt = dateFilter;
+
+    const quotations = await prisma.quotation.findMany({
+      where: qWhere,
+      select: {
+        id: true,
+        quotationNumber: true,
+        status: true,
+        total: true,
+        createdAt: true,
+        confirmedAt: true,
+        paymentType: true,
+        depositPercent: true,
+        depositAmount: true,
+        paymentNotes: true,
+        lpoNumber: true,
+        projectName: true,
+        engineer: { select: { id: true, name: true } },
+        taxInvoices: {
+          select: { id: true, invoiceNumber: true, status: true, total: true, paidAmount: true, createdAt: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // ── Tax Invoices ──────────────────────────────────────────────────────────
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const invWhere: any = { clientId: id };
+    if (from || to) invWhere.createdAt = dateFilter;
+    if (status) invWhere.status = status;
 
     const invoices = await prisma.taxInvoice.findMany({
-      where,
+      where: invWhere,
       include: {
         payments: { where: { status: 'CONFIRMED' }, orderBy: { paymentDate: 'asc' } },
         deliveryNotes: { select: { id: true, dnNumber: true, status: true, deliveredAt: true } },
+        quotation: {
+          select: {
+            id: true, quotationNumber: true,
+            paymentType: true, depositPercent: true, depositAmount: true, paymentNotes: true,
+          },
+        },
       },
       orderBy: { createdAt: 'asc' },
     });
 
-    // Calculate summary
+    // ── Summary ───────────────────────────────────────────────────────────────
     const totalInvoiced = invoices.reduce((sum, inv) => sum + inv.total, 0);
     const totalPaid = invoices.reduce((sum, inv) => sum + (inv.paidAmount || 0), 0);
     const totalOutstanding = totalInvoiced - totalPaid;
 
+    // Quotation-level summary (pipeline)
+    const totalQuoted = quotations.reduce((sum, q) => sum + q.total, 0);
+    const confirmedQuotations = quotations.filter(q => q.status === 'CONFIRMED' || q.status === 'CONVERTED');
+    const totalConfirmed = confirmedQuotations.reduce((sum, q) => sum + q.total, 0);
+
     return NextResponse.json({
       data: {
         client,
+        quotations,
         invoices,
-        summary: { totalInvoiced, totalPaid, totalOutstanding },
+        summary: {
+          totalQuoted,
+          totalConfirmed,
+          totalInvoiced,
+          totalPaid,
+          totalOutstanding,
+          quotationCount: quotations.length,
+          invoiceCount: invoices.length,
+        },
       },
     });
   } catch (error) {

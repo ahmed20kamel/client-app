@@ -1,5 +1,14 @@
 import { z } from 'zod';
 
+const phoneSchema = z
+  .string()
+  .optional()
+  .nullable()
+  .refine(
+    (v) => !v || /^\+?[\d\s\-().]{7,20}$/.test(v.trim()),
+    { message: 'Invalid phone number (digits, spaces, +, -, () allowed; 7–20 chars)' }
+  );
+
 // ─── Product Category ────────────────────────────────────────────────────────
 
 export const createProductCategorySchema = z.object({
@@ -70,7 +79,7 @@ export const createSupplierSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   nameAr: z.string().optional().nullable(),
   contactPerson: z.string().optional().nullable(),
-  phone: z.string().optional().nullable(),
+  phone: phoneSchema,
   email: z.string().email('Invalid email').optional().nullable().or(z.literal('')),
   address: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
@@ -81,7 +90,7 @@ export const updateSupplierSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').optional(),
   nameAr: z.string().optional().nullable(),
   contactPerson: z.string().optional().nullable(),
-  phone: z.string().optional().nullable(),
+  phone: phoneSchema,
   email: z.string().email('Invalid email').optional().nullable().or(z.literal('')),
   address: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),

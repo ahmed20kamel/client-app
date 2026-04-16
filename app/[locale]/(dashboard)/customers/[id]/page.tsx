@@ -44,6 +44,7 @@ import {
 import { DetailSkeleton } from '@/components/ui/page-skeleton';
 import { CopyablePhone } from '@/components/CopyablePhone';
 import { StatusBadge } from '@/components/StatusBadge';
+import { formatDate } from '@/lib/utils';
 
 interface Task {
   id: string;
@@ -362,7 +363,7 @@ export default function CustomerDetailsPage() {
                 <div className="flex items-center gap-3 text-sm">
                   <Calendar className="size-4 text-muted-foreground shrink-0" />
                   <span className="text-muted-foreground">
-                    {new Date(customer.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE')}
+                    {formatDate(customer.createdAt, locale)}
                   </span>
                 </div>
               </div>
@@ -448,7 +449,7 @@ export default function CustomerDetailsPage() {
                   <InfoItem icon={User} label={t('customers.customerType')} value={customer.customerType === 'NEW' ? t('customers.typeNew') : customer.customerType === 'EXISTING' ? t('customers.typeExisting') : customer.customerType} />
                   <InfoItem icon={UserCheck} label={t('customers.owner')} value={customer.owner.fullName} />
                   <InfoItem icon={User} label={t('customers.createdBy')} value={customer.createdBy.fullName} />
-                  <InfoItem icon={Calendar} label={t('common.createdAt')} value={new Date(customer.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE')} />
+                  <InfoItem icon={Calendar} label={t('common.createdAt')} value={formatDate(customer.createdAt, locale)} />
                 </div>
               </div>
 
@@ -519,8 +520,8 @@ export default function CustomerDetailsPage() {
               <InfoItem icon={DollarSign} label={t('customers.estimatedValue')} value={customer.estimatedValue ? `${t('common.currency')} ${customer.estimatedValue.toLocaleString()}` : null} />
               <InfoItem icon={Percent} label={t('customers.probability')} value={customer.probability != null ? `${customer.probability}%` : null} />
               <InfoItem icon={TrendingUp} label={t('customers.weightedValue')} value={customer.weightedValue ? `${t('common.currency')} ${customer.weightedValue.toLocaleString()}` : null} />
-              <InfoItem icon={Calendar} label={t('customers.lastFollowUp')} value={customer.lastFollowUp ? new Date(customer.lastFollowUp).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE') : null} />
-              <InfoItem icon={Calendar} label={t('customers.nextFollowUp')} value={customer.nextFollowUp ? new Date(customer.nextFollowUp).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE') : null} />
+              <InfoItem icon={Calendar} label={t('customers.lastFollowUp')} value={customer.lastFollowUp ? formatDate(customer.lastFollowUp, locale) : null} />
+              <InfoItem icon={Calendar} label={t('customers.nextFollowUp')} value={customer.nextFollowUp ? formatDate(customer.nextFollowUp, locale) : null} />
             </div>
           </TabsContent>
 
@@ -588,7 +589,7 @@ export default function CustomerDetailsPage() {
                         </span>
                         <span className="flex items-center gap-1.5">
                           <Calendar className="size-3 shrink-0" />
-                          {new Date(task.dueAt).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE')}
+                          {formatDate(task.dueAt, locale)}
                         </span>
                       </div>
                     </Link>
@@ -665,7 +666,7 @@ export default function CustomerDetailsPage() {
                                 {attachment.originalName}
                               </p>
                               <p className="text-xs text-muted-foreground mt-0.5">
-                                {fileSize} &middot; {new Date(attachment.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE')}
+                                {fileSize} &middot; {formatDate(attachment.createdAt, locale)}
                               </p>
                               <div className="absolute top-2 end-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <a

@@ -91,13 +91,13 @@ export async function POST(
       : task.assignedToId;
 
     if (notifyUserId !== session.user.id) {
-      await createNotification({
+      createNotification({
         userId: notifyUserId,
         type: 'INTERNAL_TASK_COMMENT',
         title: 'New Comment on Internal Task',
         message: `New comment on "${task.title}"`,
-        link: `/en/internal-tasks/${task.id}`,
-      });
+        link: `/internal-tasks/${task.id}`,
+      }).catch((err) => console.error('Notification error:', err));
     }
 
     return NextResponse.json({ data: comment }, { status: 201 });

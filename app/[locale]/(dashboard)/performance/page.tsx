@@ -15,6 +15,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Pagination } from '@/components/ui/pagination';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { intlLocale } from '@/lib/utils';
 
 interface PerformanceReview {
   id: string;
@@ -89,10 +90,8 @@ export default function PerformancePage() {
   }, [page, period, status]);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+    return new Date(dateString).toLocaleDateString(intlLocale(locale), {
+      year: 'numeric', month: 'short', day: 'numeric',
     });
   };
 

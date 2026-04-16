@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
     const roleId = searchParams.get('roleId') || '';
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
     const { passwordHash: _passwordHash, ...sanitizedUser } = user;
 
     // Log audit
-    await logAudit({
+    logAudit({
       actorUserId: session.user.id,
       action: 'user.created',
       entityType: 'User',
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
         fullName: user.fullName,
         role: user.roles[0]?.role.name,
       },
-    });
+    }).catch((err) => console.error("Audit log error:", err));
 
     return NextResponse.json({
       data: {

@@ -35,66 +35,44 @@ export async function POST(
       );
     }
 
-    // Update task status
-    const updatedTask = await prisma.internalTask.update({
-      where: { id },
-      data: {
-        status: 'SUBMITTED',
-        submittedAt: new Date(),
-      },
-      include: {
-        assignedTo: {
-          select: {
-            id: true,
-            fullName: true,
-          },
+    // Atomically update task + create comment
+    const updatedTask = await prisma.$transaction(async (tx) => {
+      const updated = await tx.internalTask.update({
+        where: { id },
+        data: {
+          status: 'SUBMITTED',
+          submittedAt: new Date(),
         },
-        createdBy: {
-          select: {
-            id: true,
-            fullName: true,
-          },
+        include: {
+          assignedTo: { select: { id: true, fullName: true } },
+          createdBy: { select: { id: true, fullName: true } },
+          department: { select: { id: true, name: true, nameAr: true } },
+          category: { select: { id: true, name: true, nameAr: true, color: true } },
+          rating: true,
+          _count: { select: { comments: true } },
         },
-        department: {
-          select: {
-            id: true,
-            name: true,
-            nameAr: true,
-          },
+      });
+
+      await tx.internalTaskComment.create({
+        data: {
+          internalTaskId: id,
+          userId: session.user.id,
+          content: 'Task submitted for approval',
+          type: 'SUBMISSION',
         },
-        category: {
-          select: {
-            id: true,
-            name: true,
-            nameAr: true,
-            color: true,
-          },
-        },
-        rating: true,
-        _count: {
-          select: { comments: true },
-        },
-      },
+      });
+
+      return updated;
     });
 
-    // Create SUBMISSION comment
-    await prisma.internalTaskComment.create({
-      data: {
-        internalTaskId: id,
-        userId: session.user.id,
-        content: 'Task submitted for approval',
-        type: 'SUBMISSION',
-      },
-    });
-
-    // Notify creator
-    await createNotification({
+    // Notify creator — fire and forget
+    createNotification({
       userId: task.createdById,
       type: 'INTERNAL_TASK_SUBMITTED',
       title: 'Task Submitted for Approval',
       message: `Task "${task.title}" has been submitted for your approval`,
-      link: `/en/internal-tasks/${task.id}`,
-    });
+      link: `/internal-tasks/${task.id}`,
+    }).catch((err) => console.error('Notification error:', err));
 
     return NextResponse.json({ data: updatedTask });
   } catch (error) {

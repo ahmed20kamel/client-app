@@ -19,7 +19,8 @@ interface InvoiceItem {
 interface TaxInvoice {
   id: string; invoiceNumber: string; lpoNumber: string | null; paymentTerms: string | null;
   engineerName: string | null; mobileNumber: string | null; projectName: string | null;
-  customer: { id: string; fullName: string };
+  customer: { id: string; fullName: string } | null;
+  client: { id: string; companyName: string } | null;
   quotation: { id: string; quotationNumber: string } | null;
   items: InvoiceItem[];
 }
@@ -73,7 +74,8 @@ export default function NewDeliveryNotePage() {
         body: JSON.stringify({
           taxInvoiceId: invoice.id,
           quotationId: invoice.quotation?.id || null,
-          customerId: invoice.customer.id,
+          customerId: invoice.customer?.id || null,
+          clientId: invoice.client?.id || null,
           engineerName: invoice.engineerName,
           mobileNumber: invoice.mobileNumber,
           projectName: invoice.projectName,
@@ -129,7 +131,7 @@ export default function NewDeliveryNotePage() {
                   {t('deliveryNotes.sourceInvoice')}: <span className="text-primary">{invoice.invoiceNumber}</span>
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div><p className="text-[11px] text-muted-foreground font-medium">{t('quotations.customer')}</p><p className="font-bold">{invoice.customer.fullName}</p></div>
+                  <div><p className="text-[11px] text-muted-foreground font-medium">{t('quotations.customer')}</p><p className="font-bold">{invoice.client?.companyName || invoice.customer?.fullName || '—'}</p></div>
                   <div><p className="text-[11px] text-muted-foreground font-medium">{t('quotations.projectName')}</p><p className="font-bold">{invoice.projectName || '—'}</p></div>
                   <div><p className="text-[11px] text-muted-foreground font-medium">{t('quotations.lpoNumber')}</p><p className="font-bold">{invoice.lpoNumber || '—'}</p></div>
                   <div><p className="text-[11px] text-muted-foreground font-medium">{t('quotations.paymentTerms')}</p><p className="font-bold">{invoice.paymentTerms || '—'}</p></div>

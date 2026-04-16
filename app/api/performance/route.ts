@@ -172,16 +172,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Send notification to the reviewed user
-    await prisma.notification.create({
+    // Send notification to the reviewed user — fire and forget
+    prisma.notification.create({
       data: {
         userId: validatedData.userId,
         type: 'SYSTEM',
         title: 'Performance Review',
         message: `A new ${validatedData.period.toLowerCase()} performance review has been created for you`,
-        link: `/en/performance/${review.id}`,
+        link: `/performance/${review.id}`,
       },
-    });
+    }).catch((err) => console.error('Notification error:', err));
 
     return NextResponse.json({ data: review }, { status: 201 });
   } catch (error) {

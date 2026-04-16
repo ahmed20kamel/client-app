@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/logger';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
@@ -10,6 +11,7 @@ export async function DELETE(
   try {
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (session.user.role !== 'Admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     const { id: invoiceId, paymentId } = await params;
 
     await prisma.$transaction(async (tx) => {
@@ -24,8 +26,9 @@ export async function DELETE(
       });
       const paidAmount = confirmed.reduce((sum, p) => sum + p.amount, 0);
 
+      // Always derive status from payment totals (DRAFT gets promoted automatically)
       let status = invoice.status;
-      if (invoice.status !== 'CANCELLED' && invoice.status !== 'DRAFT') {
+      if (invoice.status !== 'CANCELLED') {
         if (paidAmount <= 0) status = 'UNPAID';
         else if (paidAmount >= invoice.total) status = 'PAID';
         else status = 'PARTIAL';

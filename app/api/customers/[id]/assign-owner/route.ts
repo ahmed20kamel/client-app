@@ -69,7 +69,7 @@ export async function POST(
     });
 
     // Log audit
-    await logAudit({
+    logAudit({
       actorUserId: session.user.id,
       action: 'customer.owner-assigned',
       entityType: 'Customer',
@@ -80,7 +80,7 @@ export async function POST(
       after: {
         owner: customer.owner.fullName,
       },
-    });
+    }).catch((err) => console.error("Audit log error:", err));
 
     return NextResponse.json({ data: customer });
   } catch (error) {

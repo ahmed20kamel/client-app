@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
     const priority = searchParams.get('priority') || '';
@@ -159,72 +159,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create task
-    const task = await prisma.internalTask.create({
-      data: {
-        title: validatedData.title,
-        description: validatedData.description,
-        assignedToId: validatedData.assignedToId,
-        createdById: session.user.id,
-        departmentId: validatedData.departmentId,
-        categoryId: validatedData.categoryId,
-        priority: validatedData.priority,
-        dueAt: validatedData.dueAt ? new Date(validatedData.dueAt) : null,
-      },
-      include: {
-        assignedTo: {
-          select: {
-            id: true,
-            fullName: true,
-          },
+    // Atomically create task + initial SYSTEM comment
+    const task = await prisma.$transaction(async (tx) => {
+      const created = await tx.internalTask.create({
+        data: {
+          title: validatedData.title,
+          description: validatedData.description,
+          assignedToId: validatedData.assignedToId,
+          createdById: session.user.id,
+          departmentId: validatedData.departmentId,
+          categoryId: validatedData.categoryId,
+          priority: validatedData.priority,
+          dueAt: validatedData.dueAt ? new Date(validatedData.dueAt) : null,
         },
-        createdBy: {
-          select: {
-            id: true,
-            fullName: true,
-          },
+        include: {
+          assignedTo: { select: { id: true, fullName: true } },
+          createdBy: { select: { id: true, fullName: true } },
+          department: { select: { id: true, name: true, nameAr: true } },
+          category: { select: { id: true, name: true, nameAr: true, color: true } },
+          rating: true,
+          _count: { select: { comments: true } },
         },
-        department: {
-          select: {
-            id: true,
-            name: true,
-            nameAr: true,
-          },
+      });
+
+      await tx.internalTaskComment.create({
+        data: {
+          internalTaskId: created.id,
+          userId: session.user.id,
+          content: 'Task created',
+          type: 'SYSTEM',
         },
-        category: {
-          select: {
-            id: true,
-            name: true,
-            nameAr: true,
-            color: true,
-          },
-        },
-        rating: true,
-        _count: {
-          select: { comments: true },
-        },
-      },
+      });
+
+      return created;
     });
 
-    // Create SYSTEM comment for task creation
-    await prisma.internalTaskComment.create({
-      data: {
-        internalTaskId: task.id,
-        userId: session.user.id,
-        content: 'Task created',
-        type: 'SYSTEM',
-      },
-    });
-
-    // Send notification to assignee (if not self-assigned)
+    // Send notification to assignee (if not self-assigned) — fire and forget
     if (task.assignedToId !== session.user.id) {
-      await createNotification({
+      createNotification({
         userId: task.assignedToId,
         type: 'INTERNAL_TASK_ASSIGNED',
         title: 'New Internal Task',
         message: `You have been assigned: "${task.title}"`,
-        link: `/en/internal-tasks/${task.id}`,
-      });
+        link: `/internal-tasks/${task.id}`,
+      }).catch((err) => console.error('Notification error:', err));
     }
 
     return NextResponse.json({ data: task }, { status: 201 });

@@ -52,70 +52,74 @@ export async function POST(
       updateData.priority = 'HIGH';
     }
 
-    const updatedTask = await prisma.task.update({
-      where: { id },
-      data: updateData,
-      include: {
-        customer: { select: { id: true, fullName: true } },
-        assignedTo: { select: { id: true, fullName: true } },
-        createdBy: { select: { id: true, fullName: true } },
-        category: { select: { id: true, name: true, nameAr: true } },
-        department: { select: { id: true, name: true, nameAr: true } },
-      },
-    });
-
-    // Create escalation comment
     const levelNames = ['Normal', 'Escalated', 'Critical'];
-    await prisma.taskComment.create({
-      data: {
-        taskId: id,
-        userId: session.user.id,
-        content: validatedData.reason,
-        type: 'ESCALATION',
-        metadata: JSON.stringify({
-          previousLevel,
-          newLevel: validatedData.escalationLevel,
-          previousLevelName: levelNames[previousLevel],
-          newLevelName: levelNames[validatedData.escalationLevel],
-        }),
-      },
+
+    // Atomically update task + create comment
+    const updatedTask = await prisma.$transaction(async (tx) => {
+      const updated = await tx.task.update({
+        where: { id },
+        data: updateData,
+        include: {
+          customer: { select: { id: true, fullName: true } },
+          assignedTo: { select: { id: true, fullName: true } },
+          createdBy: { select: { id: true, fullName: true } },
+          category: { select: { id: true, name: true, nameAr: true } },
+          department: { select: { id: true, name: true, nameAr: true } },
+        },
+      });
+
+      await tx.taskComment.create({
+        data: {
+          taskId: id,
+          userId: session.user.id,
+          content: validatedData.reason,
+          type: 'ESCALATION',
+          metadata: JSON.stringify({
+            previousLevel,
+            newLevel: validatedData.escalationLevel,
+            previousLevelName: levelNames[previousLevel],
+            newLevelName: levelNames[validatedData.escalationLevel],
+          }),
+        },
+      });
+
+      return updated;
     });
 
-    // Notify task assignee
+    // Notifications — fire and forget
     if (task.assignedToId !== session.user.id) {
-      await prisma.notification.create({
+      prisma.notification.create({
         data: {
           userId: task.assignedToId,
           type: 'TASK_ESCALATED',
           title: 'Task escalated',
           message: `Task "${task.title}" has been escalated to ${levelNames[validatedData.escalationLevel]}`,
-          link: `/en/tasks/${id}`,
+          link: `/tasks/${id}`,
         },
-      });
+      }).catch((err) => console.error('Notification error:', err));
     }
 
-    // Notify department manager if exists
     if (task.department?.managerId && task.department.managerId !== session.user.id) {
-      await prisma.notification.create({
+      prisma.notification.create({
         data: {
           userId: task.department.managerId,
           type: 'TASK_ESCALATED',
           title: 'Task escalated in your department',
           message: `Task "${task.title}" has been escalated to ${levelNames[validatedData.escalationLevel]}`,
-          link: `/en/tasks/${id}`,
+          link: `/tasks/${id}`,
         },
-      });
+      }).catch((err) => console.error('Notification error:', err));
     }
 
-    // Audit log
-    await logAudit({
+    // Audit log — fire and forget
+    logAudit({
       actorUserId: session.user.id,
       action: 'task.escalated',
       entityType: 'Task',
       entityId: id,
       before: { escalationLevel: previousLevel },
       after: { escalationLevel: validatedData.escalationLevel, reason: validatedData.reason },
-    });
+    }).catch((err) => console.error('Audit log error:', err));
 
     return NextResponse.json({ data: updatedTask });
   } catch (error) {

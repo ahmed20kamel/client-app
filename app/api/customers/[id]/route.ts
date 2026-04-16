@@ -176,7 +176,7 @@ export async function PATCH(
     });
 
     // Log audit
-    await logAudit({
+    logAudit({
       actorUserId: session.user.id,
       action: 'customer.updated',
       entityType: 'Customer',
@@ -193,7 +193,7 @@ export async function PATCH(
         customerType: customer.customerType,
         status: customer.status,
       },
-    });
+    }).catch((err) => console.error("Audit log error:", err));
 
     return NextResponse.json({ data: customer });
   } catch (error) {
@@ -205,9 +205,8 @@ export async function PATCH(
     }
 
     console.error('Update customer error:', error);
-    const message = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json(
-      { error: message.includes('Unknown arg') ? 'Please restart the server to apply database changes' : 'Failed to update customer. Please try again.' },
+      { error: 'Failed to update customer. Please try again.' },
       { status: 500 }
     );
   }
@@ -248,7 +247,7 @@ export async function DELETE(
     });
 
     // Log audit
-    await logAudit({
+    logAudit({
       actorUserId: session.user.id,
       action: 'customer.deleted',
       entityType: 'Customer',
@@ -261,7 +260,7 @@ export async function DELETE(
         fullName: customer.fullName,
         deletedAt: new Date(),
       },
-    });
+    }).catch((err) => console.error("Audit log error:", err));
 
     return NextResponse.json({ message: 'Customer deleted successfully' });
   } catch (error) {

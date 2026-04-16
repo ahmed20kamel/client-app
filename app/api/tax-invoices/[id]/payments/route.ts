@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/logger';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (session.user.role !== 'Admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     const { id: invoiceId } = await params;
 
     const body = await request.json();
@@ -69,17 +71,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       });
       const paidAmount = allConfirmed.reduce((sum, p) => sum + p.amount, 0);
 
-      let invoiceStatus = invoice.status;
+      // Cannot add payments to a cancelled invoice
+      if (invoice.status === 'CANCELLED') {
+        throw new Error('CANCELLED');
+      }
+
+      // Derive status from payment totals — always automatic, even for DRAFT invoices
+      let invoiceStatus: string;
       if (paidAmount <= 0) {
         invoiceStatus = 'UNPAID';
       } else if (paidAmount >= invoice.total) {
         invoiceStatus = 'PAID';
       } else {
         invoiceStatus = 'PARTIAL';
-      }
-      // Don't override CANCELLED or DRAFT
-      if (invoice.status === 'CANCELLED' || invoice.status === 'DRAFT') {
-        invoiceStatus = invoice.status;
       }
 
       await tx.taxInvoice.update({
@@ -93,7 +97,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ data: result }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: error.issues[0]?.message || 'Validation error' }, { status: 400 });
-    console.error(error);
+    if (error instanceof Error && error.message === 'CANCELLED') {
+      return NextResponse.json({ error: 'Cannot add payments to a cancelled invoice.' }, { status: 409 });
+    }
+    logError('Create invoice payment error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -33,6 +33,7 @@ import {
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { PageHeader } from '@/components/PageHeader';
 import { StatusBadge } from '@/components/StatusBadge';
+import { formatDate } from '@/lib/utils';
 
 interface User {
   id: string;
@@ -260,7 +261,7 @@ export default function UsersPage() {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Clock className="size-3 shrink-0" />
-                      <span>{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE') : t('common.never')}</span>
+                      <span>{user.lastLoginAt ? formatDate(user.lastLoginAt, locale) : t('common.never')}</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-end gap-1 border-t pt-2">
@@ -355,7 +356,7 @@ export default function UsersPage() {
                       </td>
                       <td className="px-4 py-4 text-sm text-muted-foreground text-center">
                         {user.lastLoginAt
-                          ? new Date(user.lastLoginAt).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE')
+                          ? formatDate(user.lastLoginAt, locale)
                           : t('common.never')}
                       </td>
                       <td className="px-4 py-4 text-end" onClick={(e) => e.stopPropagation()}>

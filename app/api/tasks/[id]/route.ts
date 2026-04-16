@@ -144,64 +144,51 @@ export async function PATCH(
       updateData.dueAt = newDueDate;
     }
 
-    // Update task
-    const task = await prisma.task.update({
-      where: { id },
-      data: updateData,
-      include: {
-        customer: {
-          select: {
-            id: true,
-            fullName: true,
-          },
-        },
-        assignedTo: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-          },
-        },
-        createdBy: {
-          select: {
-            id: true,
-            fullName: true,
-          },
-        },
-      },
-    });
-
-    // Create status change comment if status changed
-    if (validatedData.status && validatedData.status !== existingTask.status) {
-      await prisma.taskComment.create({
-        data: {
-          taskId: id,
-          userId: session.user.id,
-          content: `Status changed from ${existingTask.status} to ${validatedData.status}`,
-          type: 'STATUS_CHANGE',
-          metadata: JSON.stringify({
-            previousStatus: existingTask.status,
-            newStatus: validatedData.status,
-          }),
+    // Atomically update task + create status change comment
+    const task = await prisma.$transaction(async (tx) => {
+      const updated = await tx.task.update({
+        where: { id },
+        data: updateData,
+        include: {
+          customer: { select: { id: true, fullName: true } },
+          assignedTo: { select: { id: true, fullName: true, email: true } },
+          createdBy: { select: { id: true, fullName: true } },
         },
       });
-    }
 
-    // Notify assignee if task was reassigned via regular update
+      if (validatedData.status && validatedData.status !== existingTask.status) {
+        await tx.taskComment.create({
+          data: {
+            taskId: id,
+            userId: session.user.id,
+            content: `Status changed from ${existingTask.status} to ${validatedData.status}`,
+            type: 'STATUS_CHANGE',
+            metadata: JSON.stringify({
+              previousStatus: existingTask.status,
+              newStatus: validatedData.status,
+            }),
+          },
+        });
+      }
+
+      return updated;
+    });
+
+    // Notifications — fire and forget
     if (validatedData.assignedToId && validatedData.assignedToId !== existingTask.assignedToId) {
-      await prisma.notification.create({
+      prisma.notification.create({
         data: {
           userId: validatedData.assignedToId,
           type: 'TASK_REASSIGNED',
           title: 'Task assigned to you',
           message: `Task "${task.title}" has been assigned to you`,
-          link: `/en/tasks/${id}`,
+          link: `/tasks/${id}`,
         },
-      });
+      }).catch((err) => console.error('Notification error:', err));
     }
 
-    // Log audit
-    await logAudit({
+    // Audit log — fire and forget
+    logAudit({
       actorUserId: session.user.id,
       action: 'task.updated',
       entityType: 'Task',
@@ -218,7 +205,7 @@ export async function PATCH(
         priority: task.priority,
         dueAt: task.dueAt,
       },
-    });
+    }).catch((err) => console.error('Audit log error:', err));
 
     return NextResponse.json({ data: task });
   } catch (error) {

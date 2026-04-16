@@ -35,6 +35,7 @@ import {
   Tag,
 } from 'lucide-react';
 import { DetailSkeleton } from '@/components/ui/page-skeleton';
+import { formatDate, formatDateTime } from '@/lib/utils';
 
 interface TaskComment {
   id: string;
@@ -293,13 +294,8 @@ export default function TaskDetailsPage() {
     }
   };
 
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString(locale === 'ar' ? 'ar-AE' : 'en-AE');
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE');
-  };
+  const fmtDate = (d: string) => formatDate(d, locale);
+  const fmtDateTime = (d: string) => formatDateTime(d, locale);
 
   const getCommentIcon = (type: string) => {
     switch (type) {
@@ -533,7 +529,7 @@ export default function TaskDetailsPage() {
                       <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t('tasks.dueDate')}</p>
                       <p className="font-medium flex items-center gap-1.5">
                         <Calendar className="size-3.5 text-muted-foreground" />
-                        {formatDateTime(task.dueAt)}
+                        {fmtDateTime(task.dueAt)}
                       </p>
                     </div>
                     {task.slaDeadline && (
@@ -541,19 +537,19 @@ export default function TaskDetailsPage() {
                         <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t('tasks.slaDeadline')}</p>
                         <p className="font-medium flex items-center gap-1.5">
                           <Clock className="size-3.5 text-muted-foreground" />
-                          {formatDateTime(task.slaDeadline)}
+                          {fmtDateTime(task.slaDeadline)}
                         </p>
                       </div>
                     )}
                     {task.completedAt && (
                       <div>
                         <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t('tasks.completedAt')}</p>
-                        <p className="font-medium">{formatDateTime(task.completedAt)}</p>
+                        <p className="font-medium">{fmtDateTime(task.completedAt)}</p>
                       </div>
                     )}
                     <div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t('common.createdAt')}</p>
-                      <p className="font-medium">{formatDate(task.createdAt)}</p>
+                      <p className="font-medium">{fmtDate(task.createdAt)}</p>
                     </div>
                     {task.category && (
                       <div>
@@ -632,7 +628,7 @@ export default function TaskDetailsPage() {
                             <div className="flex items-center gap-2 mb-0.5">
                               <span className="text-sm font-medium">{comment.user.fullName}</span>
                               <span className="text-xs text-muted-foreground">
-                                {formatDateTime(comment.createdAt)}
+                                {fmtDateTime(comment.createdAt)}
                               </span>
                               {comment.type !== 'COMMENT' && (
                                 <Badge variant="outline" className="text-[10px] px-1.5 py-0">

@@ -9,7 +9,7 @@ import { updatePurchaseOrderSchema, UpdatePurchaseOrderInput } from '@/lib/valid
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
 import {
@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { PageSkeleton } from '@/components/ui/page-skeleton';
+import { fmtAmount } from '@/lib/utils';
 
 interface SupplierOption {
   id: string;
@@ -185,12 +186,7 @@ export default function EditPurchaseOrderPage() {
   const taxAmount = afterDiscount * (taxPercent / 100);
   const grandTotal = afterDiscount + taxAmount;
 
-  const formatAmount = (val: number) => {
-    return val.toLocaleString(locale === 'ar' ? 'ar-AE' : 'en-AE', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
+  const formatAmount = (val: number) => fmtAmount(val, locale);
 
   const onSubmit = async (data: UpdatePurchaseOrderInput) => {
     const validItems = items.filter((item) => item.description.trim() !== '');
@@ -305,18 +301,16 @@ export default function EditPurchaseOrderPage() {
                         <Truck className="size-3.5" />
                         {t('purchaseOrders.supplier')} *
                       </FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={loadingSuppliers}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={loadingSuppliers ? t('common.loading') : t('purchaseOrders.selectSupplier')} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {suppliers.map((s) => (
-                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <SearchableSelect
+                          options={suppliers.map((s) => ({ value: s.id, label: s.name }))}
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          placeholder={loadingSuppliers ? t('common.loading') : t('purchaseOrders.selectSupplier')}
+                          searchPlaceholder={t('common.search') + '...'}
+                          disabled={loadingSuppliers}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -391,23 +385,17 @@ export default function EditPurchaseOrderPage() {
                       {/* Product */}
                       <div>
                         <label className="text-sm font-medium mb-1 block">{t('purchaseOrders.product')}</label>
-                        <Select
+                        <SearchableSelect
+                          options={[
+                            { value: 'none', label: t('purchaseOrders.noProduct') },
+                            ...products.map((p) => ({ value: p.id, label: `${p.name}${p.sku ? ` (${p.sku})` : ''}` })),
+                          ]}
                           value={item.productId || 'none'}
                           onValueChange={(val) => updateItem(index, 'productId', val === 'none' ? null : val)}
+                          placeholder={t('purchaseOrders.selectProduct')}
+                          searchPlaceholder={t('common.search') + '...'}
                           disabled={loadingProducts}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('purchaseOrders.selectProduct')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">{t('purchaseOrders.noProduct')}</SelectItem>
-                            {products.map((p) => (
-                              <SelectItem key={p.id} value={p.id}>
-                                {p.name} {p.sku ? `(${p.sku})` : ''}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        />
                       </div>
 
                       {/* Description */}

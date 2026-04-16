@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/logger';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { can } from '@/lib/permissions';
 import { updateTaxInvoiceSchema } from '@/lib/validations/quotation';
 import { z } from 'zod';
 
@@ -16,16 +18,24 @@ export async function GET(
     }
 
     const { id } = await params;
+    const canView = await can(session.user.id, 'reports.view.all');
+    const canViewOwn = await can(session.user.id, 'reports.view.own');
+    if (!canView && !canViewOwn) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const invoice = await prisma.taxInvoice.findUnique({
       where: { id },
       include: {
-        customer: true,
+        customer: { select: { id: true, fullName: true, phone: true, email: true } },
         client: { select: { id: true, companyName: true, trn: true } },
         engineer: { select: { id: true, name: true, mobile: true } },
         quotation: {
           select: {
             id: true, quotationNumber: true, status: true,
             lpoNumber: true, paymentTerms: true,
+            paymentType: true, depositPercent: true, depositAmount: true,
+            paymentNotes: true, confirmedAt: true,
           },
         },
         createdBy: { select: { id: true, fullName: true } },
@@ -49,7 +59,7 @@ export async function GET(
 
     return NextResponse.json({ data: invoice });
   } catch (error) {
-    console.error('Get tax invoice error:', error);
+    logError('Get tax invoice error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -73,6 +83,21 @@ export async function PATCH(
 
     const body = await request.json();
     const validatedData = updateTaxInvoiceSchema.parse(body);
+
+    // Guard: PAID/PARTIAL/UNPAID are derived automatically — cannot be set manually
+    if (validatedData.status && !['SENT', 'CANCELLED'].includes(validatedData.status)) {
+      return NextResponse.json(
+        { error: 'Status PAID/PARTIAL/UNPAID is derived automatically from payments and cannot be set manually.' },
+        { status: 400 }
+      );
+    }
+    // Guard: cannot un-cancel a cancelled invoice
+    if (existing.status === 'CANCELLED' && validatedData.status && validatedData.status !== 'CANCELLED') {
+      return NextResponse.json(
+        { error: 'A cancelled invoice cannot be reactivated.' },
+        { status: 400 }
+      );
+    }
 
     const updated = await prisma.taxInvoice.update({
       where: { id },
@@ -103,7 +128,7 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    console.error('Update tax invoice error:', error);
+    logError('Update tax invoice error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -120,15 +145,40 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const invoice = await prisma.taxInvoice.findUnique({ where: { id } });
+    if (session.user.role !== 'Admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const invoice = await prisma.taxInvoice.findUnique({
+      where: { id },
+      include: { deliveryNotes: { select: { id: true } } },
+    });
     if (!invoice) {
       return NextResponse.json({ error: 'Tax invoice not found' }, { status: 404 });
     }
 
-    await prisma.taxInvoice.delete({ where: { id } });
+    if (invoice.status === 'PAID') {
+      return NextResponse.json({ error: 'Cannot delete a fully paid invoice.' }, { status: 409 });
+    }
+
+    if (invoice.deliveryNotes.length > 0) {
+      return NextResponse.json({ error: 'Cannot delete: this invoice has linked delivery notes. Delete them first.' }, { status: 409 });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.taxInvoice.delete({ where: { id } });
+      // Revert quotation back to CONFIRMED so a new invoice can be generated
+      if (invoice.quotationId) {
+        await tx.quotation.update({
+          where: { id: invoice.quotationId },
+          data: { status: 'CONFIRMED' },
+        });
+      }
+    });
+
     return NextResponse.json({ message: 'Tax invoice deleted successfully' });
   } catch (error) {
-    console.error('Delete tax invoice error:', error);
+    logError('Delete tax invoice error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

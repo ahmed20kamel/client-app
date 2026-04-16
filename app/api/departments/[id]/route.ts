@@ -107,14 +107,14 @@ export async function PATCH(
       },
     });
 
-    await logAudit({
+    logAudit({
       actorUserId: session.user.id,
       action: 'department.updated',
       entityType: 'Department',
       entityId: id,
       before: { name: existing.name, managerId: existing.managerId, parentId: existing.parentId },
       after: { name: department.name, managerId: department.managerId, parentId: department.parentId },
-    });
+    }).catch((err) => console.error("Audit log error:", err));
 
     return NextResponse.json({ data: department });
   } catch (error) {
@@ -179,14 +179,14 @@ export async function DELETE(
 
     await prisma.department.delete({ where: { id } });
 
-    await logAudit({
+    logAudit({
       actorUserId: session.user.id,
       action: 'department.deleted',
       entityType: 'Department',
       entityId: id,
       before: { name: department.name },
       after: null,
-    });
+    }).catch((err) => console.error("Audit log error:", err));
 
     return NextResponse.json({ message: 'Department deleted successfully' });
   } catch (error) {

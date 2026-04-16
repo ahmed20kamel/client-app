@@ -18,6 +18,7 @@ import {
   User,
 } from 'lucide-react';
 import { DetailSkeleton } from '@/components/ui/page-skeleton';
+import { intlLocale } from '@/lib/utils';
 
 interface UserData {
   id: string;
@@ -125,10 +126,8 @@ export default function EmployeePerformancePage() {
   }, [userId]);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+    return new Date(dateString).toLocaleDateString(intlLocale(locale), {
+      year: 'numeric', month: 'short', day: 'numeric',
     });
   };
 

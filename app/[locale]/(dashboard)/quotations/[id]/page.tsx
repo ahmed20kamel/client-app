@@ -9,24 +9,22 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import {
-  FileText, User, ArrowLeft, Pencil, Trash2, AlertCircle,
-  Calendar, Send, CheckCircle, XCircle, DollarSign, Hash,
-  Phone, Building2, Truck, Receipt, Package, Printer,
+  ArrowLeft, Pencil, Trash2, AlertCircle, Send, CheckCircle,
+  Receipt, Package, Printer, Upload, Banknote, FileText, Building2, User,
+  Phone, MapPin, CalendarDays, Hash, CreditCard, TrendingUp, ChevronRight,
+  Clock, CheckCircle2, RotateCcw, ThumbsUp, ThumbsDown,
 } from 'lucide-react';
 import { DetailSkeleton } from '@/components/ui/page-skeleton';
 import { StatusBadge } from '@/components/StatusBadge';
+import { fmtAmount, formatDate } from '@/lib/utils';
+import { AttachmentsPanel } from '@/components/AttachmentsPanel';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface QuotationItem {
   id: string;
@@ -42,7 +40,13 @@ interface QuotationItem {
   product: { id: string; name: string } | null;
 }
 
-interface LinkedDoc { id: string; invoiceNumber?: string; dnNumber?: string; status: string; createdAt: string; }
+interface LinkedDoc {
+  id: string;
+  invoiceNumber?: string;
+  dnNumber?: string;
+  status: string;
+  createdAt: string;
+}
 
 interface Quotation {
   id: string;
@@ -50,25 +54,112 @@ interface Quotation {
   engineerName: string | null;
   mobileNumber: string | null;
   projectName: string | null;
-  subject: string | null;
   status: string;
   subtotal: number;
+  discountPercent: number;
+  discountAmount: number;
   taxPercent: number;
   taxAmount: number;
   deliveryCharges: number;
   total: number;
   lpoNumber: string | null;
   paymentTerms: string | null;
+  // timeline
+  createdAt: string;
+  sentAt: string | null;
+  clientApprovedAt: string | null;
+  clientRejectedAt: string | null;
+  confirmedAt: string | null;
+  // people
+  clientNotes: string | null;
   rejectionReason: string | null;
   notes: string | null;
   terms: string | null;
   validUntil: string | null;
-  createdAt: string;
-  customer: { id: string; fullName: string; };
+  customer: { id: string; fullName: string } | null;
+  client: { id: string; companyName: string; trn: string | null } | null;
+  engineer: { id: string; name: string; mobile: string | null } | null;
+  createdBy: { id: string; fullName: string } | null;
+  confirmedBy: { id: string; fullName: string } | null;
+  clientApprovedBy: { id: string; fullName: string } | null;
   items: QuotationItem[];
   taxInvoices?: LinkedDoc[];
   deliveryNotes?: LinkedDoc[];
+  // finance
+  paymentType: string | null;
+  depositPercent: number | null;
+  depositAmount: number | null;
+  paymentProofUrl: string | null;
+  paymentNotes: string | null;
 }
+
+// ── Workflow steps ─────────────────────────────────────────────────────────────
+// Status order for the stepper
+const STEPS = [
+  { key: 'DRAFT',           label: 'Draft',            icon: FileText },
+  { key: 'SENT',            label: 'Sent',             icon: Send },
+  { key: 'CLIENT_APPROVED', label: 'Client Approved',  icon: ThumbsUp },
+  { key: 'CONFIRMED',       label: 'Finance Confirmed', icon: CheckCircle2 },
+  { key: 'CONVERTED',       label: 'Converted',        icon: TrendingUp },
+] as const;
+
+type StepKey = typeof STEPS[number]['key'];
+
+function activeIndex(status: string): number {
+  // legacy APPROVED → treat as CLIENT_APPROVED
+  const s = status === 'APPROVED' ? 'CLIENT_APPROVED' : status;
+  const idx = STEPS.findIndex((st) => st.key === s);
+  return idx === -1 ? 0 : idx;
+}
+
+function WorkflowStepper({ status }: { status: string }) {
+  const isRejected = status === 'CLIENT_REJECTED';
+  const current = activeIndex(status);
+
+  return (
+    <div className={`px-6 py-4 border-b border-border ${isRejected ? 'bg-destructive/5' : 'bg-muted/20'}`}>
+      {isRejected ? (
+        <div className="flex items-center gap-2 text-destructive">
+          <ThumbsDown className="size-4" />
+          <span className="text-sm font-semibold">Client Declined — revise and re-send</span>
+        </div>
+      ) : (
+        <div className="flex items-center">
+          {STEPS.map((step, idx) => {
+            const done   = idx < current;
+            const active = idx === current;
+            const Icon   = step.icon;
+            return (
+              <div key={step.key} className="flex items-center flex-1 last:flex-none">
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className={[
+                    'size-8 rounded-full flex items-center justify-center border-2 transition-all shrink-0',
+                    done   ? 'bg-emerald-600 border-emerald-600 text-white' : '',
+                    active ? 'bg-primary border-primary text-primary-foreground shadow-md shadow-primary/30' : '',
+                    !done && !active ? 'bg-background border-border text-muted-foreground' : '',
+                  ].join(' ')}>
+                    {done ? <CheckCircle2 className="size-3.5" /> : <Icon className="size-3.5" />}
+                  </div>
+                  <span className={[
+                    'text-[10px] font-semibold whitespace-nowrap hidden sm:block',
+                    active ? 'text-primary' : done ? 'text-emerald-600' : 'text-muted-foreground/60',
+                  ].join(' ')}>
+                    {step.label}
+                  </span>
+                </div>
+                {idx < STEPS.length - 1 && (
+                  <div className={`h-0.5 flex-1 mx-2 mb-5 rounded-full ${done ? 'bg-emerald-500' : 'bg-border'}`} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function QuotationDetailsPage() {
   const t = useTranslations();
@@ -80,33 +171,42 @@ export default function QuotationDetailsPage() {
   const [quotation, setQuotation] = useState<Quotation | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // Approval dialog state
-  const [showApproveDialog, setShowApproveDialog] = useState(false);
-  const [lpoNumber, setLpoNumber] = useState('');
-  const [paymentTerms, setPaymentTerms] = useState<'Cash' | 'Cheque' | 'Transfer'>('Cash');
+  // ── Dialog: Client Approve ────────────────────────────────────────────────
+  const [showClientApproveDialog, setShowClientApproveDialog] = useState(false);
+  const [caLpoNumber, setCaLpoNumber] = useState('');
+  const [caClientNotes, setCaClientNotes] = useState('');
 
-  // Reject dialog state
-  const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState('');
+  // ── Dialog: Client Reject ─────────────────────────────────────────────────
+  const [showClientRejectDialog, setShowClientRejectDialog] = useState(false);
+  const [crClientNotes, setCrClientNotes] = useState('');
 
-  const STATUS_LABELS: Record<string, string> = {
-    DRAFT: t('quotations.statusDraft'),
-    SENT: t('quotations.statusSent'),
-    APPROVED: t('quotations.statusApproved'),
-    REJECTED: t('quotations.statusRejected'),
-    EXPIRED: t('quotations.statusExpired'),
-    CONVERTED: t('quotations.statusConverted'),
+  // ── Dialog: Finance Confirm ───────────────────────────────────────────────
+  const [showFinanceDialog, setShowFinanceDialog] = useState(false);
+  const [fcPaymentTerms, setFcPaymentTerms] = useState<'Cash' | 'Cheque' | 'Bank Transfer' | 'Cash / Cheque / Bank Transfer'>('Cash');
+  const [fcPaymentType, setFcPaymentType] = useState<'DEPOSIT' | 'PARTIAL' | 'FULL_ADVANCE' | 'FULL_ON_DELIVERY'>('FULL_ON_DELIVERY');
+  const [fcDepositPercent, setFcDepositPercent] = useState('');
+  const [fcDepositAmount, setFcDepositAmount] = useState('');
+  const [fcPaymentProofUrl, setFcPaymentProofUrl] = useState('');
+  const [fcPaymentNotes, setFcPaymentNotes] = useState('');
+  const [fcUploading, setFcUploading] = useState(false);
+
+  const PAYMENT_TYPE_LABELS: Record<string, string> = {
+    DEPOSIT: 'Deposit', PARTIAL: 'Partial',
+    FULL_ADVANCE: 'Full Advance', FULL_ON_DELIVERY: 'Full on Delivery',
   };
 
+  // ── Fetch ─────────────────────────────────────────────────────────────────
   useEffect(() => {
+    fetch('/api/auth/session')
+      .then((r) => r.json())
+      .then((d) => setIsAdmin(d?.user?.role === 'Admin'))
+      .catch(() => {});
+
     fetch(`/api/quotations/${id}`)
       .then(async (res) => {
-        if (!res.ok) {
-          toast.error(t('common.error'));
-          router.push(`/${locale}/quotations`);
-          return;
-        }
+        if (!res.ok) { toast.error(t('common.error')); router.push(`/${locale}/quotations`); return; }
         const { data } = await res.json();
         setQuotation(data);
       })
@@ -114,7 +214,8 @@ export default function QuotationDetailsPage() {
       .finally(() => setLoading(false));
   }, [id, t, router, locale]);
 
-  const patchQuotation = async (body: Record<string, unknown>) => {
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  const patch = async (body: Record<string, unknown>): Promise<boolean> => {
     setActionLoading(true);
     try {
       const res = await fetch(`/api/quotations/${id}`, {
@@ -123,11 +224,9 @@ export default function QuotationDetailsPage() {
         body: JSON.stringify(body),
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
-      const { data } = await res.json();
-      setQuotation(data);
-      toast.success(t('messages.updateSuccess', { entity: t('quotations.title') }));
+      setQuotation((await res.json()).data);
       return true;
-    } catch (e: unknown) {
+    } catch (e) {
       toast.error(e instanceof Error ? e.message : t('common.error'));
       return false;
     } finally {
@@ -135,17 +234,91 @@ export default function QuotationDetailsPage() {
     }
   };
 
-  const handleSend = () => patchQuotation({ action: 'send' });
+  const fmt = (n: number) => fmtAmount(n, locale);
 
-  const handleApprove = async () => {
-    if (!lpoNumber.trim()) { toast.error(t('quotations.lpoRequired')); return; }
-    const ok = await patchQuotation({ action: 'approve', lpoNumber, paymentTerms });
-    if (ok) setShowApproveDialog(false);
+  // ── Actions ───────────────────────────────────────────────────────────────
+  const handleSend = async () => {
+    const ok = await patch({ action: 'send' });
+    if (ok) toast.success('Quotation sent to client');
   };
 
-  const handleReject = async () => {
-    const ok = await patchQuotation({ action: 'reject', rejectionReason });
-    if (ok) setShowRejectDialog(false);
+  const handleClientApprove = async () => {
+    if (!caLpoNumber.trim()) { toast.error('LPO Number is required'); return; }
+    const ok = await patch({ action: 'client_approve', lpoNumber: caLpoNumber.trim(), clientNotes: caClientNotes || null });
+    if (ok) {
+      toast.success('Client approval recorded');
+      setShowClientApproveDialog(false);
+      setCaLpoNumber(''); setCaClientNotes('');
+    }
+  };
+
+  const handleClientReject = async () => {
+    const ok = await patch({ action: 'client_reject', clientNotes: crClientNotes || null });
+    if (ok) {
+      toast.success('Client rejection recorded');
+      setShowClientRejectDialog(false);
+      setCrClientNotes('');
+    }
+  };
+
+  const handleRevertToDraft = async () => {
+    const ok = await patch({ action: 'revert_to_draft' });
+    if (ok) toast.success('Quotation reverted to Draft — ready for revision');
+  };
+
+  const handleFinanceConfirm = async () => {
+    if (!fcPaymentTerms) { toast.error('Payment terms are required'); return; }
+    if (!fcPaymentType) { toast.error('Payment type is required'); return; }
+
+    const pct = fcDepositPercent ? parseFloat(fcDepositPercent) : null;
+    const calcAmt = pct && quotation
+      ? Math.round(quotation.total * pct / 100 * 100) / 100
+      : (fcDepositAmount ? parseFloat(fcDepositAmount) : null);
+
+    if ((fcPaymentType === 'DEPOSIT' || fcPaymentType === 'PARTIAL')) {
+      if (!pct && !calcAmt) { toast.error('Deposit percent or amount is required'); return; }
+      if (pct !== null && (pct <= 0 || pct > 100)) { toast.error('Deposit percent must be between 1 and 100'); return; }
+      if (calcAmt !== null && quotation && calcAmt >= quotation.total) {
+        toast.error('Deposit amount must be less than the total — use Full Advance for 100%'); return;
+      }
+    }
+
+    const body: Record<string, unknown> = {
+      action: 'finance_confirm',
+      paymentTerms: fcPaymentTerms,
+      paymentType: fcPaymentType,
+      paymentProofUrl: fcPaymentProofUrl || null,
+      paymentNotes: fcPaymentNotes || null,
+    };
+
+    if (fcPaymentType === 'DEPOSIT' || fcPaymentType === 'PARTIAL') {
+      body.depositPercent = pct;
+      body.depositAmount = calcAmt;
+    } else if (fcPaymentType === 'FULL_ADVANCE' && quotation) {
+      // Full advance = entire invoice total is due upfront
+      body.depositPercent = 100;
+      body.depositAmount = quotation.total;
+    }
+
+    const ok = await patch(body);
+    if (ok) {
+      toast.success('Finance confirmation saved — production can begin');
+      setShowFinanceDialog(false);
+      setFcDepositPercent(''); setFcDepositAmount('');
+      setFcPaymentProofUrl(''); setFcPaymentNotes('');
+    }
+  };
+
+  const handleUploadProof = async (file: File) => {
+    setFcUploading(true);
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      if (!res.ok) throw new Error('Upload failed');
+      setFcPaymentProofUrl((await res.json()).url);
+      toast.success('File uploaded');
+    } catch { toast.error('Upload failed'); }
+    finally { setFcUploading(false); }
   };
 
   const handleDelete = async () => {
@@ -153,333 +326,758 @@ export default function QuotationDetailsPage() {
     if (res.ok) {
       toast.success(t('messages.deleteSuccess', { entity: t('quotations.title') }));
       router.push(`/${locale}/quotations`);
-    } else toast.error(t('common.error'));
+    } else {
+      toast.error((await res.json().catch(() => ({}))).error || t('common.error'));
+    }
   };
 
-  const handleCreateTaxInvoice = () => {
-    if (!quotation) return;
-    router.push(`/${locale}/tax-invoices/new?quotationId=${quotation.id}`);
-  };
-
-  const handlePrint = () => window.open(`/${locale}/quotations/${id}/print`, '_blank');
-
-  const fmt = (n: number) => n.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const fmtDate = (s: string) => new Date(s).toLocaleDateString('en-AE');
-
+  // ── Render guards ─────────────────────────────────────────────────────────
   if (loading) return (
-    <div className="p-3 md:p-3.5"><div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm"><DetailSkeleton /></div></div>
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+        <DetailSkeleton />
+      </div>
+    </div>
   );
 
   if (!quotation) return (
-    <div className="p-3 md:p-3.5"><div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
-      <div className="flex flex-col items-center justify-center py-16">
-        <AlertCircle className="size-12 mb-4 text-muted-foreground/40" />
-        <p className="text-muted-foreground">{t('common.noData')}</p>
+    <div className="p-3 md:p-3.5">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+        <div className="flex flex-col items-center justify-center py-16">
+          <AlertCircle className="size-12 mb-4 text-muted-foreground/40" />
+          <p className="text-muted-foreground">{t('common.noData')}</p>
+        </div>
       </div>
-    </div></div>
+    </div>
   );
 
-  const InfoRow = ({ icon: Icon, label, value }: { icon: typeof User; label: string; value: string | number | null | undefined }) => {
-    if (!value && value !== 0) return null;
-    return (
-      <div className="flex items-start gap-3">
-        <div className="p-2 rounded-lg bg-muted/50 mt-0.5 shrink-0"><Icon className="size-4 text-muted-foreground" /></div>
-        <div><p className="text-[11px] text-muted-foreground font-medium">{label}</p><p className="text-sm font-bold">{value}</p></div>
-      </div>
-    );
+  const STATUS_LABELS: Record<string, string> = {
+    DRAFT: 'Draft', SENT: 'Sent',
+    CLIENT_APPROVED: 'Client Approved', CLIENT_REJECTED: 'Client Rejected',
+    APPROVED: 'Client Approved',       // legacy → same label as CLIENT_APPROVED
+    CONFIRMED: 'Finance Confirmed',
+    EXPIRED: 'Expired',
+    CONVERTED: 'Converted',
   };
 
+  const hasTaxInvoices  = (quotation.taxInvoices?.length ?? 0) > 0;
+  const hasDeliveryNotes = (quotation.deliveryNotes?.length ?? 0) > 0;
+
+  // ── Timeline events ───────────────────────────────────────────────────────
+  const timelineEvents = [
+    { label: 'Created', date: quotation.createdAt, by: quotation.createdBy?.fullName, color: 'bg-muted-foreground' },
+    quotation.sentAt      && { label: 'Sent to Client', date: quotation.sentAt, color: 'bg-blue-500' },
+    quotation.clientApprovedAt && { label: 'Client Approved', date: quotation.clientApprovedAt, by: quotation.clientApprovedBy?.fullName, color: 'bg-emerald-500' },
+    quotation.clientRejectedAt && { label: 'Client Rejected', date: quotation.clientRejectedAt, color: 'bg-destructive' },
+    quotation.confirmedAt && { label: 'Finance Confirmed', date: quotation.confirmedAt, by: quotation.confirmedBy?.fullName, color: 'bg-amber-500' },
+  ].filter(Boolean) as { label: string; date: string; by?: string; color: string }[];
+
+  // ── JSX ───────────────────────────────────────────────────────────────────
   return (
     <div className="p-3 md:p-3.5">
       <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm animate-fade-in">
 
-        {/* Header */}
+        {/* ── Header ─────────────────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-6 py-5 border-b border-border">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => router.push(`/${locale}/quotations`)}>
+          <div className="flex items-center gap-3 min-w-0">
+            <Button variant="ghost" size="icon" className="size-9 shrink-0"
+              onClick={() => router.push(`/${locale}/quotations`)}>
               <ArrowLeft className="size-4 rtl:-scale-x-100" />
             </Button>
-            <div>
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{quotation.quotationNumber}</h1>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-xl lg:text-2xl font-extrabold tracking-tight">{quotation.quotationNumber}</h1>
                 <StatusBadge status={quotation.status} label={STATUS_LABELS[quotation.status] || quotation.status} />
               </div>
-              {quotation.projectName && <p className="text-muted-foreground mt-0.5">{quotation.projectName}</p>}
+              <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
+                <span className="flex items-center gap-1"><CalendarDays className="size-3" />{formatDate(quotation.createdAt, locale)}</span>
+                {quotation.client?.companyName || quotation.customer?.fullName
+                  ? <><span className="text-border">·</span><span className="font-medium text-foreground/70 truncate max-w-[160px]">{quotation.client?.companyName || quotation.customer?.fullName}</span></>
+                  : null}
+                {quotation.createdBy && <><span className="text-border">·</span><span className="flex items-center gap-1"><User className="size-3" />{quotation.createdBy.fullName}</span></>}
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={handlePrint}>
-              <Printer className="size-4 me-1" />
-              {t('common.export')}
+          {/* ── Action Buttons ─────────────────────────────────────────── */}
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            {/* Export — always */}
+            <Button variant="outline" size="sm" onClick={() => window.open(`/${locale}/quotations/${id}/print`, '_blank')}>
+              <Printer className="size-3.5 me-1.5" />{t('common.export')}
             </Button>
 
+            {/* DRAFT: Edit + Send + Delete(admin) */}
             {quotation.status === 'DRAFT' && (
               <>
-                <Button variant="outline" size="sm" onClick={handleSend} disabled={actionLoading}>
-                  <Send className="size-4 me-1" />
-                  {t('quotations.send')}
-                </Button>
                 <Link href={`/${locale}/quotations/${id}/edit`}>
-                  <Button variant="outline" size="sm">
-                    <Pencil className="size-4 me-1" />
-                    {t('common.edit')}
-                  </Button>
+                  <Button variant="outline" size="sm"><Pencil className="size-3.5 me-1.5" />{t('common.edit')}</Button>
                 </Link>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                      <Trash2 className="size-4 me-1" />{t('common.delete')}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>{t('common.deleteConfirm')}</AlertDialogTitle>
-                      <AlertDialogDescription>{t('common.deleteConfirmDesc')}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDelete} className="bg-destructive text-white hover:bg-destructive/90">{t('common.delete')}</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <Button variant="outline" size="sm" onClick={handleSend} disabled={actionLoading}>
+                  <Send className="size-3.5 me-1.5" />Send to Client
+                </Button>
+                {isAdmin && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="text-destructive hover:text-destructive border-destructive/30">
+                        <Trash2 className="size-3.5 me-1.5" />{t('common.delete')}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{t('common.deleteConfirm')}</AlertDialogTitle>
+                        <AlertDialogDescription>{t('common.deleteConfirmDesc')}</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-white hover:bg-destructive/90">{t('common.delete')}</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </>
             )}
 
-            {quotation.status === 'SENT' && (
+            {/* SENT: Client Approved / Client Rejected — admin only */}
+            {quotation.status === 'SENT' && isAdmin && (
               <>
-                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setShowApproveDialog(true)} disabled={actionLoading}>
-                  <CheckCircle className="size-4 me-1" />{t('quotations.approve')}
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={() => { setCaLpoNumber(quotation.lpoNumber || `LPO-${quotation.quotationNumber.replace(/^SC-/, '')}`); setShowClientApproveDialog(true); }}
+                  disabled={actionLoading}>
+                  <ThumbsUp className="size-3.5 me-1.5" />Client Approved
                 </Button>
-                <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => setShowRejectDialog(true)} disabled={actionLoading}>
-                  <XCircle className="size-4 me-1" />{t('quotations.reject')}
+                <Button variant="outline" size="sm" className="text-destructive hover:text-destructive border-destructive/30"
+                  onClick={() => setShowClientRejectDialog(true)} disabled={actionLoading}>
+                  <ThumbsDown className="size-3.5 me-1.5" />Client Rejected
                 </Button>
               </>
             )}
 
-            {quotation.status === 'APPROVED' && (quotation.taxInvoices?.length ?? 0) === 0 && (
-              <Button size="sm" className="btn-premium" onClick={handleCreateTaxInvoice}>
-                <Receipt className="size-4 me-1" />{t('quotations.createTaxInvoice')}
+            {/* CLIENT_REJECTED: Revise & Re-send — admin only */}
+            {quotation.status === 'CLIENT_REJECTED' && isAdmin && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" disabled={actionLoading}>
+                    <RotateCcw className="size-3.5 me-1.5" />Revise & Re-send
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Revert to Draft?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will reset the quotation to DRAFT so you can edit and re-send it to the client.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRevertToDraft}>Revert to Draft</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+
+            {/* CLIENT_APPROVED: Finance Confirm — admin only */}
+            {(quotation.status === 'CLIENT_APPROVED' || quotation.status === 'APPROVED') && isAdmin && (
+              <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white"
+                onClick={() => setShowFinanceDialog(true)} disabled={actionLoading}>
+                <Banknote className="size-3.5 me-1.5" />Finance Confirm
+              </Button>
+            )}
+
+            {/* CONFIRMED + no tax invoice yet: Create Tax Invoice — admin only */}
+            {quotation.status === 'CONFIRMED' && !hasTaxInvoices && isAdmin && (
+              <Button size="sm" className="btn-premium"
+                onClick={() => router.push(`/${locale}/tax-invoices/new?quotationId=${quotation.id}`)}>
+                <Receipt className="size-3.5 me-1.5" />{t('quotations.createTaxInvoice')}
               </Button>
             )}
           </div>
         </div>
 
-        <div className="p-5 space-y-6">
+        {/* ── Workflow Stepper ────────────────────────────────────────────── */}
+        <WorkflowStepper status={quotation.status} />
 
-          {/* Rejection Reason */}
-          {quotation.status === 'REJECTED' && quotation.rejectionReason && (
-            <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 flex items-start gap-3">
-              <XCircle className="size-5 text-destructive shrink-0 mt-0.5" />
+        {/* ── Status Banners ──────────────────────────────────────────────── */}
+        <div className="px-6 pt-4 space-y-3">
+
+          {/* SENT — waiting */}
+          {quotation.status === 'SENT' && (
+            <div className="rounded-xl border border-blue-300/50 bg-blue-50/60 dark:bg-blue-950/20 dark:border-blue-500/30 p-3.5 flex items-center gap-3">
+              <Clock className="size-4 text-blue-500 shrink-0" />
               <div>
-                <p className="text-sm font-bold text-destructive">{t('quotations.rejectionReason')}</p>
-                <p className="text-sm text-muted-foreground mt-1">{quotation.rejectionReason}</p>
+                <p className="text-sm font-semibold text-blue-700 dark:text-blue-400">Awaiting Client Response</p>
+                <p className="text-xs text-blue-600/80">Sent {quotation.sentAt ? formatDate(quotation.sentAt, locale) : ''} — waiting for client to approve or request changes</p>
               </div>
             </div>
           )}
 
-          {/* LPO Info (after approval) */}
-          {quotation.status === 'APPROVED' && quotation.lpoNumber && (
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 flex items-start gap-3">
-              <CheckCircle className="size-5 text-emerald-600 shrink-0 mt-0.5" />
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-[11px] text-muted-foreground font-medium">{t('quotations.lpoNumber')}</p>
-                  <p className="text-sm font-bold">{quotation.lpoNumber}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] text-muted-foreground font-medium">{t('quotations.paymentTerms')}</p>
-                  <p className="text-sm font-bold">{quotation.paymentTerms}</p>
-                </div>
+          {/* CLIENT_REJECTED — reason */}
+          {quotation.status === 'CLIENT_REJECTED' && (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 flex items-start gap-3">
+              <ThumbsDown className="size-5 text-destructive shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-destructive">Client Declined</p>
+                {(quotation.clientNotes || quotation.rejectionReason) && (
+                  <p className="text-sm text-muted-foreground mt-1">{quotation.clientNotes || quotation.rejectionReason}</p>
+                )}
+                {quotation.clientRejectedAt && (
+                  <p className="text-xs text-muted-foreground/70 mt-1">{formatDate(quotation.clientRejectedAt, locale)}</p>
+                )}
               </div>
             </div>
           )}
 
-          {/* Details */}
-          <Card className="shadow-premium">
-            <CardContent className="pt-6">
-              <h3 className="text-sm font-extrabold mb-5 flex items-center gap-2">
-                <FileText className="size-4 text-primary" />{t('quotations.details')}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                <InfoRow icon={Hash} label={t('quotations.quotationNumber')} value={quotation.quotationNumber} />
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-muted/50 mt-0.5 shrink-0"><User className="size-4 text-muted-foreground" /></div>
-                  <div>
-                    <p className="text-[11px] text-muted-foreground font-medium">{t('quotations.customer')}</p>
-                    <Link href={`/${locale}/customers/${quotation.customer.id}`} className="text-sm font-bold text-primary hover:underline">{quotation.customer.fullName}</Link>
-                  </div>
-                </div>
-                <InfoRow icon={User} label={t('quotations.engineerName')} value={quotation.engineerName} />
-                <InfoRow icon={Phone} label={t('quotations.mobileNumber')} value={quotation.mobileNumber} />
-                <InfoRow icon={Building2} label={t('quotations.projectName')} value={quotation.projectName} />
-                <InfoRow icon={Calendar} label={t('common.date')} value={fmtDate(quotation.createdAt)} />
-                <InfoRow icon={Calendar} label={t('quotations.validUntil')} value={quotation.validUntil ? fmtDate(quotation.validUntil) : null} />
+          {/* CLIENT_APPROVED — waiting for finance */}
+          {(quotation.status === 'CLIENT_APPROVED' || quotation.status === 'APPROVED') && !quotation.confirmedAt && (
+            <div className="rounded-xl border border-emerald-400/40 bg-emerald-50/60 dark:bg-emerald-950/20 dark:border-emerald-500/30 p-3.5 flex items-center gap-3">
+              <ThumbsUp className="size-4 text-emerald-600 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Client Approved — Awaiting Finance Confirmation</p>
+                <p className="text-xs text-emerald-600/80">LPO: <strong>{quotation.lpoNumber}</strong> · Finance team needs to confirm payment arrangement to release production</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          )}
 
-          {/* Items Table */}
-          <Card className="shadow-premium">
-            <CardContent className="pt-6">
-              <h3 className="text-sm font-extrabold mb-5 flex items-center gap-2">
-                <Package className="size-4 text-primary" />{t('quotations.items')} ({quotation.items.length})
-              </h3>
+        </div>
 
+        {/* ── Main Layout ─────────────────────────────────────────────────── */}
+        <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* Left — 2/3 */}
+          <div className="lg:col-span-2 space-y-5">
+
+            {/* Items Table */}
+            <Card className="shadow-sm border-border/60 overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-border/60 flex items-center gap-2 bg-muted/10">
+                <Package className="size-4 text-muted-foreground" />
+                <span className="text-sm font-bold">Items</span>
+                <span className="ms-auto text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{quotation.items.length}</span>
+              </div>
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b bg-muted/30">
-                      <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">{t('quotations.description')}</th>
-                      <th className="px-3 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">{t('quotations.size')}</th>
-                      <th className="px-3 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">{t('quotations.unit')}</th>
-                      <th className="px-3 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">{t('quotations.quantity')}</th>
-                      <th className="px-3 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">{t('quotations.totalLM')}</th>
-                      <th className="px-3 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">{t('quotations.unitPrice')}</th>
-                      <th className="px-3 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">{t('quotations.lineTotal')}</th>
+                    <tr className="bg-muted/30 border-b border-border/40">
+                      {['Description', 'Size', 'Unit', 'Qty', 'LM', 'Unit Price', 'Total'].map((h, i) => (
+                        <th key={h} className={`px-3 py-2.5 text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider ${i === 0 ? 'text-start ps-4' : i === 6 ? 'text-end pe-4' : 'text-center'}`}>{h}</th>
+                      ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
-                    {quotation.items.map((item) => (
-                      <tr key={item.id} className="hover:bg-muted/20 transition-colors">
-                        <td className="px-4 py-4 text-start text-sm font-bold">{item.description}</td>
-                        <td className="px-3 py-4 text-center text-sm text-muted-foreground">{item.size || '—'}</td>
-                        <td className="px-3 py-4 text-center text-sm text-muted-foreground">{item.unit || '—'}</td>
-                        <td className="px-3 py-4 text-center text-sm text-muted-foreground">{item.quantity}</td>
-                        <td className="px-3 py-4 text-center text-sm text-muted-foreground">
-                          {item.unit === 'LM' && item.linearMeters ? `${item.linearMeters.toFixed(2)} LM` : '—'}
+                  <tbody className="divide-y divide-border/30">
+                    {quotation.items.map((item, i) => (
+                      <tr key={item.id} className={i % 2 === 1 ? 'bg-muted/5' : ''}>
+                        <td className="ps-4 pe-3 py-2.5 font-medium">{item.description}</td>
+                        <td className="px-3 py-2.5 text-center text-muted-foreground">{item.size || '—'}</td>
+                        <td className="px-3 py-2.5 text-center text-muted-foreground">{item.unit || 'LM'}</td>
+                        <td className="px-3 py-2.5 text-center tabular-nums">{item.quantity}</td>
+                        <td className="px-3 py-2.5 text-center tabular-nums font-semibold text-emerald-600">
+                          {item.linearMeters ? item.linearMeters.toFixed(2) : item.quantity.toFixed(2)}
                         </td>
-                        <td className="px-3 py-4 text-center text-sm text-muted-foreground">{fmt(item.unitPrice)}</td>
-                        <td className="px-3 py-4 text-center text-sm font-medium">{fmt(item.total)}</td>
+                        <td className="px-3 py-2.5 text-center tabular-nums">{fmt(item.unitPrice)}</td>
+                        <td className="ps-3 pe-4 py-2.5 text-end tabular-nums font-bold">{fmt(item.total)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-
               {/* Totals */}
-              <div className="mt-6 border-t pt-4 max-w-sm ms-auto space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{t('quotations.subtotal')}</span>
-                  <span className="font-medium">{fmt(quotation.subtotal)} AED</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{t('quotations.tax')} ({quotation.taxPercent}% VAT)</span>
-                  <span className="font-medium">+{fmt(quotation.taxAmount)} AED</span>
-                </div>
-                {quotation.deliveryCharges > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground flex items-center gap-1"><Truck className="size-3" />{t('quotations.deliveryCharges')}</span>
-                    <span className="font-medium">+{fmt(quotation.deliveryCharges)} AED</span>
+              <div className="px-5 py-4 border-t border-border/50 bg-muted/10">
+                <div className="max-w-xs ms-auto space-y-1.5 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="tabular-nums">{fmt(quotation.subtotal)} AED</span>
                   </div>
-                )}
-                <div className="flex justify-between text-base font-bold border-t pt-2">
-                  <span>{t('quotations.total')}</span>
-                  <span>{fmt(quotation.total)} AED</span>
+                  {quotation.discountAmount > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Discount ({quotation.discountPercent}%)</span>
+                      <span className="tabular-nums text-destructive">−{fmt(quotation.discountAmount)} AED</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">VAT ({quotation.taxPercent}%)</span>
+                    <span className="tabular-nums">+{fmt(quotation.taxAmount)} AED</span>
+                  </div>
+                  {quotation.deliveryCharges > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Delivery</span>
+                      <span className="tabular-nums">+{fmt(quotation.deliveryCharges)} AED</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-extrabold text-base border-t border-border/50 pt-2">
+                    <span>Total</span>
+                    <span className="tabular-nums text-primary">{fmt(quotation.total)} AED</span>
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </Card>
 
-          {/* Linked Tax Invoices */}
-          {(quotation.taxInvoices?.length ?? 0) > 0 && (
-            <Card className="shadow-premium">
-              <CardContent className="pt-6">
-                <h3 className="text-sm font-extrabold mb-4 flex items-center gap-2">
-                  <Receipt className="size-4 text-primary" />{t('quotations.taxInvoices')}
-                </h3>
-                <div className="space-y-2">
+            {/* Linked Tax Invoices */}
+            {hasTaxInvoices && (
+              <Card className="shadow-sm border-border/60 overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-border/60 flex items-center gap-2 bg-muted/10">
+                  <Receipt className="size-4 text-muted-foreground" />
+                  <span className="text-sm font-bold">Tax Invoices</span>
+                  <span className="ms-auto text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{quotation.taxInvoices!.length}</span>
+                </div>
+                <div className="divide-y divide-border/40">
                   {quotation.taxInvoices!.map((inv) => (
-                    <Link key={inv.id} href={`/${locale}/tax-invoices/${inv.id}`} className="flex items-center justify-between p-3 rounded-lg border border-border/60 hover:bg-muted/20 transition-colors">
-                      <span className="text-sm font-bold text-primary">{inv.invoiceNumber}</span>
+                    <Link key={inv.id} href={`/${locale}/tax-invoices/${inv.id}`}
+                      className="flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors group">
                       <div className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground">{fmtDate(inv.createdAt)}</span>
+                        <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Receipt className="size-3.5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-primary">{inv.invoiceNumber}</p>
+                          <p className="text-xs text-muted-foreground">{formatDate(inv.createdAt, locale)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
                         <StatusBadge status={inv.status} label={inv.status} size="sm" />
+                        <ChevronRight className="size-4 text-muted-foreground/40 group-hover:text-muted-foreground rtl:-scale-x-100" />
                       </div>
                     </Link>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              </Card>
+            )}
 
-          {/* Notes */}
-          {(quotation.notes || quotation.terms) && (
-            <Card className="shadow-premium">
-              <CardContent className="pt-6 space-y-4">
-                {quotation.notes && (
-                  <div>
-                    <h3 className="text-sm font-extrabold mb-2">{t('common.notes')}</h3>
-                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">{quotation.notes}</p>
+            {/* Linked Delivery Notes */}
+            {hasDeliveryNotes && (
+              <Card className="shadow-sm border-border/60 overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-border/60 flex items-center gap-2 bg-muted/10">
+                  <Package className="size-4 text-muted-foreground" />
+                  <span className="text-sm font-bold">Delivery Notes</span>
+                  <span className="ms-auto text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{quotation.deliveryNotes!.length}</span>
+                </div>
+                <div className="divide-y divide-border/40">
+                  {quotation.deliveryNotes!.map((dn) => (
+                    <Link key={dn.id} href={`/${locale}/delivery-notes/${dn.id}`}
+                      className="flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors group">
+                      <div className="flex items-center gap-3">
+                        <div className="size-8 rounded-lg bg-muted/60 flex items-center justify-center">
+                          <Package className="size-3.5 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold">{dn.dnNumber}</p>
+                          <p className="text-xs text-muted-foreground">{formatDate(dn.createdAt, locale)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <StatusBadge status={dn.status} label={dn.status} size="sm" />
+                        <ChevronRight className="size-4 text-muted-foreground/40 group-hover:text-muted-foreground rtl:-scale-x-100" />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Notes & Terms */}
+            {(quotation.notes || quotation.terms) && (
+              <Card className="shadow-sm border-border/60">
+                <CardContent className="p-5 space-y-4">
+                  {quotation.notes && (
+                    <div>
+                      <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2">Notes</p>
+                      <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">{quotation.notes}</p>
+                    </div>
+                  )}
+                  {quotation.notes && quotation.terms && <div className="border-t border-border/40" />}
+                  {quotation.terms && (
+                    <div>
+                      <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2">Terms & Conditions</p>
+                      <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">{quotation.terms}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Right — 1/3 */}
+          <div className="space-y-4">
+
+            {/* Bill To */}
+            <Card className="shadow-sm border-border/60 overflow-hidden">
+              <div className="px-4 py-3 border-b border-border/60 bg-muted/10">
+                <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">Bill To</p>
+              </div>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="size-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    {quotation.client ? <Building2 className="size-4 text-primary" /> : <User className="size-4 text-primary" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold leading-snug">{quotation.client?.companyName || quotation.customer?.fullName || '—'}</p>
+                    {quotation.client?.trn && <p className="text-xs text-muted-foreground mt-0.5">TRN: {quotation.client.trn}</p>}
+                  </div>
+                </div>
+                {(quotation.engineerName || quotation.engineer?.name) && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <User className="size-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-foreground/80">{quotation.engineerName || quotation.engineer?.name}</span>
                   </div>
                 )}
-                {quotation.terms && (
-                  <div>
-                    <h3 className="text-sm font-extrabold mb-2">{t('quotations.terms')}</h3>
-                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">{quotation.terms}</p>
+                {quotation.mobileNumber && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="size-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-foreground/80">{quotation.mobileNumber}</span>
+                  </div>
+                )}
+                {quotation.projectName && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="size-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-foreground/80">{quotation.projectName}</span>
                   </div>
                 )}
               </CardContent>
             </Card>
-          )}
 
+            {/* Quotation Details */}
+            <Card className="shadow-sm border-border/60 overflow-hidden">
+              <div className="px-4 py-3 border-b border-border/60 bg-muted/10">
+                <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">Details</p>
+              </div>
+              <CardContent className="p-4 space-y-2.5 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1.5"><Hash className="size-3.5" />Number</span>
+                  <span className="font-bold text-primary">{quotation.quotationNumber}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1.5"><CalendarDays className="size-3.5" />Created</span>
+                  <span className="font-medium">{formatDate(quotation.createdAt, locale)}</span>
+                </div>
+                {quotation.validUntil && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground flex items-center gap-1.5"><CalendarDays className="size-3.5" />Valid Until</span>
+                    <span className="font-medium">{formatDate(quotation.validUntil, locale)}</span>
+                  </div>
+                )}
+                <div className="border-t border-border/40 pt-2.5 flex items-center justify-between">
+                  <span className="text-muted-foreground font-medium">Total</span>
+                  <span className="font-extrabold text-base text-primary">{fmt(quotation.total)} AED</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Client Approval Info */}
+            {(quotation.clientApprovedAt || quotation.lpoNumber) && quotation.status !== 'DRAFT' && quotation.status !== 'SENT' && (
+              <Card className="shadow-sm border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
+                <div className="px-4 py-3 border-b border-emerald-500/20 flex items-center gap-2">
+                  <ThumbsUp className="size-3.5 text-emerald-600" />
+                  <p className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest">Client Approval</p>
+                </div>
+                <CardContent className="p-4 space-y-2 text-sm">
+                  {quotation.lpoNumber && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">LPO Number</span>
+                      <span className="font-bold">{quotation.lpoNumber}</span>
+                    </div>
+                  )}
+                  {quotation.clientApprovedAt && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Approved on</span>
+                      <span className="font-medium text-xs">{formatDate(quotation.clientApprovedAt, locale)}</span>
+                    </div>
+                  )}
+                  {quotation.clientApprovedBy && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Recorded by</span>
+                      <span className="font-medium text-xs">{quotation.clientApprovedBy.fullName}</span>
+                    </div>
+                  )}
+                  {quotation.clientNotes && (
+                    <p className="text-xs text-muted-foreground pt-1 border-t border-emerald-500/20 italic">{quotation.clientNotes}</p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Finance Confirmation */}
+            {quotation.confirmedAt && quotation.paymentType && (
+              <Card className="shadow-sm border-amber-500/30 bg-amber-500/5 overflow-hidden">
+                <div className="px-4 py-3 border-b border-amber-500/20 flex items-center gap-2">
+                  <CreditCard className="size-3.5 text-amber-600" />
+                  <p className="text-[10px] font-extrabold text-amber-700 uppercase tracking-widest">Finance Confirmation</p>
+                </div>
+                <CardContent className="p-4 space-y-2 text-sm">
+                  {quotation.paymentTerms && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Method</span>
+                      <span className="font-medium">{quotation.paymentTerms}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Arrangement</span>
+                    <span className="font-bold">{PAYMENT_TYPE_LABELS[quotation.paymentType] || quotation.paymentType}</span>
+                  </div>
+                  {quotation.depositPercent != null && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Deposit %</span>
+                      <span className="font-bold">{quotation.depositPercent}%</span>
+                    </div>
+                  )}
+                  {quotation.depositAmount != null && (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Due Now</span>
+                        <span className="font-bold text-amber-700">{fmt(quotation.depositAmount)} AED</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Remaining</span>
+                        <span className="font-bold">{fmt(quotation.total - quotation.depositAmount)} AED</span>
+                      </div>
+                    </>
+                  )}
+                  {quotation.confirmedBy && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Confirmed by</span>
+                      <span className="font-medium text-xs">{quotation.confirmedBy.fullName}</span>
+                    </div>
+                  )}
+                  {quotation.paymentProofUrl && (
+                    <div className="pt-1 border-t border-amber-500/20">
+                      <a href={quotation.paymentProofUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs text-primary hover:underline">
+                        <FileText className="size-3" />View Payment Proof
+                      </a>
+                    </div>
+                  )}
+                  {quotation.paymentNotes && (
+                    <p className="text-xs text-muted-foreground pt-1 border-t border-amber-500/20 italic">{quotation.paymentNotes}</p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Timeline */}
+            <Card className="shadow-sm border-border/60 overflow-hidden">
+              <div className="px-4 py-3 border-b border-border/60 bg-muted/10">
+                <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">Timeline</p>
+              </div>
+              <CardContent className="p-4">
+                <div className="space-y-0">
+                  {timelineEvents.map((ev, idx) => (
+                    <div key={ev.label} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <div className={`size-2 rounded-full mt-1.5 shrink-0 ${ev.color}`} />
+                        {idx < timelineEvents.length - 1 && <div className="w-px flex-1 min-h-[20px] bg-border/50 my-1" />}
+                      </div>
+                      <div className="pb-3">
+                        <p className="text-xs font-semibold">{ev.label}</p>
+                        <p className="text-[11px] text-muted-foreground">{formatDate(ev.date, locale)}{ev.by ? ` · ${ev.by}` : ''}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Attachments */}
+            {quotation && (
+              <Card className="shadow-premium">
+                <CardContent className="p-5">
+                  <AttachmentsPanel entityType="quotation" entityId={quotation.id} />
+                </CardContent>
+              </Card>
+            )}
+
+          </div>
         </div>
       </div>
 
-      {/* Approve Dialog */}
-      <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
-        <AlertDialogContent>
+      {/* ══════════════════════════════════════════════════════════════════════
+          DIALOGS
+      ══════════════════════════════════════════════════════════════════════ */}
+
+      {/* ── Dialog: Client Approved ─────────────────────────────────────── */}
+      <AlertDialog open={showClientApproveDialog} onOpenChange={setShowClientApproveDialog}>
+        <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('quotations.approveQuotation')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('quotations.approveDesc')}</AlertDialogDescription>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <ThumbsUp className="size-5 text-emerald-600" />Record Client Approval
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              The client has reviewed and accepted this quotation. Enter the LPO number they provided.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <label className="text-sm font-medium block mb-2">{t('quotations.lpoNumber')} *</label>
-              <Input value={lpoNumber} onChange={(e) => setLpoNumber(e.target.value)} placeholder="e.g. LPO-2026-001" />
+              <label className="text-sm font-semibold block mb-1.5">LPO Number *</label>
+              <Input placeholder="e.g. LPO-2026-001" value={caLpoNumber}
+                onChange={(e) => setCaLpoNumber(e.target.value)} />
             </div>
             <div>
-              <label className="text-sm font-medium block mb-2">{t('quotations.paymentTerms')} *</label>
-              <Select value={paymentTerms} onValueChange={(v) => setPaymentTerms(v as typeof paymentTerms)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Cash">Cash</SelectItem>
-                  <SelectItem value="Cheque">Cheque</SelectItem>
-                  <SelectItem value="Transfer">Transfer</SelectItem>
-                </SelectContent>
-              </Select>
+              <label className="text-sm font-semibold block mb-1.5">
+                Client Notes <span className="text-muted-foreground font-normal text-xs">(optional — any remarks from client)</span>
+              </label>
+              <textarea value={caClientNotes} onChange={(e) => setCaClientNotes(e.target.value)} rows={2}
+                className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                placeholder="e.g. Minor spec clarification agreed..." />
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleApprove} disabled={actionLoading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              <CheckCircle className="size-4 me-1" />{t('quotations.approve')}
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClientApprove} disabled={actionLoading}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <ThumbsUp className="size-4 me-1" />Record Approval
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Reject Dialog */}
-      <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+      {/* ── Dialog: Client Rejected ─────────────────────────────────────── */}
+      <AlertDialog open={showClientRejectDialog} onOpenChange={setShowClientRejectDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('quotations.rejectQuotation')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('quotations.rejectDesc')}</AlertDialogDescription>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <ThumbsDown className="size-5 text-destructive" />Record Client Rejection
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              The client declined or requested changes. You can revise and re-send later.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-2">
-            <label className="text-sm font-medium block mb-2">{t('quotations.rejectionReason')} ({t('common.optional') || 'Optional'})</label>
-            <textarea
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              rows={3}
-              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              placeholder={t('quotations.rejectionReasonPlaceholder') || 'Enter rejection reason...'}
-            />
+            <label className="text-sm font-semibold block mb-2">
+              Reason / Requested Changes <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+            </label>
+            <textarea value={crClientNotes} onChange={(e) => setCrClientNotes(e.target.value)} rows={3}
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              placeholder="e.g. Price too high, requested 10% discount..." />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleReject} disabled={actionLoading} className="bg-destructive text-white hover:bg-destructive/90">
-              <XCircle className="size-4 me-1" />{t('quotations.reject')}
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClientReject} disabled={actionLoading}
+              className="bg-destructive text-white hover:bg-destructive/90">
+              <ThumbsDown className="size-4 me-1" />Record Rejection
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Dialog: Finance Confirm ─────────────────────────────────────── */}
+      <AlertDialog open={showFinanceDialog} onOpenChange={setShowFinanceDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Banknote className="size-5 text-amber-600" />Finance Confirmation
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Confirm payment arrangement to release production / order. LPO: <strong>{quotation.lpoNumber}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-2">
+
+            {/* Payment Method */}
+            <div>
+              <label className="text-sm font-semibold block mb-1.5">Payment Method *</label>
+              <Select value={fcPaymentTerms} onValueChange={(v) => setFcPaymentTerms(v as typeof fcPaymentTerms)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Cash">Cash</SelectItem>
+                  <SelectItem value="Cheque">Cheque</SelectItem>
+                  <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="Cash / Cheque / Bank Transfer">Cash / Cheque / Bank Transfer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Payment Arrangement */}
+            <div>
+              <label className="text-sm font-semibold block mb-1.5">Payment Arrangement *</label>
+              <Select value={fcPaymentType}
+                onValueChange={(v) => { setFcPaymentType(v as typeof fcPaymentType); setFcDepositPercent(''); setFcDepositAmount(''); }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="FULL_ON_DELIVERY">Full on Delivery</SelectItem>
+                  <SelectItem value="FULL_ADVANCE">Full Advance Payment</SelectItem>
+                  <SelectItem value="DEPOSIT">Deposit (partial upfront)</SelectItem>
+                  <SelectItem value="PARTIAL">Partial Payment</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Full Advance note */}
+            {fcPaymentType === 'FULL_ADVANCE' && quotation && (
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/40">
+                <span className="text-xs text-amber-700 font-medium">Full amount due upfront</span>
+                <span className="text-sm font-extrabold text-amber-700">{fmt(quotation.total)} AED</span>
+              </div>
+            )}
+
+            {/* Deposit % — only for DEPOSIT or PARTIAL */}
+            {(fcPaymentType === 'DEPOSIT' || fcPaymentType === 'PARTIAL') && (
+              <div className="space-y-2">
+                <div>
+                  <label className="text-sm font-semibold block mb-1.5">
+                    {fcPaymentType === 'DEPOSIT' ? 'Deposit' : 'Partial'} % *
+                  </label>
+                  <Input type="number" min={1} max={99} placeholder="e.g. 30"
+                    value={fcDepositPercent}
+                    onChange={(e) => {
+                      setFcDepositPercent(e.target.value);
+                      const pct = parseFloat(e.target.value);
+                      if (!isNaN(pct) && quotation) {
+                        setFcDepositAmount((Math.round(quotation.total * pct / 100 * 100) / 100).toFixed(2));
+                      } else { setFcDepositAmount(''); }
+                    }}
+                  />
+                </div>
+                {fcDepositAmount && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/40">
+                      <span className="text-xs text-amber-700 font-medium">Due now</span>
+                      <span className="text-sm font-extrabold text-amber-700">{fmt(parseFloat(fcDepositAmount))} AED</span>
+                    </div>
+                    <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/40 border border-border/60">
+                      <span className="text-xs text-muted-foreground font-medium">Remaining</span>
+                      <span className="text-sm font-bold">{fmt(quotation.total - parseFloat(fcDepositAmount))} AED</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Payment Proof */}
+            <div>
+              <label className="text-sm font-semibold block mb-1.5">
+                Payment Proof <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+              </label>
+              {fcPaymentProofUrl ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border/60 bg-muted/30">
+                  <CheckCircle className="size-4 text-emerald-600" />
+                  <a href={fcPaymentProofUrl} target="_blank" rel="noopener noreferrer"
+                    className="text-sm text-primary underline flex-1 truncate">View uploaded file</a>
+                  <button onClick={() => setFcPaymentProofUrl('')}
+                    className="text-xs text-muted-foreground hover:text-destructive">Remove</button>
+                </div>
+              ) : (
+                <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border cursor-pointer hover:bg-muted/20 transition-colors">
+                  <Upload className="size-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">{fcUploading ? 'Uploading...' : 'Upload receipt / bank slip'}</span>
+                  <input type="file" className="hidden" accept="image/*,.pdf" disabled={fcUploading}
+                    onChange={(e) => { if (e.target.files?.[0]) handleUploadProof(e.target.files[0]); }} />
+                </label>
+              )}
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="text-sm font-semibold block mb-1.5">
+                Notes <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+              </label>
+              <textarea value={fcPaymentNotes} onChange={(e) => setFcPaymentNotes(e.target.value)} rows={2}
+                className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                placeholder="Any notes for the finance team..." />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFinanceConfirm} disabled={actionLoading || fcUploading}
+              className="bg-amber-600 hover:bg-amber-700 text-white">
+              {actionLoading
+                ? <span className="size-4 me-2 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
+                : <Banknote className="size-4 me-1" />}
+              Confirm & Release
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

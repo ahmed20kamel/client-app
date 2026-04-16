@@ -80,13 +80,13 @@ export default function LoginPage() {
         {/* Background Image */}
         <Image
           src="/login-bg.jpg"
-          alt="CRM Pro"
+          alt="Management System"
           fill
           className="object-cover"
           priority
         />
         {/* Dark overlay with subtle gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/85 via-slate-800/75 to-slate-900/85" />
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/90 via-slate-900/80 to-indigo-950/90" />
 
         {/* Subtle geometric patterns */}
         <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
@@ -95,12 +95,12 @@ export default function LoginPage() {
         <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 text-white w-full">
           {/* Top - Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center p-1.5">
+            <div className="w-11 h-11 rounded-xl bg-indigo-500/20 backdrop-blur-md border border-indigo-400/20 flex items-center justify-center p-1.5">
               <Image src="/logo.svg" alt="Logo" width={28} height={28} className="brightness-0 invert" />
             </div>
             <div>
-              <h2 className="text-lg font-bold tracking-tight">CRM Pro</h2>
-              <p className="text-[11px] text-white/50 font-medium tracking-wider uppercase">Enterprise Edition</p>
+              <h2 className="text-lg font-bold tracking-tight">Management System</h2>
+              <p className="text-[11px] text-white/50 font-medium tracking-wider uppercase">Enterprise Platform</p>
             </div>
           </div>
 
@@ -118,8 +118,8 @@ export default function LoginPage() {
             {/* Feature Cards */}
             <div className="flex flex-col gap-3 pt-2">
               <div className="flex items-center gap-3 bg-white/[0.06] backdrop-blur-sm rounded-xl px-4 py-3 border border-white/[0.06]">
-                <div className="w-9 h-9 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0">
-                  <Users className="size-4 text-emerald-400" />
+                <div className="w-9 h-9 rounded-lg bg-indigo-500/20 flex items-center justify-center shrink-0">
+                  <Users className="size-4 text-indigo-300" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-white/90">{t('navigation.customers')}</p>
@@ -127,8 +127,8 @@ export default function LoginPage() {
                 </div>
               </div>
               <div className="flex items-center gap-3 bg-white/[0.06] backdrop-blur-sm rounded-xl px-4 py-3 border border-white/[0.06]">
-                <div className="w-9 h-9 rounded-lg bg-blue-500/15 flex items-center justify-center shrink-0">
-                  <Building2 className="size-4 text-blue-400" />
+                <div className="w-9 h-9 rounded-lg bg-violet-500/20 flex items-center justify-center shrink-0">
+                  <Building2 className="size-4 text-violet-300" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-white/90">{t('navigation.departments')}</p>
@@ -136,8 +136,8 @@ export default function LoginPage() {
                 </div>
               </div>
               <div className="flex items-center gap-3 bg-white/[0.06] backdrop-blur-sm rounded-xl px-4 py-3 border border-white/[0.06]">
-                <div className="w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
-                  <BarChart3 className="size-4 text-amber-400" />
+                <div className="w-9 h-9 rounded-lg bg-sky-500/20 flex items-center justify-center shrink-0">
+                  <BarChart3 className="size-4 text-sky-300" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-white/90">{t('navigation.reports')}</p>
@@ -150,7 +150,7 @@ export default function LoginPage() {
           {/* Bottom */}
           <div className="flex items-center justify-between">
             <p className="text-xs text-white/30">
-              &copy; 2026 CRM Pro. All rights reserved.
+              &copy; 2026 Management System. All rights reserved.
             </p>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5 text-xs text-white/30">
@@ -167,7 +167,7 @@ export default function LoginPage() {
       </div>
 
       {/* Form Side */}
-      <div className="w-full lg:w-[45%] flex flex-col items-center justify-center px-6 sm:px-12 lg:px-16 bg-gray-50/80 relative">
+      <div className="w-full lg:w-[45%] flex flex-col items-center justify-center px-6 sm:px-12 lg:px-16 bg-slate-50 relative">
         {/* Language Switcher - Top */}
         <div className="absolute top-6 start-6 flex gap-1.5">
           <Link
@@ -197,7 +197,7 @@ export default function LoginPage() {
         <div className="w-full max-w-[400px] animate-fade-in">
           {/* Logo & Title */}
           <div className="flex flex-col items-center mb-10">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center shadow-lg shadow-slate-900/20 mb-5 p-2.5">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-700 to-indigo-900 flex items-center justify-center shadow-lg shadow-indigo-900/30 mb-5 p-2.5">
               <Image src="/logo.svg" alt="Logo" width={40} height={40} className="brightness-0 invert" />
             </div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
@@ -304,7 +304,7 @@ export default function LoginPage() {
 
           {/* Mobile Footer */}
           <p className="text-center text-xs text-slate-400/70 mt-8 lg:hidden">
-            &copy; 2026 CRM Pro. All rights reserved.
+            &copy; 2026 Management System. All rights reserved.
           </p>
         </div>
       </div>

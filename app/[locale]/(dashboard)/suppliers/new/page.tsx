@@ -163,7 +163,18 @@ export default function CreateSupplierPage() {
                         {t('common.phone')}
                       </FormLabel>
                       <FormControl>
-                        <Input {...field} value={field.value || ''} placeholder={t('common.phone')} />
+                        <Input
+                          {...field}
+                          value={field.value || ''}
+                          type="tel"
+                          inputMode="tel"
+                          maxLength={20}
+                          placeholder="+971 XX XXX XXXX"
+                          onChange={(e) => {
+                            const v = e.target.value.replace(/[^\d\s+\-().]/g, '');
+                            field.onChange(v);
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

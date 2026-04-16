@@ -71,6 +71,9 @@ export async function PATCH(
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (session.user.role !== 'Admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const { id } = await params;
 
@@ -148,15 +151,43 @@ export async function DELETE(
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (session.user.role !== 'Admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const { id } = await params;
 
     const product = await prisma.product.findUnique({
       where: { id },
+      include: {
+        _count: {
+          select: {
+            stockMovements: true,
+            purchaseOrderItems: true,
+            quotationItems: true,
+            taxInvoiceItems: true,
+            deliveryNoteItems: true,
+          },
+        },
+      },
     });
 
     if (!product) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
+    const usageCount =
+      product._count.stockMovements +
+      product._count.purchaseOrderItems +
+      product._count.quotationItems +
+      product._count.taxInvoiceItems +
+      product._count.deliveryNoteItems;
+
+    if (usageCount > 0) {
+      return NextResponse.json(
+        { error: 'Cannot delete product: it is referenced in existing records (stock movements, orders, or invoices).' },
+        { status: 409 }
+      );
     }
 
     await prisma.product.delete({

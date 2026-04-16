@@ -28,6 +28,11 @@ export async function GET(_request: NextRequest) {
       data: { status: 'OVERDUE' },
     });
 
+    // Financial date range
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
     // Get statistics
     const [
       totalCustomers,
@@ -41,6 +46,12 @@ export async function GET(_request: NextRequest) {
       recentInternalTasks,
       pendingApprovals,
       employeeDistribution,
+      invoicedThisMonth,
+      outstandingInvoices,
+      quotationStats,
+      activeProductsCount,
+      totalClientsCount,
+      pendingQuotationsCount,
     ] = await Promise.all([
       // Total customers (all if admin, own if employee)
       prisma.customer.count({
@@ -190,7 +201,63 @@ export async function GET(_request: NextRequest) {
             orderBy: { ownedCustomers: { _count: 'desc' } },
           })
         : [],
+
+      // Total invoiced this month (Admin only)
+      canViewAll
+        ? prisma.taxInvoice.aggregate({
+            where: { createdAt: { gte: monthStart, lte: monthEnd } },
+            _sum: { total: true },
+          })
+        : null,
+
+      // Total outstanding across all invoices (Admin only)
+      canViewAll
+        ? prisma.taxInvoice.aggregate({
+            where: { status: { in: ['UNPAID', 'PARTIAL'] } },
+            _sum: { total: true, paidAmount: true },
+          })
+        : null,
+
+      // Quotation conversion stats (Admin only) — last 90 days
+      canViewAll
+        ? prisma.quotation.groupBy({
+            by: ['status'],
+            where: { createdAt: { gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) } },
+            _count: { id: true },
+          })
+        : null,
+
+      // Active products count (Admin only)
+      canViewAll
+        ? prisma.product.count({ where: { status: 'ACTIVE' } })
+        : null,
+
+      // Total clients count (Admin only)
+      canViewAll
+        ? prisma.client.count({ where: { status: 'ACTIVE' } })
+        : null,
+
+      // Pending quotations count (Admin only)
+      canViewAll
+        ? prisma.quotation.count({ where: { status: { in: ['DRAFT', 'SENT'] } } })
+        : null,
     ]);
+
+    // Compute financial KPIs
+    const invoicedThisMonthTotal = invoicedThisMonth?._sum?.total ?? 0;
+    const outstandingTotal = outstandingInvoices
+      ? (outstandingInvoices._sum.total ?? 0) - (outstandingInvoices._sum.paidAmount ?? 0)
+      : 0;
+
+    // Conversion rate: CONFIRMED / (all non-DRAFT)
+    let quotationConversionRate: number | null = null;
+    if (quotationStats) {
+      const total90 = quotationStats.reduce((s, g) => s + g._count.id, 0);
+      const converted = quotationStats
+        .filter(g => ['CONFIRMED', 'CONVERTED'].includes(g.status))
+        .reduce((s, g) => s + g._count.id, 0);
+      quotationConversionRate = total90 > 0 ? Math.round((converted / total90) * 100) : 0;
+    }
 
     // Get value totals
     const allCustomersForValues = await prisma.customer.findMany({
@@ -233,6 +300,12 @@ export async function GET(_request: NextRequest) {
           completedThisWeek,
           totalEstimatedValue,
           totalWeightedValue,
+          invoicedThisMonth: invoicedThisMonthTotal,
+          outstandingAmount: outstandingTotal,
+          quotationConversionRate,
+          activeProducts: activeProductsCount ?? 0,
+          totalClients: totalClientsCount ?? 0,
+          pendingQuotations: pendingQuotationsCount ?? 0,
         },
         issues: {
           customersNoTasks,

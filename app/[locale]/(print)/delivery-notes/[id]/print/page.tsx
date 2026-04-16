@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import Image from 'next/image';
+import { COMPANY } from '@/lib/company';
+
+const BRAND = '#1e40af';
 
 interface DNItem {
   id: string;
@@ -29,7 +31,8 @@ interface DeliveryNote {
   notes: string | null;
   deliveredAt: string | null;
   createdAt: string;
-  customer: { id: string; fullName: string };
+  customer: { id: string; fullName: string } | null;
+  client: { id: string; companyName: string } | null;
   taxInvoice: { id: string; invoiceNumber: string; lpoNumber: string | null; paymentTerms: string | null } | null;
   quotation: { id: string; quotationNumber: string } | null;
   items: DNItem[];
@@ -44,190 +47,166 @@ export default function DeliveryNotePrintPage() {
   useEffect(() => {
     fetch(`/api/delivery-notes/${id}`)
       .then(r => r.json())
-      .then(({ data }) => {
-        setDN(data);
-        setLoading(false);
-      });
+      .then(({ data }) => { setDN(data); setLoading(false); });
   }, [id]);
 
   useEffect(() => {
-    if (!loading && dn) {
-      setTimeout(() => window.print(), 500);
-    }
+    if (!loading && dn) setTimeout(() => window.print(), 500);
   }, [loading, dn]);
 
-  const fmt = (n: number) => n.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt     = (n: number) => n.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtDate = (s: string) => new Date(s).toLocaleDateString('en-GB');
 
-  if (loading || !dn) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-500">Loading...</p>
-      </div>
-    );
-  }
+  if (loading || !dn) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+      <p style={{ color: '#6b7280', fontFamily: 'Arial' }}>Loading…</p>
+    </div>
+  );
+
+  const deliverTo = dn.client?.companyName || dn.customer?.fullName || '—';
 
   return (
     <>
       <style>{`
         @media print {
-          @page { size: A4; margin: 15mm; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          @page { size: A4; margin: 10mm; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
           .no-print { display: none !important; }
         }
-        body { font-family: Arial, sans-serif; background: white; color: #111; margin: 0; }
-        .doc-page { max-width: 210mm; margin: 0 auto; padding: 20px; background: white; min-height: 297mm; }
+        body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #111; margin: 0; padding: 0; font-size: 12px; }
+        .doc-page { max-width: 210mm; margin: 0 auto; padding: 14px 18px; background: #fff; }
+        table { border-collapse: collapse; }
       `}</style>
 
-      <div className="no-print fixed top-4 right-4 flex gap-2 z-50">
-        <button
-          onClick={() => window.print()}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow hover:bg-blue-700"
-        >
+      {/* Toolbar */}
+      <div className="no-print" style={{ position: 'fixed', top: 16, right: 16, display: 'flex', gap: 8, zIndex: 50 }}>
+        <button onClick={() => window.print()} style={{ background: BRAND, color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
           Print / Save PDF
         </button>
-        <button
-          onClick={() => window.close()}
-          className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium shadow hover:bg-gray-300"
-        >
+        <button onClick={() => window.close()} style={{ background: '#e5e7eb', color: '#374151', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}>
           Close
         </button>
       </div>
 
       <div className="doc-page">
-        {/* Header */}
-        <table style={{ width: '100%', marginBottom: '24px' }}>
-          <tbody>
-            <tr>
-              <td style={{ verticalAlign: 'top' }}>
-                <Image src="/logo.svg" alt="Logo" width={60} height={60} style={{ display: 'block' }} />
-                <div style={{ marginTop: '8px' }}>
-                  <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1a1a1a' }}>LitBeam Solutions LLC</div>
-                  <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>Dubai, UAE</div>
-                </div>
-              </td>
-              <td style={{ textAlign: 'right', verticalAlign: 'top' }}>
-                <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#7c3aed', letterSpacing: '-0.5px' }}>DELIVERY NOTE</div>
-                <div style={{ marginTop: '8px', fontSize: '13px' }}>
-                  <div><span style={{ color: '#666' }}>DN No: </span><strong>{dn.dnNumber}</strong></div>
-                  <div><span style={{ color: '#666' }}>Date: </span><strong>{fmtDate(dn.createdAt)}</strong></div>
-                  {dn.deliveredAt && <div><span style={{ color: '#666' }}>Delivered: </span><strong>{fmtDate(dn.deliveredAt)}</strong></div>}
-                  {dn.taxInvoice && <div><span style={{ color: '#666' }}>Invoice No: </span><strong>{dn.taxInvoice.invoiceNumber}</strong></div>}
-                  {dn.taxInvoice?.lpoNumber && <div><span style={{ color: '#666' }}>LPO No: </span><strong>{dn.taxInvoice.lpoNumber}</strong></div>}
-                  {dn.quotation && <div><span style={{ color: '#666' }}>Ref. Quotation: </span><strong>{dn.quotation.quotationNumber}</strong></div>}
-                  <div style={{ marginTop: '4px' }}>
-                    <span style={{
-                      display: 'inline-block', padding: '2px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold',
-                      background: dn.status === 'DELIVERED' ? '#dcfce7' : dn.status === 'RETURNED' ? '#fee2e2' : '#ede9fe',
-                      color: dn.status === 'DELIVERED' ? '#166534' : dn.status === 'RETURNED' ? '#991b1b' : '#5b21b6',
-                    }}>
-                      {dn.status}
-                    </span>
-                  </div>
-                </div>
-              </td>
-            </tr>
-          </tbody>
+
+        {/* ── HEADER ── */}
+        <table style={{ width: '100%', marginBottom: 18 }}>
+          <tbody><tr>
+            <td style={{ verticalAlign: 'top', width: '50%' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.svg" alt="Logo" style={{ display: 'block', width: 110, height: 'auto' }} />
+              <div style={{ marginTop: 6 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>{COMPANY.name}</div>
+                <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{COMPANY.address}</div>
+                {COMPANY.phone && <div style={{ fontSize: 10, color: '#64748b' }}>Tel: {COMPANY.phone}</div>}
+              </div>
+            </td>
+            <td style={{ textAlign: 'right', verticalAlign: 'top' }}>
+              <div style={{ fontSize: 30, fontWeight: 800, color: BRAND, letterSpacing: '-0.5px', lineHeight: 1 }}>DELIVERY NOTE</div>
+              <div style={{ marginTop: 10, fontSize: 12 }}>
+                <div style={{ marginBottom: 2 }}><span style={{ color: '#64748b' }}>DN No: </span><strong>{dn.dnNumber}</strong></div>
+                <div style={{ marginBottom: 2 }}><span style={{ color: '#64748b' }}>Date: </span><strong>{fmtDate(dn.createdAt)}</strong></div>
+                {dn.deliveredAt && <div style={{ marginBottom: 2 }}><span style={{ color: '#64748b' }}>Delivered: </span><strong>{fmtDate(dn.deliveredAt)}</strong></div>}
+                {dn.taxInvoice  && <div style={{ marginBottom: 2 }}><span style={{ color: '#64748b' }}>Invoice No: </span><strong>{dn.taxInvoice.invoiceNumber}</strong></div>}
+                {dn.taxInvoice?.lpoNumber && <div style={{ marginBottom: 2 }}><span style={{ color: '#64748b' }}>LPO No: </span><strong>{dn.taxInvoice.lpoNumber}</strong></div>}
+                {dn.quotation   && <div><span style={{ color: '#64748b' }}>Ref. Quotation: </span><strong>{dn.quotation.quotationNumber}</strong></div>}
+              </div>
+            </td>
+          </tr></tbody>
         </table>
 
-        <div style={{ height: '3px', background: 'linear-gradient(90deg, #7c3aed, #a78bfa)', borderRadius: '2px', marginBottom: '20px' }} />
+        {/* ── DIVIDER ── */}
+        <div style={{ height: 3, background: `linear-gradient(90deg, ${BRAND}, #3b82f6)`, borderRadius: 2, marginBottom: 16 }} />
 
-        {/* Delivered To */}
-        <table style={{ width: '100%', marginBottom: '20px' }}>
-          <tbody>
-            <tr>
-              <td style={{ width: '50%', verticalAlign: 'top', paddingRight: '16px' }}>
-                <div style={{ background: '#faf5ff', border: '1px solid #ddd6fe', borderRadius: '8px', padding: '12px' }}>
-                  <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>DELIVER TO</div>
-                  <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#1a1a1a' }}>{dn.customer.fullName}</div>
-                  {dn.engineerName && <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>Attn: {dn.engineerName}</div>}
-                  {dn.mobileNumber && <div style={{ fontSize: '12px', color: '#475569' }}>Tel: {dn.mobileNumber}</div>}
-                </div>
-              </td>
-              <td style={{ width: '50%', verticalAlign: 'top' }}>
-                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
-                  <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>PROJECT DETAILS</div>
-                  {dn.projectName && <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#1a1a1a' }}>{dn.projectName}</div>}
-                  {dn.taxInvoice?.paymentTerms && <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>Payment Terms: {dn.taxInvoice.paymentTerms}</div>}
-                </div>
-              </td>
-            </tr>
-          </tbody>
+        {/* ── DELIVER TO / PROJECT ── */}
+        <table style={{ width: '100%', marginBottom: 16 }}>
+          <tbody><tr>
+            <td style={{ width: '50%', verticalAlign: 'top', paddingRight: 12 }}>
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 7, padding: '10px 12px' }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>DELIVER TO</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 3 }}>{deliverTo}</div>
+                {dn.engineerName && <div style={{ fontSize: 11, color: '#475569', marginTop: 3 }}>Attn: {dn.engineerName}</div>}
+                {dn.mobileNumber && <div style={{ fontSize: 11, color: '#475569' }}>Tel: {dn.mobileNumber}</div>}
+              </div>
+            </td>
+            <td style={{ width: '50%', verticalAlign: 'top' }}>
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 7, padding: '10px 12px' }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>PROJECT DETAILS</div>
+                {dn.projectName && <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 3 }}>{dn.projectName}</div>}
+                {dn.taxInvoice?.paymentTerms && <div style={{ fontSize: 11, color: '#475569' }}>Payment Terms: {dn.taxInvoice.paymentTerms}</div>}
+              </div>
+            </td>
+          </tr></tbody>
         </table>
 
-        {/* Items Table */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px', fontSize: '12px' }}>
+        {/* ── ITEMS TABLE ── */}
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 16, fontSize: 11 }}>
           <thead>
-            <tr style={{ background: '#7c3aed', color: 'white' }}>
-              <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 'bold', fontSize: '11px' }}>#</th>
-              <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 'bold', fontSize: '11px' }}>DESCRIPTION</th>
-              <th style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 'bold', fontSize: '11px' }}>SIZE</th>
-              <th style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 'bold', fontSize: '11px' }}>UNIT</th>
-              <th style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 'bold', fontSize: '11px' }}>QTY</th>
-              <th style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 'bold', fontSize: '11px' }}>LM</th>
-              <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 'bold', fontSize: '11px' }}>UNIT PRICE</th>
-              <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 'bold', fontSize: '11px' }}>TOTAL (AED)</th>
+            <tr style={{ background: BRAND, color: '#fff' }}>
+              {['#','DESCRIPTION','SIZE','UNIT','QTY','LM','UNIT PRICE','TOTAL (AED)'].map((h, i) => (
+                <th key={h} style={{ padding: '9px 7px', textAlign: i === 0 || i === 1 ? 'left' : i === 7 || i === 6 ? 'right' : 'center', fontWeight: 700, fontSize: 10, whiteSpace: 'nowrap' }}>{h}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {dn.items.map((item, i) => (
-              <tr key={item.id} style={{ background: i % 2 === 0 ? '#ffffff' : '#faf5ff', borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '9px 8px', color: '#64748b' }}>{i + 1}</td>
-                <td style={{ padding: '9px 8px', fontWeight: '500' }}>{item.description}</td>
-                <td style={{ padding: '9px 8px', textAlign: 'center', color: '#64748b' }}>{item.size || '—'}</td>
-                <td style={{ padding: '9px 8px', textAlign: 'center', color: '#64748b' }}>{item.unit || '—'}</td>
-                <td style={{ padding: '9px 8px', textAlign: 'center', color: '#64748b' }}>{item.quantity}</td>
-                <td style={{ padding: '9px 8px', textAlign: 'center', color: '#64748b' }}>
+              <tr key={item.id} style={{ background: i % 2 === 0 ? '#fff' : '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                <td style={{ padding: '8px 7px', color: '#64748b' }}>{i + 1}</td>
+                <td style={{ padding: '8px 7px', fontWeight: 500 }}>{item.description}</td>
+                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>{item.size || '—'}</td>
+                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>{item.unit || '—'}</td>
+                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>{item.quantity}</td>
+                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>
                   {item.unit === 'LM' && item.linearMeters ? item.linearMeters.toFixed(2) : '—'}
                 </td>
-                <td style={{ padding: '9px 8px', textAlign: 'right', color: '#64748b' }}>{fmt(item.unitPrice)}</td>
-                <td style={{ padding: '9px 8px', textAlign: 'right', fontWeight: 'bold' }}>{fmt(item.total)}</td>
+                <td style={{ padding: '8px 7px', textAlign: 'right', color: '#64748b' }}>{fmt(item.unitPrice)}</td>
+                <td style={{ padding: '8px 7px', textAlign: 'right', fontWeight: 700 }}>{fmt(item.total)}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        {/* Notes */}
+        {/* ── NOTES ── */}
         {dn.notes && (
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>NOTES</div>
-            <div style={{ fontSize: '11px', color: '#475569', whiteSpace: 'pre-wrap' }}>{dn.notes}</div>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>NOTES</div>
+            <div style={{ fontSize: 11, color: '#475569', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{dn.notes}</div>
           </div>
         )}
 
-        {/* Signature Section */}
-        <div style={{ marginTop: '40px', marginBottom: '24px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '16px' }}>ACKNOWLEDGEMENT OF RECEIPT</div>
+        {/* ── ACKNOWLEDGEMENT ── */}
+        <div style={{ marginTop: 32, marginBottom: 20 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>ACKNOWLEDGEMENT OF RECEIPT</div>
           <table style={{ width: '100%' }}>
-            <tbody>
-              <tr>
-                <td style={{ width: '45%', verticalAlign: 'bottom', paddingRight: '16px' }}>
-                  <div style={{ borderTop: '1.5px solid #94a3b8', paddingTop: '8px' }}>
-                    <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>Delivered by (Salesman)</div>
-                    {dn.salesmanSign && <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{dn.salesmanSign}</div>}
-                    <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>Signature / Name</div>
-                  </div>
-                </td>
-                <td style={{ width: '10%' }} />
-                <td style={{ width: '45%', verticalAlign: 'bottom' }}>
-                  <div style={{ borderTop: '1.5px solid #94a3b8', paddingTop: '8px' }}>
-                    <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>Received by</div>
-                    {dn.receiverName && <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{dn.receiverName}</div>}
-                    {dn.receiverSign && <div style={{ fontSize: '11px', color: '#475569' }}>{dn.receiverSign}</div>}
-                    <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>Name / Signature / Date</div>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
+            <tbody><tr>
+              <td style={{ width: '45%', verticalAlign: 'bottom', paddingRight: 16 }}>
+                <div style={{ borderTop: '1.5px solid #cbd5e1', paddingTop: 6 }}>
+                  <div style={{ fontSize: 10, color: '#64748b', marginBottom: 3 }}>Delivered by (Salesman)</div>
+                  {dn.salesmanSign && <div style={{ fontSize: 12, fontWeight: 700 }}>{dn.salesmanSign}</div>}
+                  <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 14 }}>Signature / Name</div>
+                </div>
+              </td>
+              <td style={{ width: '10%' }} />
+              <td style={{ width: '45%', verticalAlign: 'bottom' }}>
+                <div style={{ borderTop: '1.5px solid #cbd5e1', paddingTop: 6 }}>
+                  <div style={{ fontSize: 10, color: '#64748b', marginBottom: 3 }}>Received by</div>
+                  {dn.receiverName && <div style={{ fontSize: 12, fontWeight: 700 }}>{dn.receiverName}</div>}
+                  {dn.receiverSign && <div style={{ fontSize: 11, color: '#475569' }}>{dn.receiverSign}</div>}
+                  <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 14 }}>Name / Signature / Date</div>
+                </div>
+              </td>
+            </tr></tbody>
           </table>
         </div>
 
-        {/* Footer */}
-        <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#94a3b8' }}>
-          <span>LitBeam Solutions LLC — Dubai, UAE</span>
+        {/* ── FOOTER ── */}
+        <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#94a3b8' }}>
+          <span>{COMPANY.name} — {COMPANY.address}</span>
           <span>{dn.dnNumber}</span>
           <span>This is a computer-generated document</span>
         </div>
+
       </div>
     </>
   );

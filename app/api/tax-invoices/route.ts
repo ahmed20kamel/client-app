@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/logger';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { can } from '@/lib/permissions';
 import { createTaxInvoiceSchema } from '@/lib/validations/quotation';
+import { withUniqueRetry } from '@/lib/db-utils';
 import { z } from 'zod';
 
-// Helper: generate SC-671/26 format
-async function generateTaxInvoiceNumber(): Promise<string> {
+// Helper: generate SC-671/26 format (atomic inside transaction)
+async function generateTaxInvoiceNumber(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0]): Promise<string> {
   const year = new Date().getFullYear().toString().slice(-2);
-  const lastRecord = await prisma.taxInvoice.findFirst({
+  const lastRecord = await tx.taxInvoice.findFirst({
     orderBy: { createdAt: 'desc' },
     select: { invoiceNumber: true },
   });
   let seq = 1;
   if (lastRecord?.invoiceNumber) {
-    // SC-671/26 → split by '-' then '/'
     const parts = lastRecord.invoiceNumber.split('-');
     if (parts.length >= 2) {
       const seqPart = parts[1]?.split('/')[0];
@@ -32,9 +34,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const canView = await can(session.user.id, 'reports.view.all');
+    const canViewOwn = await can(session.user.id, 'reports.view.own');
+    if (!canView && !canViewOwn) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
     const customerId = searchParams.get('customerId') || '';
@@ -56,9 +64,9 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         customer: { select: { id: true, fullName: true } },
+        client: { select: { id: true, companyName: true } },
         quotation: { select: { id: true, quotationNumber: true } },
         createdBy: { select: { id: true, fullName: true } },
-        items: { orderBy: { sortOrder: 'asc' } },
       },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
@@ -70,7 +78,7 @@ export async function GET(request: NextRequest) {
       meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
   } catch (error) {
-    console.error('Get tax invoices error:', error);
+    logError('Get tax invoices error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -81,6 +89,10 @@ export async function POST(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (session.user.role !== 'Admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -94,14 +106,14 @@ export async function POST(request: NextRequest) {
     if (!quotation) {
       return NextResponse.json({ error: 'Quotation not found' }, { status: 404 });
     }
-    if (quotation.status !== 'APPROVED') {
+    // Enforce Finance Confirmation step — APPROVED alone is not enough
+    if (quotation.status !== 'CONFIRMED') {
       return NextResponse.json(
-        { error: 'Tax invoice can only be created from an approved quotation' },
+        { error: 'Tax invoice can only be created after Finance Confirmation (status must be CONFIRMED).' },
         { status: 400 }
       );
     }
 
-    const invoiceNumber = await generateTaxInvoiceNumber();
 
     const itemsData = validatedData.items.map((item, index) => ({
       productId: item.productId || null,
@@ -122,12 +134,25 @@ export async function POST(request: NextRequest) {
     const deliveryCharges = validatedData.deliveryCharges ?? 0;
     const total = subtotal + taxAmount + deliveryCharges;
 
-    const result = await prisma.$transaction(async (tx) => {
+    // Re-fetch quotation with payment info for deposit logic
+    const quotationFull = await prisma.quotation.findUnique({
+      where: { id: validatedData.quotationId },
+      select: {
+        depositAmount: true,
+        depositPercent: true,
+        paymentType: true,
+        paymentNotes: true,
+      },
+    });
+
+    const result = await withUniqueRetry(() => prisma.$transaction(async (tx) => {
+      const invoiceNumber = await generateTaxInvoiceNumber(tx);
       const invoice = await tx.taxInvoice.create({
         data: {
           invoiceNumber,
           quotationId: validatedData.quotationId,
-          customerId: validatedData.customerId,
+          customerId: validatedData.customerId || quotation.customerId || null,
+          clientId: quotation.clientId || null,
           customerTrn: validatedData.customerTrn || null,
           ourVatReg: validatedData.ourVatReg || null,
           dnNumber: validatedData.dnNumber || null,
@@ -154,14 +179,43 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Mark quotation as CONVERTED
-      await tx.quotation.update({
-        where: { id: validatedData.quotationId },
-        data: { status: 'CONVERTED' },
-      });
+      // Auto-create deposit payment if finance confirmed a deposit/advance
+      const depositAmt = quotationFull?.depositAmount ?? 0;
+      const paymentType = quotationFull?.paymentType;
+      const shouldAutoDeposit =
+        depositAmt > 0 &&
+        (paymentType === 'DEPOSIT' || paymentType === 'FULL_ADVANCE');
+
+      if (shouldAutoDeposit) {
+        await tx.taxInvoicePayment.create({
+          data: {
+            invoiceId: invoice.id,
+            amount: depositAmt,
+            method: quotation.paymentTerms || 'Bank Transfer',
+            paymentDate: new Date(),
+            reference: `Auto: ${paymentType === 'FULL_ADVANCE' ? 'Full Advance' : `Deposit ${quotationFull?.depositPercent ?? ''}%`}`,
+            notes: quotationFull?.paymentNotes || null,
+            status: 'CONFIRMED',
+            createdById: session.user.id,
+          },
+        });
+        // Update paidAmount on invoice
+        await tx.taxInvoice.update({
+          where: { id: invoice.id },
+          data: { paidAmount: depositAmt },
+        });
+      }
+
+      // Mark quotation as CONVERTED (only if not already)
+      if (quotation.status !== 'CONVERTED') {
+        await tx.quotation.update({
+          where: { id: validatedData.quotationId },
+          data: { status: 'CONVERTED' },
+        });
+      }
 
       return invoice;
-    });
+    }));
 
     return NextResponse.json({ data: result }, { status: 201 });
   } catch (error) {
@@ -171,7 +225,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    console.error('Create tax invoice error:', error);
+    logError('Create tax invoice error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/logger';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { receiveItemsSchema } from '@/lib/validations/purchase-order';
@@ -129,7 +130,7 @@ export async function POST(
       );
     }
 
-    console.error('Receive purchase order items error:', error);
+    logError('Receive purchase order items error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

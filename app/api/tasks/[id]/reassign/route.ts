@@ -49,66 +49,68 @@ export async function POST(
 
     const previousAssignee = task.assignedTo;
 
-    // Update task
-    const updatedTask = await prisma.task.update({
-      where: { id },
-      data: { assignedToId: validatedData.assignedToId },
-      include: {
-        customer: { select: { id: true, fullName: true } },
-        assignedTo: { select: { id: true, fullName: true } },
-        createdBy: { select: { id: true, fullName: true } },
-      },
+    // Atomically update task + create comment
+    const updatedTask = await prisma.$transaction(async (tx) => {
+      const updated = await tx.task.update({
+        where: { id },
+        data: { assignedToId: validatedData.assignedToId },
+        include: {
+          customer: { select: { id: true, fullName: true } },
+          assignedTo: { select: { id: true, fullName: true } },
+          createdBy: { select: { id: true, fullName: true } },
+        },
+      });
+
+      await tx.taskComment.create({
+        data: {
+          taskId: id,
+          userId: session.user.id,
+          content: validatedData.reason || `Reassigned from ${previousAssignee.fullName} to ${newAssignee.fullName}`,
+          type: 'REASSIGNMENT',
+          metadata: JSON.stringify({
+            previousAssigneeId: previousAssignee.id,
+            previousAssigneeName: previousAssignee.fullName,
+            newAssigneeId: newAssignee.id,
+            newAssigneeName: newAssignee.fullName,
+          }),
+        },
+      });
+
+      return updated;
     });
 
-    // Create reassignment comment
-    await prisma.taskComment.create({
-      data: {
-        taskId: id,
-        userId: session.user.id,
-        content: validatedData.reason || `Reassigned from ${previousAssignee.fullName} to ${newAssignee.fullName}`,
-        type: 'REASSIGNMENT',
-        metadata: JSON.stringify({
-          previousAssigneeId: previousAssignee.id,
-          previousAssigneeName: previousAssignee.fullName,
-          newAssigneeId: newAssignee.id,
-          newAssigneeName: newAssignee.fullName,
-        }),
-      },
-    });
-
-    // Notify new assignee
-    await prisma.notification.create({
+    // Notifications — fire and forget (non-critical)
+    prisma.notification.create({
       data: {
         userId: newAssignee.id,
         type: 'TASK_REASSIGNED',
         title: 'Task reassigned to you',
         message: `Task "${task.title}" has been reassigned to you`,
-        link: `/en/tasks/${id}`,
+        link: `/tasks/${id}`,
       },
-    });
+    }).catch((err) => console.error('Notification error:', err));
 
-    // Notify previous assignee
     if (previousAssignee.id !== newAssignee.id) {
-      await prisma.notification.create({
+      prisma.notification.create({
         data: {
           userId: previousAssignee.id,
           type: 'TASK_REASSIGNED',
           title: 'Task reassigned',
           message: `Task "${task.title}" has been reassigned to ${newAssignee.fullName}`,
-          link: `/en/tasks/${id}`,
+          link: `/tasks/${id}`,
         },
-      });
+      }).catch((err) => console.error('Notification error:', err));
     }
 
-    // Audit log
-    await logAudit({
+    // Audit log — fire and forget
+    logAudit({
       actorUserId: session.user.id,
       action: 'task.reassigned',
       entityType: 'Task',
       entityId: id,
       before: { assignedToId: previousAssignee.id, assignedToName: previousAssignee.fullName },
       after: { assignedToId: newAssignee.id, assignedToName: newAssignee.fullName },
-    });
+    }).catch((err) => console.error('Audit log error:', err));
 
     return NextResponse.json({ data: updatedTask });
   } catch (error) {

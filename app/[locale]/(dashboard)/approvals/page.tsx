@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { PageHeader } from '@/components/PageHeader';
+import { intlLocale } from '@/lib/utils';
 
 interface InternalTask {
   id: string;
@@ -152,10 +153,8 @@ export default function ApprovalsPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+    return new Date(dateString).toLocaleDateString(intlLocale(locale), {
+      year: 'numeric', month: 'short', day: 'numeric',
     });
   };
 

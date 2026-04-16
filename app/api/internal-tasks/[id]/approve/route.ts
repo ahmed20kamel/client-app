@@ -42,79 +42,52 @@ export async function POST(
     const body = await request.json();
     const validatedData = approveTaskSchema.parse(body);
 
-    // Update task status to APPROVED then DONE
+    // Atomically update task + create comment
     const now = new Date();
-    const updatedTask = await prisma.internalTask.update({
-      where: { id },
-      data: {
-        status: 'DONE',
-        approvedAt: now,
-        approvedById: session.user.id,
-        completedAt: now,
-      },
-      include: {
-        assignedTo: {
-          select: {
-            id: true,
-            fullName: true,
-          },
-        },
-        createdBy: {
-          select: {
-            id: true,
-            fullName: true,
-          },
-        },
-        approvedBy: {
-          select: {
-            id: true,
-            fullName: true,
-          },
-        },
-        department: {
-          select: {
-            id: true,
-            name: true,
-            nameAr: true,
-          },
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-            nameAr: true,
-            color: true,
-          },
-        },
-        rating: true,
-        _count: {
-          select: { comments: true },
-        },
-      },
-    });
-
-    // Create APPROVAL comment
     const commentContent = validatedData.comment
       ? `Task approved. ${validatedData.comment}`
       : 'Task approved';
 
-    await prisma.internalTaskComment.create({
-      data: {
-        internalTaskId: id,
-        userId: session.user.id,
-        content: commentContent,
-        type: 'APPROVAL',
-      },
+    const updatedTask = await prisma.$transaction(async (tx) => {
+      const updated = await tx.internalTask.update({
+        where: { id },
+        data: {
+          status: 'DONE',
+          approvedAt: now,
+          approvedById: session.user.id,
+          completedAt: now,
+        },
+        include: {
+          assignedTo: { select: { id: true, fullName: true } },
+          createdBy: { select: { id: true, fullName: true } },
+          approvedBy: { select: { id: true, fullName: true } },
+          department: { select: { id: true, name: true, nameAr: true } },
+          category: { select: { id: true, name: true, nameAr: true, color: true } },
+          rating: true,
+          _count: { select: { comments: true } },
+        },
+      });
+
+      await tx.internalTaskComment.create({
+        data: {
+          internalTaskId: id,
+          userId: session.user.id,
+          content: commentContent,
+          type: 'APPROVAL',
+        },
+      });
+
+      return updated;
     });
 
-    // Notify assignee
-    await createNotification({
+    // Notify assignee — fire and forget
+    createNotification({
       userId: task.assignedToId,
       type: 'INTERNAL_TASK_APPROVED',
       title: 'Task Approved',
       message: `Your task "${task.title}" has been approved`,
-      link: `/en/internal-tasks/${task.id}`,
-    });
+      link: `/internal-tasks/${task.id}`,
+    }).catch((err) => console.error('Notification error:', err));
 
     return NextResponse.json({ data: updatedTask });
   } catch (error) {

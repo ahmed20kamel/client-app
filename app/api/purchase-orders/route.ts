@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/logger';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { can } from '@/lib/permissions';
 import { createPurchaseOrderSchema } from '@/lib/validations/purchase-order';
+import { withUniqueRetry } from '@/lib/db-utils';
 import { z } from 'zod';
 
 // GET /api/purchase-orders - List purchase orders with filters and pagination
@@ -12,9 +15,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const canView = await can(session.user.id, 'reports.view.all');
+    const canViewOwn = await can(session.user.id, 'reports.view.own');
+    if (!canView && !canViewOwn) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
     const supplierId = searchParams.get('supplierId') || '';
@@ -66,7 +75,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Get purchase orders error:', error);
+    logError('Get purchase orders error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -82,21 +91,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (session.user.role !== 'Admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const body = await request.json();
     const validatedData = createPurchaseOrderSchema.parse(body);
-
-    // Generate PO number
-    const lastRecord = await prisma.purchaseOrder.findFirst({
-      orderBy: { createdAt: 'desc' },
-      select: { poNumber: true },
-    });
-    const year = new Date().getFullYear();
-    let seq = 1;
-    if (lastRecord?.poNumber) {
-      const parts = lastRecord.poNumber.split('-');
-      if (parts[1] === String(year)) seq = parseInt(parts[2]) + 1;
-    }
-    const poNumber = `PO-${year}-${String(seq).padStart(4, '0')}`;
 
     // Calculate totals
     const items = validatedData.items.map((item, index) => ({
@@ -115,7 +115,16 @@ export async function POST(request: NextRequest) {
     const taxAmount = (subtotal - discountAmount) * taxPercent / 100;
     const total = subtotal - discountAmount + taxAmount;
 
-    const purchaseOrder = await prisma.purchaseOrder.create({
+    const purchaseOrder = await withUniqueRetry(() => prisma.$transaction(async (tx) => {
+      const year = new Date().getFullYear();
+      const lastRecord = await tx.purchaseOrder.findFirst({ orderBy: { createdAt: 'desc' }, select: { poNumber: true } });
+      let seq = 1;
+      if (lastRecord?.poNumber) {
+        const parts = lastRecord.poNumber.split('-');
+        if (parts[1] === String(year)) seq = parseInt(parts[2]) + 1;
+      }
+      const poNumber = `PO-${year}-${String(seq).padStart(4, '0')}`;
+      return tx.purchaseOrder.create({
       data: {
         poNumber,
         supplierId: validatedData.supplierId,
@@ -144,7 +153,8 @@ export async function POST(request: NextRequest) {
         },
         items: true,
       },
-    });
+      });
+    }));
 
     return NextResponse.json({ data: purchaseOrder }, { status: 201 });
   } catch (error) {
@@ -155,7 +165,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error('Create purchase order error:', error);
+    logError('Create purchase order error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

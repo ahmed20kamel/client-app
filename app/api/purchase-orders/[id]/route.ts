@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/logger';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { can } from '@/lib/permissions';
 import { updatePurchaseOrderSchema } from '@/lib/validations/purchase-order';
 import { z } from 'zod';
 
@@ -16,6 +18,11 @@ export async function GET(
     }
 
     const { id } = await params;
+    const canView = await can(session.user.id, 'reports.view.all');
+    const canViewOwn = await can(session.user.id, 'reports.view.own');
+    if (!canView && !canViewOwn) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const purchaseOrder = await prisma.purchaseOrder.findUnique({
       where: { id },
@@ -41,7 +48,7 @@ export async function GET(
 
     return NextResponse.json({ data: purchaseOrder });
   } catch (error) {
-    console.error('Get purchase order error:', error);
+    logError('Get purchase order error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -61,16 +68,46 @@ export async function PATCH(
     }
 
     const { id } = await params;
+    if (session.user.role !== 'Admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
-    const existingPO = await prisma.purchaseOrder.findUnique({
-      where: { id },
-    });
-
+    const existingPO = await prisma.purchaseOrder.findUnique({ where: { id } });
     if (!existingPO) {
       return NextResponse.json({ error: 'Purchase order not found' }, { status: 404 });
     }
 
     const body = await request.json();
+
+    // Status transition validation
+    if (body.status) {
+      const VALID_TRANSITIONS: Record<string, string[]> = {
+        DRAFT:              ['SENT', 'CANCELLED'],
+        SENT:               ['CONFIRMED', 'CANCELLED'],
+        CONFIRMED:          ['PARTIALLY_RECEIVED', 'RECEIVED', 'CANCELLED'],
+        PARTIALLY_RECEIVED: ['RECEIVED', 'CANCELLED'],
+        RECEIVED:           [],
+        CANCELLED:          [],
+      };
+      const allowed = VALID_TRANSITIONS[existingPO.status] ?? [];
+      if (!allowed.includes(body.status)) {
+        return NextResponse.json(
+          { error: `Cannot transition from ${existingPO.status} to ${body.status}` },
+          { status: 400 }
+        );
+      }
+      // Set timestamps
+      const now = new Date();
+      if (body.status === 'SENT') body.sentAt = now;
+      if (body.status === 'CONFIRMED') body.confirmedAt = now;
+      if (body.status === 'RECEIVED') body.receivedAt = now;
+    }
+
+    // Guard: cannot edit items on a RECEIVED/CANCELLED PO
+    if (['RECEIVED', 'CANCELLED'].includes(existingPO.status) && body.items) {
+      return NextResponse.json({ error: 'Cannot edit items on a completed or cancelled PO.' }, { status: 409 });
+    }
+
     const validatedData = updatePurchaseOrderSchema.parse(body);
 
     // Build update data
@@ -187,7 +224,7 @@ export async function PATCH(
       );
     }
 
-    console.error('Update purchase order error:', error);
+    logError('Update purchase order error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -207,22 +244,23 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    if (session.user.role !== 'Admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
-    const purchaseOrder = await prisma.purchaseOrder.findUnique({
-      where: { id },
-    });
-
+    const purchaseOrder = await prisma.purchaseOrder.findUnique({ where: { id } });
     if (!purchaseOrder) {
       return NextResponse.json({ error: 'Purchase order not found' }, { status: 404 });
     }
 
-    await prisma.purchaseOrder.delete({
-      where: { id },
-    });
+    if (['RECEIVED', 'PARTIALLY_RECEIVED'].includes(purchaseOrder.status)) {
+      return NextResponse.json({ error: 'Cannot delete a PO that has already received stock.' }, { status: 409 });
+    }
 
+    await prisma.purchaseOrder.delete({ where: { id } });
     return NextResponse.json({ message: 'Purchase order deleted successfully' });
   } catch (error) {
-    console.error('Delete purchase order error:', error);
+    logError('Delete purchase order error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

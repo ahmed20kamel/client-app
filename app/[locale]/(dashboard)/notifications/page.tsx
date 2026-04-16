@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { intlLocale } from '@/lib/utils';
 import {
   Bell,
   Check,
@@ -149,7 +150,8 @@ export default function NotificationsPage() {
       markAsRead(notification.id);
     }
     if (notification.link) {
-      router.push(notification.link);
+      const href = notification.link.startsWith(`/${locale}/`) ? notification.link : `/${locale}${notification.link}`;
+      router.push(href);
     }
   };
 
@@ -225,10 +227,8 @@ export default function NotificationsPage() {
       ? t('notifications.today')
       : isYesterday
       ? t('notifications.yesterday')
-      : date.toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
+      : date.toLocaleDateString(intlLocale(locale), {
+          year: 'numeric', month: 'long', day: 'numeric',
         });
 
     const lastGroup = groupedNotifications[groupedNotifications.length - 1];

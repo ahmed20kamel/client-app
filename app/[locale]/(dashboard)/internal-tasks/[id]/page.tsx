@@ -37,6 +37,7 @@ import {
   Pencil,
 } from 'lucide-react';
 import { DetailSkeleton } from '@/components/ui/page-skeleton';
+import { formatDate, formatDateTime } from '@/lib/utils';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -474,13 +475,8 @@ export default function InternalTaskDetailPage() {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString(locale === 'ar' ? 'ar-AE' : 'en-AE');
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-AE');
-  };
+  const fmtDate = (d: string) => formatDate(d, locale);
+  const fmtDateTime = (d: string) => formatDateTime(d, locale);
 
   const getStatusLabel = (s: string) => {
     const map: Record<string, string> = {
@@ -711,13 +707,13 @@ export default function InternalTaskDetailPage() {
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t('internalTasks.dueDate')}</p>
                     <p className="font-medium flex items-center gap-1.5">
                       <Calendar className="size-3.5 text-muted-foreground" />
-                      {formatDate(task.dueAt)}
+                      {fmtDate(task.dueAt)}
                     </p>
                   </div>
                 )}
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t('common.createdAt')}</p>
-                  <p className="font-medium">{formatDate(task.createdAt)}</p>
+                  <p className="font-medium">{fmtDate(task.createdAt)}</p>
                 </div>
               </div>
 
@@ -765,7 +761,7 @@ export default function InternalTaskDetailPage() {
                   <p className="text-sm text-muted-foreground mt-2">{task.rating.comment}</p>
                 )}
                 <p className="text-xs text-muted-foreground mt-2">
-                  {t('internalTasks.approvedBy', { name: task.rating.ratedBy.fullName })} - {formatDateTime(task.rating.createdAt)}
+                  {t('internalTasks.approvedBy', { name: task.rating.ratedBy.fullName })} - {fmtDateTime(task.rating.createdAt)}
                 </p>
               </CardContent>
             </Card>
@@ -865,7 +861,7 @@ export default function InternalTaskDetailPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{attachment.originalName}</p>
                         <p className="text-xs text-muted-foreground">
-                          {formatFileSize(attachment.fileSize)} · {attachment.uploadedBy.fullName} · {formatDateTime(attachment.createdAt)}
+                          {formatFileSize(attachment.fileSize)} · {attachment.uploadedBy.fullName} · {fmtDateTime(attachment.createdAt)}
                         </p>
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -947,7 +943,7 @@ export default function InternalTaskDetailPage() {
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className="text-sm font-medium">{comment.user.fullName}</span>
                           <span className="text-xs text-muted-foreground">
-                            {formatDateTime(comment.createdAt)}
+                            {fmtDateTime(comment.createdAt)}
                           </span>
                           {comment.type !== 'COMMENT' && (
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0">
@@ -1046,30 +1042,30 @@ export default function InternalTaskDetailPage() {
             <CardContent className="space-y-3">
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">{t('common.createdAt')}</p>
-                <p className="text-sm font-medium">{formatDateTime(task.createdAt)}</p>
+                <p className="text-sm font-medium">{fmtDateTime(task.createdAt)}</p>
               </div>
               {task.dueAt && (
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wider">{t('internalTasks.dueDate')}</p>
-                  <p className="text-sm font-medium">{formatDate(task.dueAt)}</p>
+                  <p className="text-sm font-medium">{fmtDate(task.dueAt)}</p>
                 </div>
               )}
               {task.submittedAt && (
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wider">{t('internalTasks.submittedAt')}</p>
-                  <p className="text-sm font-medium">{formatDateTime(task.submittedAt)}</p>
+                  <p className="text-sm font-medium">{fmtDateTime(task.submittedAt)}</p>
                 </div>
               )}
               {task.approvedAt && (
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wider">{t('internalTasks.approvedAt')}</p>
-                  <p className="text-sm font-medium">{formatDateTime(task.approvedAt)}</p>
+                  <p className="text-sm font-medium">{fmtDateTime(task.approvedAt)}</p>
                 </div>
               )}
               {task.completedAt && (
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wider">{t('internalTasks.completedAt')}</p>
-                  <p className="text-sm font-medium">{formatDateTime(task.completedAt)}</p>
+                  <p className="text-sm font-medium">{fmtDateTime(task.completedAt)}</p>
                 </div>
               )}
             </CardContent>

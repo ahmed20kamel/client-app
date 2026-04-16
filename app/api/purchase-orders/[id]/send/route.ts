@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/logger';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { can } from '@/lib/permissions';
 
 // POST /api/purchase-orders/[id]/send - Mark purchase order as sent
 export async function POST(
@@ -14,6 +16,9 @@ export async function POST(
     }
 
     const { id } = await params;
+    if (session.user.role !== 'Admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const purchaseOrder = await prisma.purchaseOrder.findUnique({
       where: { id },
@@ -50,7 +55,7 @@ export async function POST(
 
     return NextResponse.json({ data: updated });
   } catch (error) {
-    console.error('Send purchase order error:', error);
+    logError('Send purchase order error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

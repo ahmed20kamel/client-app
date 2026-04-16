@@ -1,5 +1,17 @@
 import { z } from 'zod';
 
+// ─── Shared ───────────────────────────────────────────────────────────────────
+
+/** UAE / international mobile — optional, but if provided must be valid */
+const mobileSchema = z
+  .string()
+  .optional()
+  .nullable()
+  .refine(
+    (v) => !v || /^\+?[\d\s\-().]{7,20}$/.test(v.trim()),
+    { message: 'Invalid phone number (digits, spaces, +, -, () allowed; 7–20 chars)' }
+  );
+
 // ─── Quotation Item ──────────────────────────────────────────────────────────────
 
 const quotationItemSchema = z.object({
@@ -17,13 +29,12 @@ const quotationItemSchema = z.object({
 // ─── Create Quotation ──────────────────────────────────────────────────────────
 
 export const createQuotationSchema = z.object({
-  customerId: z.string().uuid('Invalid customer ID').optional().nullable(),
-  clientId: z.string().uuid().optional().nullable(),
-  engineerId: z.string().uuid().optional().nullable(),
+  customerId: z.string().optional().nullable(),
+  clientId: z.string().optional().nullable(),
+  engineerId: z.string().optional().nullable(),
   engineerName: z.string().optional().nullable(),
-  mobileNumber: z.string().optional().nullable(),
+  mobileNumber: mobileSchema,
   projectName: z.string().optional().nullable(),
-  subject: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   terms: z.string().optional().nullable(),
   validUntil: z.string().optional().nullable(),
@@ -36,13 +47,12 @@ export const createQuotationSchema = z.object({
 // ─── Update Quotation ──────────────────────────────────────────────────────────
 
 export const updateQuotationSchema = z.object({
-  customerId: z.string().uuid('Invalid customer ID').optional().nullable(),
-  clientId: z.string().uuid().optional().nullable(),
-  engineerId: z.string().uuid().optional().nullable(),
+  customerId: z.string().optional().nullable(),
+  clientId: z.string().optional().nullable(),
+  engineerId: z.string().optional().nullable(),
   engineerName: z.string().optional().nullable(),
-  mobileNumber: z.string().optional().nullable(),
+  mobileNumber: mobileSchema,
   projectName: z.string().optional().nullable(),
-  subject: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   terms: z.string().optional().nullable(),
   validUntil: z.string().optional().nullable(),
@@ -56,7 +66,7 @@ export const updateQuotationSchema = z.object({
 
 export const approveQuotationSchema = z.object({
   lpoNumber: z.string().min(1, 'LPO Number is required'),
-  paymentTerms: z.enum(['Cash', 'Cheque', 'Transfer']),
+  paymentTerms: z.enum(['Cash', 'Cheque', 'Bank Transfer', 'Cash / Cheque / Bank Transfer']),
 });
 
 export const rejectQuotationSchema = z.object({
@@ -80,12 +90,12 @@ const taxInvoiceItemSchema = z.object({
 
 export const createTaxInvoiceSchema = z.object({
   quotationId: z.string().uuid('Invalid quotation ID'),
-  customerId: z.string().uuid('Invalid customer ID'),
+  customerId: z.string().uuid('Invalid customer ID').optional().nullable(),
   customerTrn: z.string().optional().nullable(),
   ourVatReg: z.string().optional().nullable(),
   dnNumber: z.string().optional().nullable(),
   engineerName: z.string().optional().nullable(),
-  mobileNumber: z.string().optional().nullable(),
+  mobileNumber: mobileSchema,
   projectName: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   terms: z.string().optional().nullable(),
@@ -102,7 +112,8 @@ export const updateTaxInvoiceSchema = z.object({
   dnNumber: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   terms: z.string().optional().nullable(),
-  status: z.enum(['DRAFT', 'SENT', 'PAID', 'CANCELLED']).optional(),
+  // Only SENT and CANCELLED are allowed manually — UNPAID/PARTIAL/PAID are derived from paidAmount
+  status: z.enum(['SENT', 'CANCELLED']).optional(),
   lpoNumber: z.string().optional().nullable(),
   paymentTerms: z.string().optional().nullable(),
 });
@@ -125,9 +136,10 @@ const deliveryNoteItemSchema = z.object({
 export const createDeliveryNoteSchema = z.object({
   quotationId: z.string().uuid().optional().nullable(),
   taxInvoiceId: z.string().uuid().optional().nullable(),
-  customerId: z.string().uuid('Invalid customer ID'),
+  customerId: z.string().uuid().optional().nullable(),
+  clientId: z.string().uuid().optional().nullable(),
   engineerName: z.string().optional().nullable(),
-  mobileNumber: z.string().optional().nullable(),
+  mobileNumber: mobileSchema,
   projectName: z.string().optional().nullable(),
   salesmanSign: z.string().optional().nullable(),
   receiverName: z.string().optional().nullable(),

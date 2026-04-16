@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
     const search = searchParams.get('search') || '';
     const customerType = searchParams.get('customerType') || '';
     const status = searchParams.get('status') || '';
@@ -234,7 +234,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Log audit
-    await logAudit({
+    logAudit({
       actorUserId: session.user.id,
       action: 'customer.created',
       entityType: 'Customer',
@@ -245,7 +245,7 @@ export async function POST(request: NextRequest) {
         customerType: customer.customerType,
         owner: customer.owner.fullName,
       },
-    });
+    }).catch((err) => console.error("Audit log error:", err));
 
     return NextResponse.json({ data: customer }, { status: 201 });
   } catch (error) {
@@ -257,9 +257,8 @@ export async function POST(request: NextRequest) {
     }
 
     console.error('Create customer error:', error);
-    const message = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json(
-      { error: message.includes('Unknown arg') ? 'Please restart the server to apply database changes' : 'Failed to create customer. Please try again.' },
+      { error: 'Failed to create customer. Please try again.' },
       { status: 500 }
     );
   }

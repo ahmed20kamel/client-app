@@ -10,6 +10,7 @@ export async function DELETE(
   try {
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (session.user.role !== 'Admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { engineerId } = await params;
 

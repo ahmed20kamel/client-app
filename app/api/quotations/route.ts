@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/logger';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { can } from '@/lib/permissions';
 import { createQuotationSchema } from '@/lib/validations/quotation';
+import { withUniqueRetry } from '@/lib/db-utils';
 import { z } from 'zod';
 
-// Helper: generate serial SC-LBS-XXX-YY
-async function generateQuotationNumber(productCode: string = 'LBS'): Promise<string> {
+// Helper: generate serial SC-{PROJECT}-{seq}-{YY}
+async function generateQuotationNumber(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0], projectName?: string | null): Promise<string> {
   const year = new Date().getFullYear().toString().slice(-2);
-  const prefix = `SC-${productCode}`;
-  const lastRecord = await prisma.quotation.findFirst({
+  // Clean project name: uppercase, remove spaces/special chars, max 10 chars
+  const code = projectName
+    ? projectName.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10)
+    : 'LBS';
+  const prefix = `SC-${code}`;
+  const lastRecord = await tx.quotation.findFirst({
     where: { quotationNumber: { startsWith: prefix } },
     orderBy: { createdAt: 'desc' },
     select: { quotationNumber: true },
@@ -16,8 +23,7 @@ async function generateQuotationNumber(productCode: string = 'LBS'): Promise<str
   let seq = 1;
   if (lastRecord?.quotationNumber) {
     const parts = lastRecord.quotationNumber.split('-');
-    // SC-LBS-257-26 → parts[2] = '257'
-    const lastSeq = parseInt(parts[2]);
+    const lastSeq = parseInt(parts[parts.length - 2]);
     if (!isNaN(lastSeq)) seq = lastSeq + 1;
   }
   return `${prefix}-${seq}-${year}`;
@@ -31,9 +37,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const canView = await can(session.user.id, 'reports.view.all');
+    const canViewOwn = await can(session.user.id, 'reports.view.own');
+    if (!canView && !canViewOwn) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
     const customerId = searchParams.get('customerId') || '';
@@ -44,7 +56,7 @@ export async function GET(request: NextRequest) {
     if (search) {
       where.OR = [
         { quotationNumber: { contains: search, mode: 'insensitive' } },
-        { subject: { contains: search, mode: 'insensitive' } },
+
         { projectName: { contains: search, mode: 'insensitive' } },
         { engineerName: { contains: search, mode: 'insensitive' } },
         { customer: { fullName: { contains: search, mode: 'insensitive' } } },
@@ -73,7 +85,7 @@ export async function GET(request: NextRequest) {
       meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
   } catch (error) {
-    console.error('Get quotations error:', error);
+    logError('Get quotations error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -86,24 +98,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Any authenticated user can create quotations
+
     const body = await request.json();
     const validatedData = createQuotationSchema.parse(body);
 
-    // Determine product code from first item's product
-    let productCode = 'LBS';
-    if (validatedData.items[0]?.productId) {
-      const product = await prisma.product.findUnique({
-        where: { id: validatedData.items[0].productId },
-        select: { productCode: true },
-      });
-      if (product?.productCode) productCode = product.productCode;
-    }
-
-    const quotationNumber = await generateQuotationNumber(productCode);
+    // Use project name for quotation number serial
 
     const itemsData = validatedData.items.map((item, index) => {
       const lineDiscount = item.discount || 0;
-      const lm = item.linearMeters ?? (item.quantity * (item.length ?? 1));
+      const lm = item.linearMeters ?? (item.quantity * (item.length ?? 100) / 100);
       const lineTotal = lm * item.unitPrice * (1 - lineDiscount / 100);
       return {
         productId: item.productId || null,
@@ -133,30 +137,24 @@ export async function POST(request: NextRequest) {
       ? new Date(validatedData.validUntil)
       : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-    // Resolve customerId: use provided or fallback to a system placeholder
-    // If clientId provided but no customerId, find/create a linked customer or use first available
-    let resolvedCustomerId = validatedData.customerId || null;
-    if (!resolvedCustomerId && validatedData.clientId) {
-      // Use the admin/system user's first customer or just create the quotation without customer
-      // For now, we store clientId and set customerId to null-safe fallback
-      const firstCustomer = await prisma.customer.findFirst({ select: { id: true } });
-      resolvedCustomerId = firstCustomer?.id || null;
-    }
-    if (!resolvedCustomerId) {
+    const resolvedCustomerId = validatedData.customerId || null;
+    const resolvedClientId = validatedData.clientId || null;
+    if (!resolvedCustomerId && !resolvedClientId) {
       return NextResponse.json({ error: 'Customer or Client is required' }, { status: 400 });
     }
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await withUniqueRetry(() => prisma.$transaction(async (tx) => {
+      const quotationNumber = await generateQuotationNumber(tx, validatedData.projectName);
       const quotation = await tx.quotation.create({
         data: {
           quotationNumber,
-          customerId: resolvedCustomerId!,
-          clientId: validatedData.clientId || null,
+          customerId: resolvedCustomerId,
+          clientId: resolvedClientId,
           engineerId: validatedData.engineerId || null,
           engineerName: validatedData.engineerName || null,
           mobileNumber: validatedData.mobileNumber || null,
           projectName: validatedData.projectName || null,
-          subject: validatedData.subject || null,
+
           notes: validatedData.notes || null,
           terms: validatedData.terms || null,
           validUntil: validUntilDate,
@@ -179,7 +177,7 @@ export async function POST(request: NextRequest) {
         },
       });
       return quotation;
-    });
+    }));
 
     return NextResponse.json({ data: result }, { status: 201 });
   } catch (error) {
@@ -189,7 +187,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    console.error('Create quotation error:', error);
+    logError('Create quotation error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

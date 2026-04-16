@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/logger';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { can } from '@/lib/permissions';
 import { updateDeliveryNoteSchema } from '@/lib/validations/quotation';
 import { z } from 'zod';
 
@@ -16,10 +18,17 @@ export async function GET(
     }
 
     const { id } = await params;
+    const canView = await can(session.user.id, 'reports.view.all');
+    const canViewOwn = await can(session.user.id, 'reports.view.own');
+    if (!canView && !canViewOwn) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const note = await prisma.deliveryNote.findUnique({
       where: { id },
       include: {
-        customer: true,
+        customer: { select: { id: true, fullName: true, phone: true, email: true } },
+        client: { select: { id: true, companyName: true } },
         taxInvoice: {
           select: {
             id: true,
@@ -43,7 +52,7 @@ export async function GET(
 
     return NextResponse.json({ data: note });
   } catch (error) {
-    console.error('Get delivery note error:', error);
+    logError('Get delivery note error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -60,36 +69,94 @@ export async function PATCH(
     }
 
     const { id } = await params;
+    if (session.user.role !== 'Admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const existing = await prisma.deliveryNote.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: 'Delivery note not found' }, { status: 404 });
     }
 
+    // Guard: cannot change status of a RETURNED note
     const body = await request.json();
+    if (body.status && existing.status === 'RETURNED') {
+      return NextResponse.json({ error: 'Cannot change status of a returned delivery note.' }, { status: 409 });
+    }
+
     const validatedData = updateDeliveryNoteSchema.parse(body);
 
-    const updated = await prisma.deliveryNote.update({
-      where: { id },
-      data: {
-        salesmanSign: validatedData.salesmanSign,
-        receiverName: validatedData.receiverName,
-        receiverSign: validatedData.receiverSign,
-        notes: validatedData.notes,
-        status: validatedData.status,
-        deliveredAt:
-          validatedData.status === 'DELIVERED' && !existing.deliveredAt
-            ? new Date()
-            : validatedData.deliveredAt
-            ? new Date(validatedData.deliveredAt)
-            : undefined,
-      },
-      include: {
-        customer: { select: { id: true, fullName: true } },
-        taxInvoice: { select: { id: true, invoiceNumber: true } },
-        quotation: { select: { id: true, quotationNumber: true } },
-        createdBy: { select: { id: true, fullName: true } },
-        items: { orderBy: { sortOrder: 'asc' } },
-      },
+    const isMarkingDelivered = validatedData.status === 'DELIVERED' && existing.status !== 'DELIVERED';
+
+    // Fetch items with product if we need to deduct stock
+    const noteItems = isMarkingDelivered
+      ? await prisma.deliveryNoteItem.findMany({
+          where: { deliveryNoteId: id },
+          select: { productId: true, quantity: true },
+        })
+      : [];
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const result = await tx.deliveryNote.update({
+        where: { id },
+        data: {
+          salesmanSign: validatedData.salesmanSign,
+          receiverName: validatedData.receiverName,
+          receiverSign: validatedData.receiverSign,
+          notes: validatedData.notes,
+          status: validatedData.status,
+          deliveredAt:
+            validatedData.status === 'DELIVERED' && !existing.deliveredAt
+              ? new Date()
+              : validatedData.deliveredAt
+              ? new Date(validatedData.deliveredAt)
+              : undefined,
+        },
+        include: {
+          customer: { select: { id: true, fullName: true } },
+          client: { select: { id: true, companyName: true } },
+          taxInvoice: { select: { id: true, invoiceNumber: true } },
+          quotation: { select: { id: true, quotationNumber: true } },
+          createdBy: { select: { id: true, fullName: true } },
+          items: { orderBy: { sortOrder: 'asc' } },
+        },
+      });
+
+      // Auto-deduct inventory stock for products in the delivery note
+      if (isMarkingDelivered) {
+        for (const item of noteItems) {
+          if (!item.productId) continue;
+          const qty = Math.round(item.quantity); // stock is integer
+          if (qty <= 0) continue;
+
+          const product = await tx.product.findUnique({
+            where: { id: item.productId },
+            select: { currentStock: true },
+          });
+          const previousStock = product?.currentStock ?? 0;
+          const newStock = Math.max(0, previousStock - qty);
+
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { currentStock: newStock },
+          });
+
+          await tx.stockMovement.create({
+            data: {
+              productId: item.productId,
+              type: 'OUT',
+              quantity: qty,
+              previousStock,
+              newStock,
+              reason: 'Delivery Note',
+              reference: existing.dnNumber || id,
+              createdById: session.user.id,
+            },
+          });
+        }
+      }
+
+      return result;
     });
 
     return NextResponse.json({ data: updated });
@@ -100,7 +167,7 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    console.error('Update delivery note error:', error);
+    logError('Update delivery note error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -117,15 +184,28 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    const canDelete = await can(session.user.id, 'reports.view.all');
+    if (!canDelete) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    if (session.user.role !== 'Admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const note = await prisma.deliveryNote.findUnique({ where: { id } });
     if (!note) {
       return NextResponse.json({ error: 'Delivery note not found' }, { status: 404 });
     }
 
+    if (note.status === 'DELIVERED') {
+      return NextResponse.json({ error: 'Cannot delete a delivered delivery note.' }, { status: 409 });
+    }
+
     await prisma.deliveryNote.delete({ where: { id } });
     return NextResponse.json({ message: 'Delivery note deleted successfully' });
   } catch (error) {
-    console.error('Delete delivery note error:', error);
+    logError('Delete delivery note error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

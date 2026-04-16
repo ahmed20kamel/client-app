@@ -4,11 +4,10 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import {
-  Receipt, ArrowLeft, Save, Loader2, User, Package, Calculator, Truck, FileText,
+  Receipt, ArrowLeft, Save, Loader2, Package, Calculator, Truck, FileText,
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 
@@ -20,10 +19,14 @@ interface QuotationItem {
 }
 interface Quotation {
   id: string; quotationNumber: string; status: string;
+  customerId: string | null;
+  clientId: string | null;
   engineerName: string | null; mobileNumber: string | null; projectName: string | null;
   lpoNumber: string | null; paymentTerms: string | null;
+  notes: string | null; terms: string | null;
   subtotal: number; taxPercent: number; taxAmount: number; deliveryCharges: number; total: number;
-  customer: { id: string; fullName: string };
+  customer: { id: string; fullName: string } | null;
+  client: { id: string; companyName: string; trn: string | null } | null;
   items: QuotationItem[];
 }
 
@@ -39,8 +42,6 @@ export default function NewTaxInvoicePage() {
   const [loading, setLoading] = useState(!!quotationId);
   const [saving, setSaving] = useState(false);
 
-  const [customerTrn, setCustomerTrn] = useState('');
-  const [ourVatReg, setOurVatReg] = useState('');
   const [notes, setNotes] = useState('');
   const [terms, setTerms] = useState('');
 
@@ -49,8 +50,8 @@ export default function NewTaxInvoicePage() {
     fetch(`/api/quotations/${quotationId}`)
       .then(r => r.json())
       .then(({ data }) => {
-        if (data.status !== 'APPROVED') {
-          toast.error(t('taxInvoices.mustBeApproved'));
+        if (data.status !== 'CONFIRMED') {
+          toast.error(t('taxInvoices.mustBeConfirmed'));
           router.push(`/${locale}/quotations/${quotationId}`);
           return;
         }
@@ -84,9 +85,7 @@ export default function NewTaxInvoicePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           quotationId: quotation.id,
-          customerId: quotation.customer.id,
-          customerTrn: customerTrn || null,
-          ourVatReg: ourVatReg || null,
+          customerId: quotation.customerId || quotation.customer?.id,
           engineerName: quotation.engineerName,
           mobileNumber: quotation.mobileNumber,
           projectName: quotation.projectName,
@@ -143,7 +142,7 @@ export default function NewTaxInvoicePage() {
                   {t('taxInvoices.sourceQuotation')}: <span className="text-emerald-600">{quotation.quotationNumber}</span>
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div><p className="text-[11px] text-muted-foreground font-medium">{t('quotations.customer')}</p><p className="font-bold">{quotation.customer.fullName}</p></div>
+                  <div><p className="text-[11px] text-muted-foreground font-medium">{t('quotations.customer')}</p><p className="font-bold">{quotation.client?.companyName || quotation.customer?.fullName || '—'}</p></div>
                   <div><p className="text-[11px] text-muted-foreground font-medium">{t('quotations.projectName')}</p><p className="font-bold">{quotation.projectName || '—'}</p></div>
                   <div><p className="text-[11px] text-muted-foreground font-medium">{t('quotations.lpoNumber')}</p><p className="font-bold">{quotation.lpoNumber || '—'}</p></div>
                   <div><p className="text-[11px] text-muted-foreground font-medium">{t('quotations.paymentTerms')}</p><p className="font-bold">{quotation.paymentTerms || '—'}</p></div>
@@ -151,27 +150,6 @@ export default function NewTaxInvoicePage() {
               </CardContent>
             </Card>
           )}
-
-          {/* TRN Info */}
-          <Card className="shadow-premium">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <User className="size-4 text-primary" />{t('taxInvoices.vatInfo')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className="text-sm font-medium block mb-2">{t('taxInvoices.customerTrn')}</label>
-                  <Input value={customerTrn} onChange={(e) => setCustomerTrn(e.target.value)} placeholder="e.g. 100123456789003" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium block mb-2">{t('taxInvoices.ourVatReg')}</label>
-                  <Input value={ourVatReg} onChange={(e) => setOurVatReg(e.target.value)} placeholder="e.g. 100987654321003" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Items Preview */}
           {quotation && (

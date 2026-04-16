@@ -95,8 +95,8 @@
     "invalid_reset_link": "Invalid or expired reset link",
     "invalid_or_expired_token": "This reset link is invalid or has expired",
     "demo_credentials": "Demo Credentials:",
-    "hero_title": "Manage Your Clients Professionally",
-    "hero_subtitle": "All-in-one CRM Platform"
+    "hero_title": "Manage Your Business Professionally",
+    "hero_subtitle": "All-in-one Management Platform"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -139,6 +139,9 @@
     "internalTasks": "Internal Tasks",
     "internalTasksDesc": "Active tasks assigned to your team",
     "pendingApprovals": "Pending Approvals",
+    "invoicedThisMonth": "Invoiced This Month",
+    "outstandingAmount": "Outstanding Balance",
+    "quotationConversionRate": "Quotation Conversion (90d)",
     "assignedBy": "Assigned by",
     "teamOverview": "Team Overview",
     "attentionNeeded": "Attention Needed"
@@ -510,6 +513,9 @@
     "uploadSuccess": "File uploaded successfully",
     "fileTooLarge": "File is too large",
     "noAttachments": "No attachments yet",
+    "upload": "Upload File",
+    "uploaded": "File uploaded",
+    "deleted": "Attachment deleted",
     "subcategories": {
       "idCard": "ID Card / Passport",
       "license": "License",
@@ -921,10 +927,14 @@
     "deleted": "Quotation deleted",
     "statusDraft": "Draft",
     "statusSent": "Sent",
+    "statusClientApproved": "Client Approved",
+    "statusClientRejected": "Client Rejected",
     "statusApproved": "Approved",
+    "statusConfirmed": "Finance Confirmed",
     "statusRejected": "Rejected",
     "statusExpired": "Expired",
     "statusConverted": "Converted",
+    "paymentTermsRequired": "Payment method is required",
     "noQuotations": "No quotations found",
     "searchPlaceholder": "Search quotations...",
     "allStatuses": "All Statuses",
@@ -956,7 +966,12 @@
     "convertedSuccess": "Invoice created from quotation",
     "notesAndTerms": "Notes & Terms",
     "totals": "Totals",
-    "selectClientFilter": "Filter by client"
+    "selectClientFilter": "Filter by client",
+    "financeConfirmation": "Finance Confirmation",
+    "paymentType": "Payment Type",
+    "depositDue": "Deposit Due",
+    "remainingAfterDeposit": "Remaining After Deposit",
+    "itemsValidationError": "All items must have a description and a price greater than 0"
   },
   "taxInvoices": {
     "title": "Tax Invoices",
@@ -977,6 +992,7 @@
     "sourceQuotation": "Source Quotation",
     "quotationRef": "Quotation Ref.",
     "mustBeApproved": "Quotation must be approved before creating a tax invoice",
+    "mustBeConfirmed": "Finance confirmation is required before creating a tax invoice",
     "selectQuotation": "Please select a quotation first",
     "generateInvoice": "Generate Tax Invoice",
     "createDN": "Create Delivery Note",
@@ -1114,7 +1130,11 @@
     "receipt": "Receipt",
     "printReceipt": "Print Receipt",
     "remainingBalance": "Remaining Balance",
-    "overpayment": "Warning: Amount exceeds remaining balance"
+    "overpayment": "Warning: Amount exceeds remaining balance",
+    "selectMethod": "Select payment method",
+    "selectInvoiceFirst": "Select an invoice first",
+    "amountRequired": "Amount is required",
+    "methodRequired": "Payment method is required"
   },
   "purchaseOrders": {
     "title": "Purchase Orders",

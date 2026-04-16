@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
     const priority = searchParams.get('priority') || '';
@@ -225,8 +225,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Log audit
-    await logAudit({
+    // Audit log — fire and forget
+    logAudit({
       actorUserId: session.user.id,
       action: 'task.created',
       entityType: 'Task',
@@ -238,16 +238,16 @@ export async function POST(request: NextRequest) {
         assignedToId: task.assignedToId,
         status: task.status,
       },
-    });
+    }).catch((err) => console.error('Audit log error:', err));
 
-    // Send notification to assigned user (if not self-assigned)
+    // Send notification to assigned user — fire and forget
     if (task.assignedToId !== session.user.id) {
-      await createTaskAssignedNotification(
+      createTaskAssignedNotification(
         task.assignedToId,
         task.title,
         task.id,
-        'en' // Default to English, the frontend will handle translation
-      );
+        'en'
+      ).catch((err) => console.error('Notification error:', err));
     }
 
     return NextResponse.json({ data: task }, { status: 201 });

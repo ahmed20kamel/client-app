@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { DetailSkeleton } from '@/components/ui/page-skeleton';
 import { StatusBadge } from '@/components/StatusBadge';
+import { fmtAmount, formatDate } from '@/lib/utils';
 
 interface DNItem {
   id: string; description: string; quantity: number; length: number | null;
@@ -31,7 +32,8 @@ interface DeliveryNote {
   engineerName: string | null; mobileNumber: string | null; projectName: string | null;
   salesmanSign: string | null; receiverName: string | null; receiverSign: string | null;
   notes: string | null; deliveredAt: string | null; createdAt: string;
-  customer: { id: string; fullName: string };
+  customer: { id: string; fullName: string } | null;
+  client: { id: string; companyName: string } | null;
   taxInvoice: { id: string; invoiceNumber: string; lpoNumber: string | null; paymentTerms: string | null } | null;
   quotation: { id: string; quotationNumber: string } | null;
   items: DNItem[];
@@ -84,8 +86,7 @@ export default function DeliveryNoteDetailPage() {
     else toast.error(t('common.error'));
   };
 
-  const fmt = (n: number) => n.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const fmtDate = (s: string) => new Date(s).toLocaleDateString('en-AE');
+  const fmt = (n: number) => fmtAmount(n, locale);
 
   if (loading) return <div className="p-3 md:p-3.5"><div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm"><DetailSkeleton /></div></div>;
   if (!dn) return (
@@ -168,14 +169,14 @@ export default function DeliveryNoteDetailPage() {
                   <div className="p-2 rounded-lg bg-muted/50 mt-0.5 shrink-0"><User className="size-4 text-muted-foreground" /></div>
                   <div>
                     <p className="text-[11px] text-muted-foreground font-medium">{t('quotations.customer')}</p>
-                    <Link href={`/${locale}/customers/${dn.customer.id}`} className="text-sm font-bold text-primary hover:underline">{dn.customer.fullName}</Link>
+                    <span className="text-sm font-bold">{dn.client?.companyName || dn.customer?.fullName || '—'}</span>
                   </div>
                 </div>
                 <InfoRow icon={User} label={t('quotations.engineerName')} value={dn.engineerName} />
                 <InfoRow icon={Phone} label={t('quotations.mobileNumber')} value={dn.mobileNumber} />
                 <InfoRow icon={Building2} label={t('quotations.projectName')} value={dn.projectName} />
-                <InfoRow icon={Calendar} label={t('common.date')} value={fmtDate(dn.createdAt)} />
-                {dn.deliveredAt && <InfoRow icon={Calendar} label={t('deliveryNotes.deliveredAt')} value={fmtDate(dn.deliveredAt)} />}
+                <InfoRow icon={Calendar} label={t('common.date')} value={formatDate(dn.createdAt, locale)} />
+                {dn.deliveredAt && <InfoRow icon={Calendar} label={t('deliveryNotes.deliveredAt')} value={formatDate(dn.deliveredAt, locale)} />}
                 {dn.taxInvoice && (
                   <div className="flex items-start gap-3">
                     <div className="p-2 rounded-lg bg-muted/50 mt-0.5 shrink-0"><FileText className="size-4 text-muted-foreground" /></div>

@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { can } from '@/lib/permissions';
 
 // POST /api/seed-products — one-time product seeder (admin only)
 export async function POST() {
   try {
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const isAdmin = await can(session.user.id, 'user.manage');
+    if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     // ── Categories ────────────────────────────────────────────────────────────
     const litbeamCat = await prisma.productCategory.upsert({

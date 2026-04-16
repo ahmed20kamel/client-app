@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/logger';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { can } from '@/lib/permissions';
+import { z } from 'zod';
+
+const rejectBodySchema = z.object({
+  rejectionReason: z.string().max(500).optional().nullable(),
+});
 
 // POST /api/quotations/[id]/reject - Reject quotation
 export async function POST(
@@ -14,6 +21,9 @@ export async function POST(
     }
 
     const { id } = await params;
+    if (session.user.role !== 'Admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const quotation = await prisma.quotation.findUnique({
       where: { id },
@@ -23,20 +33,20 @@ export async function POST(
       return NextResponse.json({ error: 'Quotation not found' }, { status: 404 });
     }
 
-    if (quotation.status !== 'SENT') {
+    if (!['SENT', 'CLIENT_APPROVED'].includes(quotation.status)) {
       return NextResponse.json(
-        { error: 'Only SENT quotations can be rejected' },
+        { error: 'Only SENT or CLIENT_APPROVED quotations can be rejected' },
         { status: 400 }
       );
     }
 
     const body = await request.json();
-    const rejectionReason = body.rejectionReason || null;
+    const { rejectionReason } = rejectBodySchema.parse(body);
 
     const updated = await prisma.quotation.update({
       where: { id },
       data: {
-        status: 'REJECTED',
+        status: 'CLIENT_REJECTED',
         rejectedAt: new Date(),
         rejectionReason,
       },
@@ -54,7 +64,10 @@ export async function POST(
 
     return NextResponse.json({ data: updated });
   } catch (error) {
-    console.error('Reject quotation error:', error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Validation error' }, { status: 400 });
+    }
+    logError('Reject quotation error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Cairo } from "next/font/google";
 import { getLocale } from "next-intl/server";
+import "@/lib/env"; // Validate required environment variables at startup
 import "./globals.css";
 
 const inter = Inter({
@@ -14,8 +15,8 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
-  title: "CRM System",
-  description: "Professional CRM System",
+  title: "Management System",
+  description: "Professional Management System",
 };
 
 export default async function RootLayout({
