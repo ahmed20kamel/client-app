@@ -42,10 +42,10 @@ model User {
   // Inventory relations
   createdProducts        Product[]            @relation("ProductCreator")
   stockMovements         StockMovement[]      @relation("StockMovementCreator")
-  // Quotation, Invoice, Payment, PO relations
+  // Quotation & related relations
   createdQuotations      Quotation[]          @relation("QuotationCreator")
-  createdInvoices        Invoice[]            @relation("InvoiceCreator")
-  createdPayments        Payment[]            @relation("PaymentCreator")
+  confirmedQuotations    Quotation[]          @relation("QuotationConfirmer")
+  clientApprovedQuotations Quotation[]        @relation("QuotationClientApprover")
   createdPurchaseOrders  PurchaseOrder[]      @relation("PurchaseOrderCreator")
   createdTaxInvoices     TaxInvoice[]         @relation("TaxInvoiceCreator")
   createdDeliveryNotes   DeliveryNote[]       @relation("DeliveryNoteCreator")
@@ -140,7 +140,6 @@ model Customer {
   tasks           Task[]
   attachments     Attachment[]
   quotations      Quotation[]
-  invoices        Invoice[]
   taxInvoices     TaxInvoice[]
   deliveryNotes   DeliveryNote[]
 
@@ -162,6 +161,8 @@ model Attachment {
   id              String        @id @default(uuid())
   customerId      String?
   internalTaskId  String?
+  quotationId     String?
+  taxInvoiceId    String?
   tempSessionId   String?
   category        String
   subcategory     String?
@@ -175,11 +176,15 @@ model Attachment {
 
   customer        Customer?     @relation(fields: [customerId], references: [id], onDelete: Cascade)
   internalTask    InternalTask? @relation(fields: [internalTaskId], references: [id], onDelete: Cascade)
+  quotation       Quotation?    @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  taxInvoice      TaxInvoice?   @relation(fields: [taxInvoiceId], references: [id], onDelete: Cascade)
   uploadedBy      User          @relation(fields: [uploadedById], references: [id])
 
   @@index([uploadedById])
   @@index([customerId])
   @@index([internalTaskId])
+  @@index([quotationId])
+  @@index([taxInvoiceId])
   @@index([tempSessionId])
   @@index([category])
   @@index([createdAt])
@@ -514,7 +519,6 @@ model Product {
   stockMovements  StockMovement[]
   suppliers       ProductSupplier[]
   quotationItems     QuotationItem[]
-  invoiceItems       InvoiceItem[]
   purchaseOrderItems PurchaseOrderItem[]
   taxInvoiceItems    TaxInvoiceItem[]
   deliveryNoteItems  DeliveryNoteItem[]
@@ -592,7 +596,7 @@ model ProductSupplier {
 model Quotation {
   id              String          @id @default(uuid())
   quotationNumber String          @unique
-  customerId      String
+  customerId      String?
   clientId        String?                             // FK to Client model
   engineerId      String?                             // FK to Engineer model
   engineerName    String?                             // fallback / override
@@ -609,25 +613,47 @@ model Quotation {
   taxAmount       Float           @default(0)
   deliveryCharges Float           @default(0)
   total           Float           @default(0)
-  status          String          @default("DRAFT")  // DRAFT, SENT, APPROVED, REJECTED, EXPIRED, CONVERTED
+  // DRAFT → SENT → CLIENT_APPROVED → CONFIRMED → CONVERTED
+  // Side exits: CLIENT_REJECTED (after SENT), EXPIRED
+  status          String          @default("DRAFT")
   sentAt          DateTime?
+
+  // Stage 2: Client response
+  clientApprovedAt   DateTime?
+  clientRejectedAt   DateTime?
+  clientNotes        String?                           // client revision requests or rejection reason
+  clientApprovedById String?                           // user who recorded the client response
+
+  // Legacy field kept for backward compat (maps to clientApprovedAt on new records)
   approvedAt      DateTime?
   rejectedAt      DateTime?
-  rejectionReason String?
-  lpoNumber       String?                             // LPO Number (after approval)
-  paymentTerms    String?                             // Cash / Cheque / Transfer
+  rejectionReason String?                             // kept for old REJECTED records
+
+  // Stage 3: Finance confirmation (triggers production / order)
+  lpoNumber       String?                             // LPO Number received from client
+  paymentTerms    String?                             // Cash / Cheque / Bank Transfer
+  confirmedAt     DateTime?                           // Finance confirmation timestamp
+  confirmedById   String?                             // Finance user who confirmed
+  paymentType     String?                             // DEPOSIT | PARTIAL | FULL_ADVANCE | FULL_ON_DELIVERY
+  depositPercent  Float?                              // e.g. 30 for 30%
+  depositAmount   Float?                              // calculated deposit amount
+  paymentProofUrl String?                             // payment receipt / bank slip URL
+  paymentNotes    String?                             // notes from finance team
+
   createdById     String
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
-  customer        Customer        @relation(fields: [customerId], references: [id])
-  client          Client?         @relation(fields: [clientId], references: [id])
-  engineer        Engineer?       @relation(fields: [engineerId], references: [id])
-  createdBy       User            @relation("QuotationCreator", fields: [createdById], references: [id])
+  customer           Customer?       @relation(fields: [customerId], references: [id])
+  client             Client?         @relation(fields: [clientId], references: [id])
+  engineer           Engineer?       @relation(fields: [engineerId], references: [id])
+  createdBy          User            @relation("QuotationCreator", fields: [createdById], references: [id])
+  confirmedBy        User?           @relation("QuotationConfirmer", fields: [confirmedById], references: [id])
+  clientApprovedBy   User?           @relation("QuotationClientApprover", fields: [clientApprovedById], references: [id])
   items           QuotationItem[]
-  invoices        Invoice[]
   taxInvoices     TaxInvoice[]
   deliveryNotes   DeliveryNote[]
+  attachments     Attachment[]
 
   @@index([customerId])
   @@index([clientId])
@@ -660,81 +686,6 @@ model QuotationItem {
   @@index([productId])
 }
 
-model Invoice {
-  id            String        @id @default(uuid())
-  invoiceNumber String        @unique
-  customerId    String
-  quotationId   String?
-  subject       String?
-  notes         String?
-  terms         String?
-  dueDate       DateTime?
-  subtotal      Float         @default(0)
-  discountPercent Float       @default(0)
-  discountAmount Float        @default(0)
-  taxPercent    Float         @default(5)
-  taxAmount     Float         @default(0)
-  total         Float         @default(0)
-  paidAmount    Float         @default(0)
-  status        String        @default("DRAFT") // DRAFT, SENT, PARTIALLY_PAID, PAID, OVERDUE, CANCELLED
-  sentAt        DateTime?
-  createdById   String
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  customer      Customer      @relation(fields: [customerId], references: [id])
-  quotation     Quotation?    @relation(fields: [quotationId], references: [id])
-  createdBy     User          @relation("InvoiceCreator", fields: [createdById], references: [id])
-  items         InvoiceItem[]
-  payments      Payment[]
-
-  @@index([customerId])
-  @@index([quotationId])
-  @@index([createdById])
-  @@index([status])
-  @@index([createdAt])
-  @@index([invoiceNumber])
-}
-
-model InvoiceItem {
-  id          String  @id @default(uuid())
-  invoiceId   String
-  productId   String?
-  description String
-  quantity    Float   @default(1)
-  unitPrice   Float   @default(0)
-  discount    Float   @default(0)
-  total       Float   @default(0)
-  sortOrder   Int     @default(0)
-
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  product     Product? @relation(fields: [productId], references: [id])
-
-  @@index([invoiceId])
-  @@index([productId])
-}
-
-model Payment {
-  id            String   @id @default(uuid())
-  paymentNumber String   @unique
-  invoiceId     String
-  amount        Float
-  method        String   @default("CASH") // CASH, BANK_TRANSFER, CHEQUE, ONLINE
-  reference     String?  // cheque number, transfer ref, etc.
-  notes         String?
-  paidAt        DateTime @default(now())
-  createdById   String
-  createdAt     DateTime @default(now())
-
-  invoice       Invoice  @relation(fields: [invoiceId], references: [id])
-  createdBy     User     @relation("PaymentCreator", fields: [createdById], references: [id])
-
-  @@index([invoiceId])
-  @@index([createdById])
-  @@index([paidAt])
-  @@index([paymentNumber])
-}
-
 // ==========================================
 // Tax Invoices
 // ==========================================
@@ -743,7 +694,7 @@ model TaxInvoice {
   id              String           @id @default(uuid())
   invoiceNumber   String           @unique           // SC-671/26 format
   quotationId     String
-  customerId      String
+  customerId      String?
   clientId        String?                            // FK to Client model
   engineerId      String?                            // FK to Engineer model
   customerTrn     String?                            // Customer TRN
@@ -769,13 +720,14 @@ model TaxInvoice {
   updatedAt       DateTime         @updatedAt
 
   quotation       Quotation        @relation(fields: [quotationId], references: [id])
-  customer        Customer         @relation(fields: [customerId], references: [id])
+  customer        Customer?        @relation(fields: [customerId], references: [id])
   client          Client?          @relation(fields: [clientId], references: [id])
   engineer        Engineer?        @relation(fields: [engineerId], references: [id])
   createdBy       User             @relation("TaxInvoiceCreator", fields: [createdById], references: [id])
   items           TaxInvoiceItem[]
   deliveryNotes   DeliveryNote[]
   payments        TaxInvoicePayment[]
+  attachments     Attachment[]
 
   @@index([quotationId])
   @@index([customerId])
@@ -839,7 +791,7 @@ model DeliveryNote {
   dnNumber       String             @unique           // DN-1251/2026 format
   quotationId    String?
   taxInvoiceId   String?
-  customerId     String
+  customerId     String?
   clientId       String?
   engineerId     String?
   engineerName   String?
@@ -857,7 +809,7 @@ model DeliveryNote {
 
   quotation      Quotation?         @relation(fields: [quotationId], references: [id])
   taxInvoice     TaxInvoice?        @relation(fields: [taxInvoiceId], references: [id])
-  customer       Customer           @relation(fields: [customerId], references: [id])
+  customer       Customer?          @relation(fields: [customerId], references: [id])
   client         Client?            @relation(fields: [clientId], references: [id])
   engineer       Engineer?          @relation(fields: [engineerId], references: [id])
   createdBy      User               @relation("DeliveryNoteCreator", fields: [createdById], references: [id])

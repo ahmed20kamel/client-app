@@ -11,9 +11,6 @@ async function main() {
   // Procurement & Sales
   await prisma.purchaseOrderItem.deleteMany();
   await prisma.purchaseOrder.deleteMany();
-  await prisma.payment.deleteMany();
-  await prisma.invoiceItem.deleteMany();
-  await prisma.invoice.deleteMany();
   await prisma.quotationItem.deleteMany();
   await prisma.quotation.deleteMany();
   // Inventory
