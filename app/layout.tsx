@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Cairo } from "next/font/google";
 import { getLocale } from "next-intl/server";
-import "@/lib/env"; // Validate required environment variables at startup
 import "./globals.css";
 
 const inter = Inter({
