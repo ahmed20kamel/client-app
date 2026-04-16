@@ -7,23 +7,23 @@ import { createTaxInvoiceSchema } from '@/lib/validations/quotation';
 import { withUniqueRetry } from '@/lib/db-utils';
 import { z } from 'zod';
 
-// Helper: generate SC-671/26 format (race-condition safe via MAX aggregation)
+// Helper: generate SC-671/26 format (atomic inside transaction)
 async function generateTaxInvoiceNumber(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0]): Promise<string> {
   const year = new Date().getFullYear().toString().slice(-2);
-  // Use MAX on the numeric part extracted from invoiceNumber to avoid
-  // race conditions that findFirst+orderBy suffers from under concurrency.
-  const result = await tx.$queryRaw<{ max_seq: string | null }[]>`
-    SELECT MAX(
-      CAST(
-        SPLIT_PART(SPLIT_PART("invoiceNumber", '-', 2), '/', 1) AS INTEGER
-      )
-    )::text AS max_seq
-    FROM "TaxInvoice"
-    WHERE "invoiceNumber" LIKE 'SC-%'
-      AND "invoiceNumber" ~ '^SC-[0-9]+/'
-  `;
-  const lastSeq = parseInt(result[0]?.max_seq ?? '0') || 0;
-  return `SC-${lastSeq + 1}/${year}`;
+  const lastRecord = await tx.taxInvoice.findFirst({
+    orderBy: { createdAt: 'desc' },
+    select: { invoiceNumber: true },
+  });
+  let seq = 1;
+  if (lastRecord?.invoiceNumber) {
+    const parts = lastRecord.invoiceNumber.split('-');
+    if (parts.length >= 2) {
+      const seqPart = parts[1]?.split('/')[0];
+      const lastSeq = parseInt(seqPart || '0');
+      if (!isNaN(lastSeq)) seq = lastSeq + 1;
+    }
+  }
+  return `SC-${seq}/${year}`;
 }
 
 // GET /api/tax-invoices
@@ -98,30 +98,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createTaxInvoiceSchema.parse(body);
 
-    // Verify quotation exists and is in CONFIRMED status
+    // Verify quotation exists and is approved
     const quotation = await prisma.quotation.findUnique({
       where: { id: validatedData.quotationId },
       include: { items: { orderBy: { sortOrder: 'asc' } } },
-      // engineerId, clientId, customerId are scalar fields — included automatically
     });
     if (!quotation) {
       return NextResponse.json({ error: 'Quotation not found' }, { status: 404 });
     }
     // Enforce Finance Confirmation step — APPROVED alone is not enough
     if (quotation.status !== 'CONFIRMED') {
-      if (quotation.status === 'CONVERTED') {
-        return NextResponse.json(
-          { error: 'A Tax Invoice has already been created for this quotation.' },
-          { status: 409 }
-        );
-      }
       return NextResponse.json(
         { error: 'Tax invoice can only be created after Finance Confirmation (status must be CONFIRMED).' },
         { status: 400 }
       );
     }
-
-    // Guard against concurrent duplicate creation — check inside a serializable block below
 
 
     const itemsData = validatedData.items.map((item, index) => ({
@@ -151,23 +142,10 @@ export async function POST(request: NextRequest) {
         depositPercent: true,
         paymentType: true,
         paymentNotes: true,
-        engineerId: true,
       },
     });
 
     const result = await withUniqueRetry(() => prisma.$transaction(async (tx) => {
-      // Re-check quotation status inside transaction to prevent concurrent duplicates
-      const freshQuotation = await tx.quotation.findUnique({
-        where: { id: validatedData.quotationId },
-        select: { status: true },
-      });
-      if (!freshQuotation || freshQuotation.status === 'CONVERTED') {
-        throw new Error('DUPLICATE: A Tax Invoice has already been created for this quotation.');
-      }
-      if (freshQuotation.status !== 'CONFIRMED') {
-        throw new Error('Quotation must be CONFIRMED before creating a Tax Invoice.');
-      }
-
       const invoiceNumber = await generateTaxInvoiceNumber(tx);
       const invoice = await tx.taxInvoice.create({
         data: {
@@ -178,7 +156,6 @@ export async function POST(request: NextRequest) {
           customerTrn: validatedData.customerTrn || null,
           ourVatReg: validatedData.ourVatReg || null,
           dnNumber: validatedData.dnNumber || null,
-          engineerId: quotation.engineerId || null,
           engineerName: validatedData.engineerName || quotation.engineerName || null,
           mobileNumber: validatedData.mobileNumber || quotation.mobileNumber || null,
           projectName: validatedData.projectName || quotation.projectName || null,
@@ -247,12 +224,6 @@ export async function POST(request: NextRequest) {
         { error: error.issues[0]?.message || 'Validation error' },
         { status: 400 }
       );
-    }
-    if (error instanceof Error && error.message.startsWith('DUPLICATE:')) {
-      return NextResponse.json({ error: error.message.replace('DUPLICATE: ', '') }, { status: 409 });
-    }
-    if (error instanceof Error && error.message.startsWith('Quotation must be')) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
     }
     logError('Create tax invoice error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

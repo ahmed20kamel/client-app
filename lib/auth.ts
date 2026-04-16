@@ -14,7 +14,10 @@ export interface Session {
   user: SessionUser;
 }
 
-const getJwtSecret = () => new TextEncoder().encode(process.env.JWT_SECRET ?? '');
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is not set');
+}
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 const COOKIE_NAME = 'crm-session';
 
 /**
@@ -35,7 +38,7 @@ export async function createSessionToken(user: {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
-    .sign(getJwtSecret());
+    .sign(JWT_SECRET);
 }
 
 /**
@@ -73,7 +76,7 @@ export async function auth(): Promise<Session | null> {
       return null;
     }
 
-    const { payload } = await jwtVerify(token, getJwtSecret());
+    const { payload } = await jwtVerify(token, JWT_SECRET);
 
     const userId = payload.id as string;
     if (!userId) return null;

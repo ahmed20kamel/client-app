@@ -105,30 +105,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Customer or client is required' }, { status: 400 });
     }
 
-    // Delivery Notes must always be linked to a Tax Invoice
-    if (!validatedData.taxInvoiceId) {
-      return NextResponse.json(
-        { error: 'A Delivery Note must be linked to a Tax Invoice.' },
-        { status: 400 }
-      );
-    }
-
-    // Verify the Tax Invoice exists and is in a valid state for delivery
-    const taxInvoice = await prisma.taxInvoice.findUnique({
-      where: { id: validatedData.taxInvoiceId },
-      select: { id: true, status: true, quotationId: true, customerId: true, clientId: true, engineerId: true, engineerName: true, mobileNumber: true, projectName: true },
-    });
-    if (!taxInvoice) {
-      return NextResponse.json({ error: 'Tax Invoice not found.' }, { status: 404 });
-    }
-    const allowedStatuses = ['SENT', 'UNPAID', 'PARTIAL', 'PAID'];
-    if (!allowedStatuses.includes(taxInvoice.status)) {
-      return NextResponse.json(
-        { error: `Cannot create a Delivery Note for a Tax Invoice with status "${taxInvoice.status}". Invoice must be at least SENT.` },
-        { status: 400 }
-      );
-    }
-
     const itemsData = validatedData.items.map((item, index) => ({
       productId: item.productId || null,
       description: item.description,
@@ -147,15 +123,13 @@ export async function POST(request: NextRequest) {
       const deliveryNote = await tx.deliveryNote.create({
         data: {
           dnNumber,
-          // Auto-inherit parent references from Tax Invoice when not supplied
-          quotationId: validatedData.quotationId || taxInvoice.quotationId || null,
-          taxInvoiceId: taxInvoice.id,
-          customerId: validatedData.customerId || taxInvoice.customerId || null,
-          clientId: validatedData.clientId || taxInvoice.clientId || null,
-          engineerId: taxInvoice.engineerId || null,
-          engineerName: validatedData.engineerName || taxInvoice.engineerName || null,
-          mobileNumber: validatedData.mobileNumber || taxInvoice.mobileNumber || null,
-          projectName: validatedData.projectName || taxInvoice.projectName || null,
+          quotationId: validatedData.quotationId || null,
+          taxInvoiceId: validatedData.taxInvoiceId || null,
+          customerId: validatedData.customerId || null,
+          clientId: validatedData.clientId || null,
+          engineerName: validatedData.engineerName || null,
+          mobileNumber: validatedData.mobileNumber || null,
+          projectName: validatedData.projectName || null,
           salesmanSign: validatedData.salesmanSign || null,
           receiverName: validatedData.receiverName || null,
           receiverSign: validatedData.receiverSign || null,

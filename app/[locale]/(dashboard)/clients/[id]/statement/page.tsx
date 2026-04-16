@@ -28,7 +28,8 @@ interface StatementInvoice {
   deliveryNotes: DeliveryNote[];
   quotation: {
     id: string; quotationNumber: string;
-    lpoNumber: string | null; paymentTerms: string | null;
+    paymentType: string | null; depositPercent: number | null;
+    depositAmount: number | null; paymentNotes: string | null;
   } | null;
 }
 

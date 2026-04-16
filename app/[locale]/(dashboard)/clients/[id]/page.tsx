@@ -24,7 +24,7 @@ interface TaxInvoice {
   projectName: string | null; lpoNumber: string | null;
   payments: { id: string; amount: number; method: string; paymentDate: string; reference: string | null }[];
   deliveryNotes: { id: string; dnNumber: string; status: string; deliveredAt: string | null }[];
-  quotation: { id: string; quotationNumber: string; lpoNumber: string | null; paymentTerms: string | null } | null;
+  quotation: { id: string; quotationNumber: string; paymentType: string | null; depositAmount: number | null } | null;
 }
 
 interface Quotation {

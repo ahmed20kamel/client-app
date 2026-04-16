@@ -33,7 +33,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         include: {
           payments: { where: { status: 'CONFIRMED' }, orderBy: { paymentDate: 'asc' } },
           deliveryNotes: { select: { id: true, dnNumber: true, status: true, deliveredAt: true } },
-          quotation: { select: { id: true, quotationNumber: true, lpoNumber: true, paymentTerms: true } },
+          quotation: { select: { id: true, quotationNumber: true, paymentType: true, depositAmount: true } },
         },
         orderBy: { createdAt: 'desc' },
       }),

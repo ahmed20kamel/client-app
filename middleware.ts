@@ -8,7 +8,10 @@ const intlMiddleware = createMiddleware({
   localePrefix: 'always',
 });
 
-const getJwtSecret = () => new TextEncoder().encode(process.env.JWT_SECRET ?? '');
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is not set');
+}
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
 // Public routes that don't require authentication
 const publicPaths = [
@@ -46,7 +49,7 @@ function isEmployeeAllowedPath(pathname: string): boolean {
 
 async function getTokenPayload(token: string): Promise<{ role: string; id: string } | null> {
   try {
-    const { payload } = await jwtVerify(token, getJwtSecret());
+    const { payload } = await jwtVerify(token, JWT_SECRET);
     const role = payload.role as string;
     const id = payload.id as string;
     if (!role || !id) return null;

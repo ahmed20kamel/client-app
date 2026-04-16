@@ -68,7 +68,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         quotation: {
           select: {
             id: true, quotationNumber: true,
-            lpoNumber: true, paymentTerms: true,
+            paymentType: true, depositPercent: true, depositAmount: true, paymentNotes: true,
           },
         },
       },

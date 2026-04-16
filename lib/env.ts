@@ -39,7 +39,8 @@ function validateEnv(): void {
   }
 }
 
-// Run validation only at runtime, not during build
-if (typeof window === 'undefined' && process.env.NEXT_PHASE !== 'phase-production-build') {
+// Run validation immediately when this module is imported
+if (typeof window === 'undefined') {
+  // Server-side only
   validateEnv();
 }
