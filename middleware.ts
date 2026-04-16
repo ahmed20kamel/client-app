@@ -8,11 +8,7 @@ const intlMiddleware = createMiddleware({
   localePrefix: 'always',
 });
 
-const getJwtSecret = () => {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error('JWT_SECRET environment variable is not set');
-  return new TextEncoder().encode(secret);
-};
+const getJwtSecret = () => new TextEncoder().encode(process.env.JWT_SECRET ?? '');
 
 // Public routes that don't require authentication
 const publicPaths = [

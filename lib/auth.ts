@@ -14,11 +14,7 @@ export interface Session {
   user: SessionUser;
 }
 
-const getJwtSecret = () => {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error('JWT_SECRET environment variable is not set');
-  return new TextEncoder().encode(secret);
-};
+const getJwtSecret = () => new TextEncoder().encode(process.env.JWT_SECRET ?? '');
 const COOKIE_NAME = 'crm-session';
 
 /**
