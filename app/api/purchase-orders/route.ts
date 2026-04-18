@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     const canView = await can(session.user.id, 'reports.view.all');
     const canViewOwn = await can(session.user.id, 'reports.view.own');
-    const hasPageAccess = session.user.pagePermissions.includes('page.purchase-orders');
+    const hasPageAccess = (session.user.pagePermissions ?? []).includes('page.purchase-orders');
     if (!canView && !canViewOwn && !hasPageAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }

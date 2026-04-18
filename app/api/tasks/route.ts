@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
     // Check permissions
     const canViewAll = await can(session.user.id, 'task.view.all');
-    const hasPageAccess = session.user.pagePermissions.includes('page.tasks');
+    const hasPageAccess = (session.user.pagePermissions ?? []).includes('page.tasks');
 
     // Build where clause
     const where: Record<string, unknown> = {};
