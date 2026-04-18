@@ -48,6 +48,7 @@ export default async function DashboardLayout({
     { href: `/${locale}/inventory`,       label: t('navigation.inventory'),      icon: 'Package',         perm: 'page.inventory' },
     { href: `/${locale}/suppliers`,       label: t('navigation.suppliers'),      icon: 'Truck',           perm: 'page.suppliers' },
     { href: `/${locale}/purchase-orders`, label: t('navigation.purchaseOrders'), icon: 'ShoppingCart',    perm: 'page.purchase-orders' },
+    { href: `/${locale}/work-orders`,     label: t('navigation.workOrders'),     icon: 'ClipboardList',   perm: 'page.work-orders' },
     { href: `/${locale}/users`,           label: t('navigation.users'),          icon: 'UserCog',         perm: '__admin__' },
     { href: `/${locale}/performance`,     label: t('navigation.performance'),    icon: 'TrendingUp',      perm: 'page.performance' },
     { href: `/${locale}/accounts`,        label: 'Accounts',                     icon: 'Wallet',          perm: 'page.accounts' },

@@ -17,7 +17,7 @@ import {
   ArrowLeft, Pencil, Trash2, AlertCircle, Send, CheckCircle,
   Receipt, Package, Printer, Upload, Banknote, FileText, Building2, User,
   Phone, MapPin, CalendarDays, Hash, CreditCard, TrendingUp, ChevronRight,
-  Clock, CheckCircle2, RotateCcw, ThumbsUp, ThumbsDown,
+  Clock, CheckCircle2, RotateCcw, ThumbsUp, ThumbsDown, ClipboardList,
 } from 'lucide-react';
 import { DetailSkeleton } from '@/components/ui/page-skeleton';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -85,6 +85,7 @@ interface Quotation {
   items: QuotationItem[];
   taxInvoices?: LinkedDoc[];
   deliveryNotes?: LinkedDoc[];
+  workOrders?: LinkedDoc[];
   // finance
   paymentType: string | null;
   depositPercent: number | null;
@@ -362,6 +363,7 @@ export default function QuotationDetailsPage() {
 
   const hasTaxInvoices  = (quotation.taxInvoices?.length ?? 0) > 0;
   const hasDeliveryNotes = (quotation.deliveryNotes?.length ?? 0) > 0;
+  const hasWorkOrders   = (quotation.workOrders?.length ?? 0) > 0;
 
   // ── Timeline events ───────────────────────────────────────────────────────
   const timelineEvents = [
@@ -483,8 +485,24 @@ export default function QuotationDetailsPage() {
               </Button>
             )}
 
-            {/* CONFIRMED + no tax invoice yet: Create Tax Invoice — admin only */}
-            {quotation.status === 'CONFIRMED' && !hasTaxInvoices && isAdmin && (
+            {/* CONFIRMED: Create Work Order */}
+            {quotation.status === 'CONFIRMED' && !hasWorkOrders && isAdmin && (
+              <Button size="sm" variant="outline"
+                onClick={() => router.push(`/${locale}/work-orders/new?quotationId=${quotation.id}`)}>
+                <ClipboardList className="size-3.5 me-1.5" />{t('workOrders.createFromQuotation')}
+              </Button>
+            )}
+
+            {/* CONFIRMED + has work order: Create Delivery Note */}
+            {quotation.status === 'CONFIRMED' && hasWorkOrders && !hasDeliveryNotes && isAdmin && (
+              <Button size="sm" variant="outline"
+                onClick={() => router.push(`/${locale}/delivery-notes/new?quotationId=${quotation.id}`)}>
+                <Package className="size-3.5 me-1.5" />{t('quotations.createDeliveryNote') || 'Create Delivery Note'}
+              </Button>
+            )}
+
+            {/* CONFIRMED + has delivery note: Create Tax Invoice (last step) */}
+            {quotation.status === 'CONFIRMED' && hasDeliveryNotes && !hasTaxInvoices && isAdmin && (
               <Button size="sm" className="btn-premium"
                 onClick={() => router.push(`/${locale}/tax-invoices/new?quotationId=${quotation.id}`)}>
                 <Receipt className="size-3.5 me-1.5" />{t('quotations.createTaxInvoice')}

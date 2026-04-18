@@ -15,6 +15,7 @@ export const PAGE_PERMISSIONS = [
   { name: 'page.reports',         label: 'Reports',         icon: 'BarChart3' },
   { name: 'page.accounts',        label: 'Accounts',        icon: 'Wallet' },
   { name: 'page.performance',     label: 'Performance',     icon: 'TrendingUp' },
+  { name: 'page.work-orders',    label: 'Work Orders',     icon: 'ClipboardList' },
 ] as const;
 
 export type PagePermissionName = typeof PAGE_PERMISSIONS[number]['name'];

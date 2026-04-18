@@ -17,6 +17,7 @@ const QUOTATION_INCLUDE = {
   items: { orderBy: { sortOrder: 'asc' as const } },
   taxInvoices: { select: { id: true, invoiceNumber: true, status: true, createdAt: true } },
   deliveryNotes: { select: { id: true, dnNumber: true, status: true, createdAt: true } },
+  workOrders: { select: { id: true, woNumber: true, status: true, createdAt: true } },
 };
 
 // ── GET /api/quotations/[id] ──────────────────────────────────────────────────

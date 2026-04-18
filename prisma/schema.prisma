@@ -53,6 +53,7 @@ model User {
   uploadedAttachments    Attachment[]
   createdClients         Client[]             @relation("ClientCreator")
   createdTaxPayments     TaxInvoicePayment[]  @relation("TaxPaymentCreator")
+  createdWorkOrders      WorkOrder[]          @relation("WorkOrderCreator")
 }
 
 model Role {
@@ -156,6 +157,7 @@ model Customer {
   quotations      Quotation[]
   taxInvoices     TaxInvoice[]
   deliveryNotes   DeliveryNote[]
+  workOrders      WorkOrder[]
 
   @@index([ownerId])
   @@index([phone])
@@ -459,6 +461,7 @@ model Client {
   quotations  Quotation[]
   taxInvoices TaxInvoice[]
   deliveryNotes DeliveryNote[]
+  workOrders  WorkOrder[]
 
   @@index([companyName])
   @@index([status])
@@ -667,6 +670,7 @@ model Quotation {
   items           QuotationItem[]
   taxInvoices     TaxInvoice[]
   deliveryNotes   DeliveryNote[]
+  workOrders      WorkOrder[]
   attachments     Attachment[]
 
   @@index([customerId])
@@ -914,6 +918,56 @@ model PurchaseOrderItem {
 
   @@index([purchaseOrderId])
   @@index([productId])
+}
+
+// ==========================================
+// Work Orders
+// ==========================================
+
+model WorkOrder {
+  id              String          @id @default(uuid())
+  woNumber        String          @unique            // WO-1/26 format
+  quotationId     String?
+  customerId      String?
+  clientId        String?
+  engineerName    String?
+  mobileNumber    String?
+  projectName     String?
+  workingDays     Int             @default(1)
+  notes           String?
+  status          String          @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
+  createdById     String
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  quotation       Quotation?      @relation(fields: [quotationId], references: [id])
+  customer        Customer?       @relation(fields: [customerId], references: [id])
+  client          Client?         @relation(fields: [clientId], references: [id])
+  createdBy       User            @relation("WorkOrderCreator", fields: [createdById], references: [id])
+  items           WorkOrderItem[]
+
+  @@index([quotationId])
+  @@index([customerId])
+  @@index([clientId])
+  @@index([createdById])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model WorkOrderItem {
+  id           String    @id @default(uuid())
+  workOrderId  String
+  description  String
+  quantity     Float     @default(1)
+  length       Float?
+  linearMeters Float?
+  size         String?
+  unit         String?
+  sortOrder    Int       @default(0)
+
+  workOrder    WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
 }
 
 // ==========================================

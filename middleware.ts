@@ -36,6 +36,7 @@ const employeeAllowedPaths = [
   '/inventory',
   '/suppliers',
   '/purchase-orders',
+  '/work-orders',
   '/reports',
   '/accounts',
 ];

@@ -118,7 +118,9 @@
     "deliveryNotes": "مذكرات التسليم",
     "invoices": "الفواتير",
     "payments": "المدفوعات",
-    "purchaseOrders": "أوامر الشراء"
+    "purchaseOrders": "أوامر الشراء",
+    "workOrders": "أوامر الشغل",
+    "accounts": "الحسابات"
   },
   "dashboard": {
     "title": "لوحة التحكم",
@@ -1227,5 +1229,42 @@
     "filterFrom": "من",
     "filterTo": "إلى",
     "cannotDelete": "لا يمكن حذف عميل لديه سجلات"
+  },
+  "workOrders": {
+    "title": "أوامر الشغل",
+    "subtitle": "إدارة أوامر الشغل ومهام الإنتاج",
+    "create": "إنشاء أمر شغل",
+    "new": "أمر شغل جديد",
+    "woNumber": "رقم أمر الشغل",
+    "workingDays": "أيام التنفيذ",
+    "workingDaysPlaceholder": "أدخل عدد أيام التنفيذ",
+    "status": "الحالة",
+    "PENDING": "قيد الانتظار",
+    "IN_PROGRESS": "جارٍ التنفيذ",
+    "COMPLETED": "مكتمل",
+    "CANCELLED": "ملغي",
+    "items": "البنود",
+    "itemsCount": "{count} بند",
+    "noItems": "لا توجد بنود",
+    "noWorkOrders": "لا توجد أوامر شغل",
+    "searchPlaceholder": "بحث في أوامر الشغل...",
+    "sourceQuotation": "عرض السعر المرجعي",
+    "projectName": "اسم المشروع",
+    "engineerName": "المهندس / الفني",
+    "mobileNumber": "رقم الجوال",
+    "description": "الوصف",
+    "quantity": "الكمية",
+    "size": "المقاس",
+    "unit": "الوحدة",
+    "totalLM": "إجمالي الأمتار",
+    "linearMeters": "الأمتار الخطية",
+    "createFromQuotation": "إنشاء أمر شغل",
+    "createdSuccess": "تم إنشاء أمر الشغل بنجاح",
+    "markInProgress": "تحديد: جارٍ التنفيذ",
+    "markCompleted": "تحديد: مكتمل",
+    "confirmComplete": "هل تريد تحديد أمر الشغل هذا كمكتمل؟",
+    "printTitle": "أمر شغل",
+    "noPrice": "لا تظهر الأسعار في أوامر الشغل",
+    "daysToComplete": "أيام الإنجاز"
   }
 }
