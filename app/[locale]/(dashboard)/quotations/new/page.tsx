@@ -279,7 +279,7 @@ export default function CreateQuotationPage() {
 
         <div className="p-5">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit, (errors) => { console.error('Form validation errors:', errors); toast.error('Please check the form fields'); })} className="space-y-5">
+            <form onSubmit={form.handleSubmit(onSubmit, (errors) => { console.error('Form validation errors:', errors); if (errors.items) { toast.error('Please fill in the description for all items'); } else { toast.error('Please check the form fields'); } })} className="space-y-5">
 
               {/* ── Section 1: Client / Engineer / Project ── */}
               <Card className="shadow-premium">
@@ -474,14 +474,22 @@ export default function CreateQuotationPage() {
                   <div className="space-y-1.5">
                   {items.map((item, index) => (
                     <div key={index} className="grid grid-cols-[2.5fr_0.8fr_0.7fr_0.8fr_0.9fr_0.8fr_0.9fr_32px] gap-x-3 items-center px-3 py-2 rounded-lg border border-border/30 bg-background hover:border-border/70 hover:bg-muted/10 transition-colors">
-                      <SearchableSelect
-                        options={products.map(p => ({ value: p.id, label: `${p.name}${p.size ? ` (${p.size})` : ''}` }))}
-                        value={item.productId || ''}
-                        onValueChange={(val) => handleProductSelect(index, val)}
-                        placeholder={t('quotations.selectProduct')}
-                        searchPlaceholder={t('common.search') + '...'}
-                        className="h-8 text-sm"
-                      />
+                      <div className="flex flex-col gap-1">
+                        <SearchableSelect
+                          options={products.map(p => ({ value: p.id, label: `${p.name}${p.size ? ` (${p.size})` : ''}` }))}
+                          value={item.productId || ''}
+                          onValueChange={(val) => handleProductSelect(index, val)}
+                          placeholder={t('quotations.selectProduct')}
+                          searchPlaceholder={t('common.search') + '...'}
+                          className="h-8 text-sm"
+                        />
+                        <Input
+                          value={item.description}
+                          onChange={e => updateItem(index, 'description', e.target.value)}
+                          placeholder={t('quotations.description') + ' *'}
+                          className={`h-8 text-sm bg-muted/30 border-0 focus:border focus:border-border ${!item.description.trim() ? 'border border-destructive/50' : ''}`}
+                        />
+                      </div>
                       <Input value={item.size} onChange={e => updateItem(index, 'size', e.target.value)} placeholder="—" className="h-8 text-sm text-center bg-muted/30 border-0 focus:border focus:border-border" />
                       <Input type="number" min="1" step="1" value={item.quantity} onChange={e => updateItem(index, 'quantity', parseFloat(e.target.value) || 0)} className="h-8 text-sm text-center bg-muted/30 border-0 focus:border focus:border-border" />
                       <Input type="number" min="1" step="1" value={item.length} onChange={e => updateItem(index, 'length', parseFloat(e.target.value) || 0)} className="h-8 text-sm text-center bg-muted/30 border-0 focus:border focus:border-border" />
