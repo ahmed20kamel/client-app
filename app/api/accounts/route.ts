@@ -10,7 +10,8 @@ export async function GET(request: NextRequest) {
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const canView = await can(session.user.id, 'reports.view.all');
-    if (!canView) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const hasPageAccess = session.user.pagePermissions.includes('page.accounts');
+    if (!canView && !hasPageAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const search = request.nextUrl.searchParams.get('search') || '';
     const filter = request.nextUrl.searchParams.get('filter') || 'all'; // all | outstanding | paid | noInvoice

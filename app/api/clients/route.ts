@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
 
     const canView = await can(session.user.id, 'customer.view.all');
     const canViewOwn = await can(session.user.id, 'customer.view.own');
-    if (!canView && !canViewOwn) {
+    const hasPageAccess = session.user.pagePermissions.includes('page.clients');
+    if (!canView && !canViewOwn && !hasPageAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
