@@ -95,15 +95,14 @@ interface Quotation {
 }
 
 // ── Workflow steps ─────────────────────────────────────────────────────────────
-// Status order for the stepper
 const STEPS = [
-  { key: 'DRAFT',           label: 'Draft',             icon: FileText },
-  { key: 'SENT',            label: 'Sent',              icon: Send },
-  { key: 'CLIENT_APPROVED', label: 'Client Approved',   icon: ThumbsUp },
-  { key: 'CONFIRMED',       label: 'Finance Confirmed',  icon: CheckCircle2 },
-  { key: 'WORK_ORDER',      label: 'Work Order',         icon: ClipboardList },
-  { key: 'INVOICED',        label: 'Invoiced',           icon: Receipt },
-  { key: 'CONVERTED',       label: 'Delivered',          icon: TrendingUp },
+  { key: 'DRAFT',           labelKey: 'quotations.statusDraft',          icon: FileText },
+  { key: 'SENT',            labelKey: 'quotations.statusSent',           icon: Send },
+  { key: 'CLIENT_APPROVED', labelKey: 'quotations.statusClientApproved', icon: ThumbsUp },
+  { key: 'CONFIRMED',       labelKey: 'quotations.statusConfirmed',      icon: CheckCircle2 },
+  { key: 'WORK_ORDER',      labelKey: 'quotations.stepWorkOrder',        icon: ClipboardList },
+  { key: 'INVOICED',        labelKey: 'quotations.stepInvoiced',         icon: Receipt },
+  { key: 'CONVERTED',       labelKey: 'quotations.stepDelivered',        icon: TrendingUp },
 ] as const;
 
 type StepKey = typeof STEPS[number]['key'];
@@ -124,6 +123,7 @@ function activeIndex(status: string, hasWorkOrders: boolean, hasTaxInvoices: boo
 function WorkflowStepper({ status, hasWorkOrders, hasTaxInvoices, hasDeliveryNotes }: {
   status: string; hasWorkOrders: boolean; hasTaxInvoices: boolean; hasDeliveryNotes: boolean;
 }) {
+  const t = useTranslations();
   const isRejected = status === 'CLIENT_REJECTED';
   const current = activeIndex(status, hasWorkOrders, hasTaxInvoices, hasDeliveryNotes);
 
@@ -132,7 +132,7 @@ function WorkflowStepper({ status, hasWorkOrders, hasTaxInvoices, hasDeliveryNot
       {isRejected ? (
         <div className="flex items-center gap-2 text-destructive">
           <ThumbsDown className="size-4" />
-          <span className="text-sm font-semibold">Client Declined — revise and re-send</span>
+          <span className="text-sm font-semibold">{t('quotations.clientDeclinedRevise')}</span>
         </div>
       ) : (
         <div className="flex items-center">
@@ -155,7 +155,7 @@ function WorkflowStepper({ status, hasWorkOrders, hasTaxInvoices, hasDeliveryNot
                     'text-[10px] font-semibold whitespace-nowrap hidden sm:block',
                     active ? 'text-primary' : done ? 'text-emerald-600' : 'text-muted-foreground/60',
                   ].join(' ')}>
-                    {step.label}
+                    {t(step.labelKey as Parameters<typeof t>[0])}
                   </span>
                 </div>
                 {idx < STEPS.length - 1 && (
@@ -204,8 +204,10 @@ export default function QuotationDetailsPage() {
   const [fcUploading, setFcUploading] = useState(false);
 
   const PAYMENT_TYPE_LABELS: Record<string, string> = {
-    DEPOSIT: 'Deposit', PARTIAL: 'Partial',
-    FULL_ADVANCE: 'Full Advance', FULL_ON_DELIVERY: 'Full on Delivery',
+    DEPOSIT: t('quotations.paymentTypeDeposit'),
+    PARTIAL: t('quotations.paymentTypePartial'),
+    FULL_ADVANCE: t('quotations.paymentTypeFullAdvance'),
+    FULL_ON_DELIVERY: t('quotations.paymentTypeFullOnDelivery'),
   };
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
@@ -250,14 +252,14 @@ export default function QuotationDetailsPage() {
   // ── Actions ───────────────────────────────────────────────────────────────
   const handleSend = async () => {
     const ok = await patch({ action: 'send' });
-    if (ok) toast.success('Quotation sent to client');
+    if (ok) toast.success(t('quotations.sentToClient'));
   };
 
   const handleClientApprove = async () => {
-    if (!caLpoNumber.trim()) { toast.error('LPO Number is required'); return; }
+    if (!caLpoNumber.trim()) { toast.error(t('quotations.lpoRequired')); return; }
     const ok = await patch({ action: 'client_approve', lpoNumber: caLpoNumber.trim(), clientNotes: caClientNotes || null });
     if (ok) {
-      toast.success('Client approval recorded');
+      toast.success(t('quotations.clientApprovalRecorded'));
       setShowClientApproveDialog(false);
       setCaLpoNumber(''); setCaClientNotes('');
     }
@@ -266,7 +268,7 @@ export default function QuotationDetailsPage() {
   const handleClientReject = async () => {
     const ok = await patch({ action: 'client_reject', clientNotes: crClientNotes || null });
     if (ok) {
-      toast.success('Client rejection recorded');
+      toast.success(t('quotations.clientRejectionRecorded'));
       setShowClientRejectDialog(false);
       setCrClientNotes('');
     }
@@ -274,12 +276,12 @@ export default function QuotationDetailsPage() {
 
   const handleRevertToDraft = async () => {
     const ok = await patch({ action: 'revert_to_draft' });
-    if (ok) toast.success('Quotation reverted to Draft — ready for revision');
+    if (ok) toast.success(t('quotations.revertedToDraft'));
   };
 
   const handleFinanceConfirm = async () => {
-    if (!fcPaymentTerms) { toast.error('Payment terms are required'); return; }
-    if (!fcPaymentType) { toast.error('Payment type is required'); return; }
+    if (!fcPaymentTerms) { toast.error(t('quotations.paymentTermsRequired')); return; }
+    if (!fcPaymentType) { toast.error(t('quotations.paymentTypeRequired')); return; }
 
     const pct = fcDepositPercent ? parseFloat(fcDepositPercent) : null;
     const calcAmt = pct && quotation
@@ -287,10 +289,10 @@ export default function QuotationDetailsPage() {
       : (fcDepositAmount ? parseFloat(fcDepositAmount) : null);
 
     if ((fcPaymentType === 'DEPOSIT' || fcPaymentType === 'PARTIAL')) {
-      if (!pct && !calcAmt) { toast.error('Deposit percent or amount is required'); return; }
-      if (pct !== null && (pct <= 0 || pct > 100)) { toast.error('Deposit percent must be between 1 and 100'); return; }
+      if (!pct && !calcAmt) { toast.error(t('quotations.depositRequired')); return; }
+      if (pct !== null && (pct <= 0 || pct > 100)) { toast.error(t('quotations.depositPercentRange')); return; }
       if (calcAmt !== null && quotation && calcAmt >= quotation.total) {
-        toast.error('Deposit amount must be less than the total — use Full Advance for 100%'); return;
+        toast.error(t('quotations.depositLessThanTotal')); return;
       }
     }
 
@@ -313,7 +315,7 @@ export default function QuotationDetailsPage() {
 
     const ok = await patch(body);
     if (ok) {
-      toast.success('Finance confirmation saved — production can begin');
+      toast.success(t('quotations.financeConfirmationSaved'));
       setShowFinanceDialog(false);
       setFcDepositPercent(''); setFcDepositAmount('');
       setFcPaymentProofUrl(''); setFcPaymentNotes('');
@@ -363,12 +365,14 @@ export default function QuotationDetailsPage() {
   );
 
   const STATUS_LABELS: Record<string, string> = {
-    DRAFT: 'Draft', SENT: 'Sent',
-    CLIENT_APPROVED: 'Client Approved', CLIENT_REJECTED: 'Client Rejected',
-    APPROVED: 'Client Approved',       // legacy → same label as CLIENT_APPROVED
-    CONFIRMED: 'Finance Confirmed',
-    EXPIRED: 'Expired',
-    CONVERTED: 'Converted',
+    DRAFT:            t('quotations.statusDraft'),
+    SENT:             t('quotations.statusSent'),
+    CLIENT_APPROVED:  t('quotations.statusClientApproved'),
+    CLIENT_REJECTED:  t('quotations.statusClientRejected'),
+    APPROVED:         t('quotations.statusClientApproved'),
+    CONFIRMED:        t('quotations.statusConfirmed'),
+    EXPIRED:          t('quotations.statusExpired'),
+    CONVERTED:        t('quotations.statusConverted'),
   };
 
   const hasTaxInvoices  = (quotation.taxInvoices?.length ?? 0) > 0;
@@ -377,11 +381,11 @@ export default function QuotationDetailsPage() {
 
   // ── Timeline events ───────────────────────────────────────────────────────
   const timelineEvents = [
-    { label: 'Created', date: quotation.createdAt, by: quotation.createdBy?.fullName, color: 'bg-muted-foreground' },
-    quotation.sentAt      && { label: 'Sent to Client', date: quotation.sentAt, color: 'bg-blue-500' },
-    quotation.clientApprovedAt && { label: 'Client Approved', date: quotation.clientApprovedAt, by: quotation.clientApprovedBy?.fullName, color: 'bg-emerald-500' },
-    quotation.clientRejectedAt && { label: 'Client Rejected', date: quotation.clientRejectedAt, color: 'bg-destructive' },
-    quotation.confirmedAt && { label: 'Finance Confirmed', date: quotation.confirmedAt, by: quotation.confirmedBy?.fullName, color: 'bg-amber-500' },
+    { label: t('quotations.timelineCreated'), date: quotation.createdAt, by: quotation.createdBy?.fullName, color: 'bg-muted-foreground' },
+    quotation.sentAt      && { label: t('quotations.timelineSentToClient'), date: quotation.sentAt, color: 'bg-blue-500' },
+    quotation.clientApprovedAt && { label: t('quotations.timelineClientApproved'), date: quotation.clientApprovedAt, by: quotation.clientApprovedBy?.fullName, color: 'bg-emerald-500' },
+    quotation.clientRejectedAt && { label: t('quotations.timelineClientRejected'), date: quotation.clientRejectedAt, color: 'bg-destructive' },
+    quotation.confirmedAt && { label: t('quotations.timelineFinanceConfirmed'), date: quotation.confirmedAt, by: quotation.confirmedBy?.fullName, color: 'bg-amber-500' },
   ].filter(Boolean) as { label: string; date: string; by?: string; color: string }[];
 
   // ── JSX ───────────────────────────────────────────────────────────────────
@@ -425,7 +429,7 @@ export default function QuotationDetailsPage() {
                   <Button variant="outline" size="sm"><Pencil className="size-3.5 me-1.5" />{t('common.edit')}</Button>
                 </Link>
                 <Button variant="outline" size="sm" onClick={handleSend} disabled={actionLoading}>
-                  <Send className="size-3.5 me-1.5" />Send to Client
+                  <Send className="size-3.5 me-1.5" />{t('quotations.sendToClient')}
                 </Button>
                 {isAdmin && (
                   <AlertDialog>
@@ -455,11 +459,11 @@ export default function QuotationDetailsPage() {
                 <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white"
                   onClick={() => { setCaLpoNumber(quotation.lpoNumber || `LPO-${quotation.quotationNumber.replace(/^SC-/, '')}`); setShowClientApproveDialog(true); }}
                   disabled={actionLoading}>
-                  <ThumbsUp className="size-3.5 me-1.5" />Client Approved
+                  <ThumbsUp className="size-3.5 me-1.5" />{t('quotations.clientApprovedBtn')}
                 </Button>
                 <Button variant="outline" size="sm" className="text-destructive hover:text-destructive border-destructive/30"
                   onClick={() => setShowClientRejectDialog(true)} disabled={actionLoading}>
-                  <ThumbsDown className="size-3.5 me-1.5" />Client Rejected
+                  <ThumbsDown className="size-3.5 me-1.5" />{t('quotations.clientRejectedBtn')}
                 </Button>
               </>
             )}
@@ -469,19 +473,19 @@ export default function QuotationDetailsPage() {
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" size="sm" disabled={actionLoading}>
-                    <RotateCcw className="size-3.5 me-1.5" />Revise & Re-send
+                    <RotateCcw className="size-3.5 me-1.5" />{t('quotations.reviseAndResend')}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Revert to Draft?</AlertDialogTitle>
+                    <AlertDialogTitle>{t('quotations.revertToDraftTitle')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will reset the quotation to DRAFT so you can edit and re-send it to the client.
+                      {t('quotations.revertToDraftDesc')}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleRevertToDraft}>Revert to Draft</AlertDialogAction>
+                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRevertToDraft}>{t('quotations.revertToDraftBtn')}</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
@@ -491,7 +495,7 @@ export default function QuotationDetailsPage() {
             {(quotation.status === 'CLIENT_APPROVED' || quotation.status === 'APPROVED') && isAdmin && (
               <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white"
                 onClick={() => setShowFinanceDialog(true)} disabled={actionLoading}>
-                <Banknote className="size-3.5 me-1.5" />Finance Confirm
+                <Banknote className="size-3.5 me-1.5" />{t('quotations.financeConfirmBtn')}
               </Button>
             )}
 
@@ -537,8 +541,8 @@ export default function QuotationDetailsPage() {
             <div className="rounded-xl border border-blue-300/50 bg-blue-50/60 dark:bg-blue-950/20 dark:border-blue-500/30 p-3.5 flex items-center gap-3">
               <Clock className="size-4 text-blue-500 shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-blue-700 dark:text-blue-400">Awaiting Client Response</p>
-                <p className="text-xs text-blue-600/80">Sent {quotation.sentAt ? formatDate(quotation.sentAt, locale) : ''} — waiting for client to approve or request changes</p>
+                <p className="text-sm font-semibold text-blue-700 dark:text-blue-400">{t('quotations.awaitingClientResponse')}</p>
+                <p className="text-xs text-blue-600/80">{t('quotations.awaitingClientResponseDesc', { date: quotation.sentAt ? formatDate(quotation.sentAt, locale) : '' })}</p>
               </div>
             </div>
           )}
@@ -548,7 +552,7 @@ export default function QuotationDetailsPage() {
             <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 flex items-start gap-3">
               <ThumbsDown className="size-5 text-destructive shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-bold text-destructive">Client Declined</p>
+                <p className="text-sm font-bold text-destructive">{t('quotations.clientDeclined')}</p>
                 {(quotation.clientNotes || quotation.rejectionReason) && (
                   <p className="text-sm text-muted-foreground mt-1">{quotation.clientNotes || quotation.rejectionReason}</p>
                 )}
@@ -564,8 +568,8 @@ export default function QuotationDetailsPage() {
             <div className="rounded-xl border border-emerald-400/40 bg-emerald-50/60 dark:bg-emerald-950/20 dark:border-emerald-500/30 p-3.5 flex items-center gap-3">
               <ThumbsUp className="size-4 text-emerald-600 shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Client Approved — Awaiting Finance Confirmation</p>
-                <p className="text-xs text-emerald-600/80">LPO: <strong>{quotation.lpoNumber}</strong> · Finance team needs to confirm payment arrangement to release production</p>
+                <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">{t('quotations.clientApprovedAwaitingFinance')}</p>
+                <p className="text-xs text-emerald-600/80">{t('quotations.clientApprovedAwaitingFinanceDesc', { lpo: quotation.lpoNumber ?? '' })}</p>
               </div>
             </div>
           )}
@@ -582,14 +586,17 @@ export default function QuotationDetailsPage() {
             <Card className="shadow-sm border-border/60 overflow-hidden">
               <div className="px-5 py-3.5 border-b border-border/60 flex items-center gap-2 bg-muted/10">
                 <Package className="size-4 text-muted-foreground" />
-                <span className="text-sm font-bold">Items</span>
+                <span className="text-sm font-bold">{t('quotations.items')}</span>
                 <span className="ms-auto text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{quotation.items.length}</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-muted/30 border-b border-border/40">
-                      {['Description', 'Size', 'Unit', 'Qty', 'LM', 'Unit Price', 'Total'].map((h, i) => (
+                      {[
+                        t('quotations.description'), t('quotations.size'), t('quotations.unit'),
+                        t('quotations.qty'), t('quotations.tableLM'), t('quotations.unitPrice'), t('quotations.total')
+                      ].map((h, i) => (
                         <th key={h} className={`px-3 py-2.5 text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider ${i === 0 ? 'text-start ps-4' : i === 6 ? 'text-end pe-4' : 'text-center'}`}>{h}</th>
                       ))}
                     </tr>
@@ -615,27 +622,27 @@ export default function QuotationDetailsPage() {
               <div className="px-5 py-4 border-t border-border/50 bg-muted/10">
                 <div className="max-w-xs ms-auto space-y-1.5 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="text-muted-foreground">{t('quotations.subtotal')}</span>
                     <span className="tabular-nums">{fmt(quotation.subtotal)} AED</span>
                   </div>
                   {quotation.discountAmount > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Discount ({quotation.discountPercent}%)</span>
+                      <span className="text-muted-foreground">{t('quotations.discountLabel', { percent: quotation.discountPercent })}</span>
                       <span className="tabular-nums text-destructive">−{fmt(quotation.discountAmount)} AED</span>
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">VAT ({quotation.taxPercent}%)</span>
+                    <span className="text-muted-foreground">{t('quotations.vatLabel', { percent: quotation.taxPercent })}</span>
                     <span className="tabular-nums">+{fmt(quotation.taxAmount)} AED</span>
                   </div>
                   {quotation.deliveryCharges > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Delivery</span>
+                      <span className="text-muted-foreground">{t('quotations.delivery')}</span>
                       <span className="tabular-nums">+{fmt(quotation.deliveryCharges)} AED</span>
                     </div>
                   )}
                   <div className="flex justify-between font-extrabold text-base border-t border-border/50 pt-2">
-                    <span>Total</span>
+                    <span>{t('quotations.total')}</span>
                     <span className="tabular-nums text-primary">{fmt(quotation.total)} AED</span>
                   </div>
                 </div>
@@ -647,7 +654,7 @@ export default function QuotationDetailsPage() {
               <Card className="shadow-sm border-border/60 overflow-hidden">
                 <div className="px-5 py-3.5 border-b border-border/60 flex items-center gap-2 bg-muted/10">
                   <Receipt className="size-4 text-muted-foreground" />
-                  <span className="text-sm font-bold">Tax Invoices</span>
+                  <span className="text-sm font-bold">{t('quotations.taxInvoices')}</span>
                   <span className="ms-auto text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{quotation.taxInvoices!.length}</span>
                 </div>
                 <div className="divide-y divide-border/40">
@@ -678,7 +685,7 @@ export default function QuotationDetailsPage() {
               <Card className="shadow-sm border-border/60 overflow-hidden">
                 <div className="px-5 py-3.5 border-b border-border/60 flex items-center gap-2 bg-muted/10">
                   <Package className="size-4 text-muted-foreground" />
-                  <span className="text-sm font-bold">Delivery Notes</span>
+                  <span className="text-sm font-bold">{t('quotations.deliveryNotes')}</span>
                   <span className="ms-auto text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{quotation.deliveryNotes!.length}</span>
                 </div>
                 <div className="divide-y divide-border/40">
@@ -710,14 +717,14 @@ export default function QuotationDetailsPage() {
                 <CardContent className="p-5 space-y-4">
                   {quotation.notes && (
                     <div>
-                      <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2">Notes</p>
+                      <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2">{t('common.notes')}</p>
                       <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">{quotation.notes}</p>
                     </div>
                   )}
                   {quotation.notes && quotation.terms && <div className="border-t border-border/40" />}
                   {quotation.terms && (
                     <div>
-                      <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2">Terms & Conditions</p>
+                      <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2">{t('quotations.terms')}</p>
                       <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">{quotation.terms}</p>
                     </div>
                   )}
@@ -732,7 +739,7 @@ export default function QuotationDetailsPage() {
             {/* Bill To */}
             <Card className="shadow-sm border-border/60 overflow-hidden">
               <div className="px-4 py-3 border-b border-border/60 bg-muted/10">
-                <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">Bill To</p>
+                <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">{t('quotations.billTo')}</p>
               </div>
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-start gap-3">
@@ -768,25 +775,25 @@ export default function QuotationDetailsPage() {
             {/* Quotation Details */}
             <Card className="shadow-sm border-border/60 overflow-hidden">
               <div className="px-4 py-3 border-b border-border/60 bg-muted/10">
-                <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">Details</p>
+                <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">{t('quotations.detailsPanel')}</p>
               </div>
               <CardContent className="p-4 space-y-2.5 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1.5"><Hash className="size-3.5" />Number</span>
+                  <span className="text-muted-foreground flex items-center gap-1.5"><Hash className="size-3.5" />{t('quotations.numberLabel')}</span>
                   <span className="font-bold text-primary">{quotation.quotationNumber}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1.5"><CalendarDays className="size-3.5" />Created</span>
+                  <span className="text-muted-foreground flex items-center gap-1.5"><CalendarDays className="size-3.5" />{t('quotations.createdLabel')}</span>
                   <span className="font-medium">{formatDate(quotation.createdAt, locale)}</span>
                 </div>
                 {quotation.validUntil && (
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground flex items-center gap-1.5"><CalendarDays className="size-3.5" />Valid Until</span>
+                    <span className="text-muted-foreground flex items-center gap-1.5"><CalendarDays className="size-3.5" />{t('quotations.validUntil')}</span>
                     <span className="font-medium">{formatDate(quotation.validUntil, locale)}</span>
                   </div>
                 )}
                 <div className="border-t border-border/40 pt-2.5 flex items-center justify-between">
-                  <span className="text-muted-foreground font-medium">Total</span>
+                  <span className="text-muted-foreground font-medium">{t('quotations.total')}</span>
                   <span className="font-extrabold text-base text-primary">{fmt(quotation.total)} AED</span>
                 </div>
               </CardContent>
@@ -797,24 +804,24 @@ export default function QuotationDetailsPage() {
               <Card className="shadow-sm border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
                 <div className="px-4 py-3 border-b border-emerald-500/20 flex items-center gap-2">
                   <ThumbsUp className="size-3.5 text-emerald-600" />
-                  <p className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest">Client Approval</p>
+                  <p className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest">{t('quotations.clientApprovalPanel')}</p>
                 </div>
                 <CardContent className="p-4 space-y-2 text-sm">
                   {quotation.lpoNumber && (
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">LPO Number</span>
+                      <span className="text-muted-foreground">{t('quotations.lpoNumber')}</span>
                       <span className="font-bold">{quotation.lpoNumber}</span>
                     </div>
                   )}
                   {quotation.clientApprovedAt && (
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Approved on</span>
+                      <span className="text-muted-foreground">{t('quotations.approvedOn')}</span>
                       <span className="font-medium text-xs">{formatDate(quotation.clientApprovedAt, locale)}</span>
                     </div>
                   )}
                   {quotation.clientApprovedBy && (
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Recorded by</span>
+                      <span className="text-muted-foreground">{t('quotations.recordedBy')}</span>
                       <span className="font-medium text-xs">{quotation.clientApprovedBy.fullName}</span>
                     </div>
                   )}
@@ -830,40 +837,40 @@ export default function QuotationDetailsPage() {
               <Card className="shadow-sm border-amber-500/30 bg-amber-500/5 overflow-hidden">
                 <div className="px-4 py-3 border-b border-amber-500/20 flex items-center gap-2">
                   <CreditCard className="size-3.5 text-amber-600" />
-                  <p className="text-[10px] font-extrabold text-amber-700 uppercase tracking-widest">Finance Confirmation</p>
+                  <p className="text-[10px] font-extrabold text-amber-700 uppercase tracking-widest">{t('quotations.financeConfirmation')}</p>
                 </div>
                 <CardContent className="p-4 space-y-2 text-sm">
                   {quotation.paymentTerms && (
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Method</span>
+                      <span className="text-muted-foreground">{t('quotations.methodLabel')}</span>
                       <span className="font-medium">{quotation.paymentTerms}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Arrangement</span>
+                    <span className="text-muted-foreground">{t('quotations.arrangementLabel')}</span>
                     <span className="font-bold">{PAYMENT_TYPE_LABELS[quotation.paymentType] || quotation.paymentType}</span>
                   </div>
                   {quotation.depositPercent != null && (
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Deposit %</span>
+                      <span className="text-muted-foreground">{t('quotations.depositPercentLabel')}</span>
                       <span className="font-bold">{quotation.depositPercent}%</span>
                     </div>
                   )}
                   {quotation.depositAmount != null && (
                     <>
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Due Now</span>
+                        <span className="text-muted-foreground">{t('quotations.dueNow')}</span>
                         <span className="font-bold text-amber-700">{fmt(quotation.depositAmount)} AED</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Remaining</span>
+                        <span className="text-muted-foreground">{t('quotations.remaining')}</span>
                         <span className="font-bold">{fmt(quotation.total - quotation.depositAmount)} AED</span>
                       </div>
                     </>
                   )}
                   {quotation.confirmedBy && (
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Confirmed by</span>
+                      <span className="text-muted-foreground">{t('quotations.confirmedBy')}</span>
                       <span className="font-medium text-xs">{quotation.confirmedBy.fullName}</span>
                     </div>
                   )}
@@ -871,7 +878,7 @@ export default function QuotationDetailsPage() {
                     <div className="pt-1 border-t border-amber-500/20">
                       <a href={quotation.paymentProofUrl} target="_blank" rel="noopener noreferrer"
                         className="flex items-center gap-1.5 text-xs text-primary hover:underline">
-                        <FileText className="size-3" />View Payment Proof
+                        <FileText className="size-3" />{t('quotations.viewPaymentProof')}
                       </a>
                     </div>
                   )}
@@ -885,7 +892,7 @@ export default function QuotationDetailsPage() {
             {/* Timeline */}
             <Card className="shadow-sm border-border/60 overflow-hidden">
               <div className="px-4 py-3 border-b border-border/60 bg-muted/10">
-                <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">Timeline</p>
+                <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">{t('quotations.timelinePanel')}</p>
               </div>
               <CardContent className="p-4">
                 <div className="space-y-0">
@@ -927,21 +934,21 @@ export default function QuotationDetailsPage() {
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <ThumbsUp className="size-5 text-emerald-600" />Record Client Approval
+              <ThumbsUp className="size-5 text-emerald-600" />{t('quotations.recordClientApprovalTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              The client has reviewed and accepted this quotation. Enter the LPO number they provided.
+              {t('quotations.recordClientApprovalDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <label className="text-sm font-semibold block mb-1.5">LPO Number *</label>
+              <label className="text-sm font-semibold block mb-1.5">{t('quotations.lpoNumber')} *</label>
               <Input placeholder="e.g. LPO-2026-001" value={caLpoNumber}
                 onChange={(e) => setCaLpoNumber(e.target.value)} />
             </div>
             <div>
               <label className="text-sm font-semibold block mb-1.5">
-                Client Notes <span className="text-muted-foreground font-normal text-xs">(optional — any remarks from client)</span>
+                {t('quotations.clientNotesLabel')} <span className="text-muted-foreground font-normal text-xs">{t('quotations.clientNotesOptionalHint')}</span>
               </label>
               <textarea value={caClientNotes} onChange={(e) => setCaClientNotes(e.target.value)} rows={2}
                 className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -949,10 +956,10 @@ export default function QuotationDetailsPage() {
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleClientApprove} disabled={actionLoading}
               className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              <ThumbsUp className="size-4 me-1" />Record Approval
+              <ThumbsUp className="size-4 me-1" />{t('quotations.recordApprovalBtn')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -963,25 +970,25 @@ export default function QuotationDetailsPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <ThumbsDown className="size-5 text-destructive" />Record Client Rejection
+              <ThumbsDown className="size-5 text-destructive" />{t('quotations.recordClientRejectionTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              The client declined or requested changes. You can revise and re-send later.
+              {t('quotations.recordClientRejectionDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-2">
             <label className="text-sm font-semibold block mb-2">
-              Reason / Requested Changes <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+              {t('quotations.reasonRequestedChanges')} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span>
             </label>
             <textarea value={crClientNotes} onChange={(e) => setCrClientNotes(e.target.value)} rows={3}
               className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               placeholder="e.g. Price too high, requested 10% discount..." />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleClientReject} disabled={actionLoading}
               className="bg-destructive text-white hover:bg-destructive/90">
-              <ThumbsDown className="size-4 me-1" />Record Rejection
+              <ThumbsDown className="size-4 me-1" />{t('quotations.recordRejectionBtn')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -992,17 +999,17 @@ export default function QuotationDetailsPage() {
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <Banknote className="size-5 text-amber-600" />Finance Confirmation
+              <Banknote className="size-5 text-amber-600" />{t('quotations.financeConfirmation')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Confirm payment arrangement to release production / order. LPO: <strong>{quotation.lpoNumber}</strong>
+              {t('quotations.financeConfirmDesc')} LPO: <strong>{quotation.lpoNumber}</strong>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-4 py-2">
 
             {/* Payment Method */}
             <div>
-              <label className="text-sm font-semibold block mb-1.5">Payment Method *</label>
+              <label className="text-sm font-semibold block mb-1.5">{t('quotations.paymentMethodLabel')} *</label>
               <Select value={fcPaymentTerms} onValueChange={(v) => setFcPaymentTerms(v as typeof fcPaymentTerms)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -1016,15 +1023,15 @@ export default function QuotationDetailsPage() {
 
             {/* Payment Arrangement */}
             <div>
-              <label className="text-sm font-semibold block mb-1.5">Payment Arrangement *</label>
+              <label className="text-sm font-semibold block mb-1.5">{t('quotations.paymentArrangementLabel')} *</label>
               <Select value={fcPaymentType}
                 onValueChange={(v) => { setFcPaymentType(v as typeof fcPaymentType); setFcDepositPercent(''); setFcDepositAmount(''); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="FULL_ON_DELIVERY">Full on Delivery</SelectItem>
-                  <SelectItem value="FULL_ADVANCE">Full Advance Payment</SelectItem>
-                  <SelectItem value="DEPOSIT">Deposit (partial upfront)</SelectItem>
-                  <SelectItem value="PARTIAL">Partial Payment</SelectItem>
+                  <SelectItem value="FULL_ON_DELIVERY">{t('quotations.fullOnDelivery')}</SelectItem>
+                  <SelectItem value="FULL_ADVANCE">{t('quotations.fullAdvancePayment')}</SelectItem>
+                  <SelectItem value="DEPOSIT">{t('quotations.depositPartialUpfront')}</SelectItem>
+                  <SelectItem value="PARTIAL">{t('quotations.partialPayment')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1032,7 +1039,7 @@ export default function QuotationDetailsPage() {
             {/* Full Advance note */}
             {fcPaymentType === 'FULL_ADVANCE' && quotation && (
               <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/40">
-                <span className="text-xs text-amber-700 font-medium">Full amount due upfront</span>
+                <span className="text-xs text-amber-700 font-medium">{t('quotations.fullAmountDueUpfront')}</span>
                 <span className="text-sm font-extrabold text-amber-700">{fmt(quotation.total)} AED</span>
               </div>
             )}
@@ -1042,7 +1049,7 @@ export default function QuotationDetailsPage() {
               <div className="space-y-2">
                 <div>
                   <label className="text-sm font-semibold block mb-1.5">
-                    {fcPaymentType === 'DEPOSIT' ? 'Deposit' : 'Partial'} % *
+                    {fcPaymentType === 'DEPOSIT' ? t('quotations.paymentTypeDeposit') : t('quotations.paymentTypePartial')} % *
                   </label>
                   <Input type="number" min={1} max={99} placeholder="e.g. 30"
                     value={fcDepositPercent}
@@ -1058,11 +1065,11 @@ export default function QuotationDetailsPage() {
                 {fcDepositAmount && (
                   <div className="grid grid-cols-2 gap-2">
                     <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/40">
-                      <span className="text-xs text-amber-700 font-medium">Due now</span>
+                      <span className="text-xs text-amber-700 font-medium">{t('quotations.dueNow')}</span>
                       <span className="text-sm font-extrabold text-amber-700">{fmt(parseFloat(fcDepositAmount))} AED</span>
                     </div>
                     <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/40 border border-border/60">
-                      <span className="text-xs text-muted-foreground font-medium">Remaining</span>
+                      <span className="text-xs text-muted-foreground font-medium">{t('quotations.remaining')}</span>
                       <span className="text-sm font-bold">{fmt(quotation.total - parseFloat(fcDepositAmount))} AED</span>
                     </div>
                   </div>
@@ -1073,20 +1080,20 @@ export default function QuotationDetailsPage() {
             {/* Payment Proof */}
             <div>
               <label className="text-sm font-semibold block mb-1.5">
-                Payment Proof <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+                {t('quotations.paymentProofLabel')} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span>
               </label>
               {fcPaymentProofUrl ? (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border/60 bg-muted/30">
                   <CheckCircle className="size-4 text-emerald-600" />
                   <a href={fcPaymentProofUrl} target="_blank" rel="noopener noreferrer"
-                    className="text-sm text-primary underline flex-1 truncate">View uploaded file</a>
+                    className="text-sm text-primary underline flex-1 truncate">{t('quotations.viewUploadedFile')}</a>
                   <button onClick={() => setFcPaymentProofUrl('')}
-                    className="text-xs text-muted-foreground hover:text-destructive">Remove</button>
+                    className="text-xs text-muted-foreground hover:text-destructive">{t('quotations.removeFile')}</button>
                 </div>
               ) : (
                 <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border cursor-pointer hover:bg-muted/20 transition-colors">
                   <Upload className="size-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">{fcUploading ? 'Uploading...' : 'Upload receipt / bank slip'}</span>
+                  <span className="text-sm text-muted-foreground">{fcUploading ? t('quotations.uploadingFile') : t('quotations.uploadReceipt')}</span>
                   <input type="file" className="hidden" accept="image/*,.pdf" disabled={fcUploading}
                     onChange={(e) => { if (e.target.files?.[0]) handleUploadProof(e.target.files[0]); }} />
                 </label>
@@ -1096,21 +1103,21 @@ export default function QuotationDetailsPage() {
             {/* Notes */}
             <div>
               <label className="text-sm font-semibold block mb-1.5">
-                Notes <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+                {t('common.notes')} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span>
               </label>
               <textarea value={fcPaymentNotes} onChange={(e) => setFcPaymentNotes(e.target.value)} rows={2}
                 className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                placeholder="Any notes for the finance team..." />
+                placeholder={t('quotations.financeNotesPlaceholder')} />
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleFinanceConfirm} disabled={actionLoading || fcUploading}
               className="bg-amber-600 hover:bg-amber-700 text-white">
               {actionLoading
                 ? <span className="size-4 me-2 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
                 : <Banknote className="size-4 me-1" />}
-              Confirm & Release
+              {t('quotations.confirmAndRelease')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
