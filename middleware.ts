@@ -18,6 +18,8 @@ const publicPaths = [
 ];
 
 // Routes that non-admin (Employee/Manager) users are allowed to access
+// Page-level visibility is controlled by page permissions in the sidebar/UI.
+// Middleware only blocks unauthenticated users; API routes enforce fine-grained access.
 const employeeAllowedPaths = [
   '/internal-tasks',
   '/profile',
@@ -26,6 +28,16 @@ const employeeAllowedPaths = [
   '/dashboard',
   '/tasks',
   '/performance',
+  '/customers',
+  '/clients',
+  '/quotations',
+  '/tax-invoices',
+  '/delivery-notes',
+  '/inventory',
+  '/suppliers',
+  '/purchase-orders',
+  '/reports',
+  '/accounts',
 ];
 
 function isPublicPath(pathname: string): boolean {

@@ -26,6 +26,7 @@ model User {
   assignedTasks       Task[]               @relation("TaskAssignee")
   createdTasks        Task[]               @relation("TaskCreator")
   roles               UserRole[]
+  directPermissions   UserPermission[]
   notifications       Notification[]
   departments         UserDepartment[]
   taskComments        TaskComment[]
@@ -66,13 +67,26 @@ model Role {
 }
 
 model Permission {
-  id          String           @id @default(uuid())
-  name        String           @unique
+  id          String             @id @default(uuid())
+  name        String             @unique
   resource    String
   action      String
   scope       String?
   description String?
   roles       RolePermission[]
+  users       UserPermission[]
+}
+
+model UserPermission {
+  id           String     @id @default(uuid())
+  userId       String
+  permissionId String
+  createdAt    DateTime   @default(now())
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@index([userId])
 }
 
 model UserRole {

@@ -8,6 +8,7 @@ export interface SessionUser {
   name: string;
   role: string;
   profileImage?: string | null;
+  pagePermissions: string[];
 }
 
 export interface Session {
@@ -83,9 +84,10 @@ export async function auth(): Promise<Session | null> {
       where: { id: userId },
       include: {
         roles: {
-          include: {
-            role: true,
-          },
+          include: { role: true },
+        },
+        directPermissions: {
+          include: { permission: true },
         },
       },
     });
@@ -94,6 +96,10 @@ export async function auth(): Promise<Session | null> {
       return null;
     }
 
+    const pagePermissions = user.directPermissions
+      .map((up) => up.permission.name)
+      .filter((name) => name.startsWith('page.'));
+
     return {
       user: {
         id: user.id,
@@ -101,6 +107,7 @@ export async function auth(): Promise<Session | null> {
         name: user.fullName,
         role: user.roles[0]?.role.name || 'Employee',
         profileImage: user.profileImage,
+        pagePermissions,
       },
     };
   } catch {

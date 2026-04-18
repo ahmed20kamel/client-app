@@ -25,7 +25,21 @@ import {
   Loader2,
   UserCog,
   Camera,
+  LayoutDashboard,
+  Users,
+  CheckSquare,
+  CheckCircle2,
+  BarChart3,
+  FileText,
+  Receipt,
+  Package2,
+  Package,
+  Truck,
+  ShoppingCart,
+  TrendingUp,
+  Wallet,
 } from 'lucide-react';
+import { PAGE_PERMISSIONS } from '@/lib/permissions';
 import { PageHeader } from '@/components/PageHeader';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { PageSkeleton } from '@/components/ui/page-skeleton';
@@ -97,6 +111,8 @@ export default function EditUserPage() {
   const [selectedDeptId, setSelectedDeptId] = useState('');
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [selectedPages, setSelectedPages] = useState<string[]>([]);
+  const [currentRole, setCurrentRole] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<UpdateUserForm>({
@@ -107,6 +123,7 @@ export default function EditUserPage() {
     Promise.all([
       fetch('/api/roles').then((res) => res.json()),
       fetch('/api/departments').then((res) => res.json()),
+      fetch(`/api/users/${userId}/page-permissions`).then((res) => res.json()),
       fetch(`/api/users/${userId}`).then((res) => {
         if (res.status === 404) {
           toast.error(t('messages.notFound', { entity: t('users.title') }));
@@ -122,10 +139,12 @@ export default function EditUserPage() {
         return res.json();
       }),
     ])
-      .then(([rolesData, deptsData, userData]) => {
+      .then(([rolesData, deptsData, pagePermsData, userData]) => {
         setRoles(rolesData.data);
         setDepartments(deptsData.data);
+        setSelectedPages(pagePermsData.data ?? []);
         const user: UserData = userData.data;
+        setCurrentRole(user.role?.name || 'Employee');
         form.reset({
           email: user.email,
           fullName: user.fullName,
@@ -188,24 +207,48 @@ export default function EditUserPage() {
     }
   };
 
+  const togglePage = (name: string) => {
+    setSelectedPages((prev) =>
+      prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name]
+    );
+  };
+
+  const selectedRoleName = roles.find((r) => r.id === form.watch('roleId'))?.name || currentRole;
+  const isEmployeeRole = selectedRoleName !== 'Admin';
+
+  const PAGE_ICONS: Record<string, React.ElementType> = {
+    LayoutDashboard, Users, CheckSquare, CheckCircle2, BarChart3,
+    Building2: Building2, FileText, Receipt, Package2, Package,
+    Truck, ShoppingCart, TrendingUp, Wallet,
+  };
+
   const onSubmit = async (data: UpdateUserForm) => {
     setIsLoading(true);
     try {
       const submitData: Record<string, unknown> = { ...data };
-      if (!submitData.password) {
-        delete submitData.password;
-      }
+      if (!submitData.password) delete submitData.password;
       submitData.departmentId = selectedDeptId || null;
 
-      const response = await fetch(`/api/users/${userId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submitData),
-      });
+      const [userRes, pageRes] = await Promise.all([
+        fetch(`/api/users/${userId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(submitData),
+        }),
+        fetch(`/api/users/${userId}/page-permissions`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pages: isEmployeeRole ? selectedPages : [] }),
+        }),
+      ]);
 
-      if (!response.ok) {
-        const error = await response.json();
+      if (!userRes.ok) {
+        const error = await userRes.json();
         toast.error(getApiErrorMessage(error.error || '', t));
+        return;
+      }
+      if (!pageRes.ok) {
+        toast.error('Failed to save page permissions');
         return;
       }
 
@@ -510,6 +553,49 @@ export default function EditUserPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Page Access */}
+          {isEmployeeRole && (
+            <Card className="shadow-premium">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="size-5 text-primary" />
+                  {locale === 'ar' ? 'صلاحيات الصفحات' : 'Page Access'}
+                </CardTitle>
+                <CardDescription>
+                  {locale === 'ar'
+                    ? 'اختر الصفحات التي يمكن لهذا الموظف رؤيتها في القائمة الجانبية'
+                    : 'Select which pages this employee can see in the sidebar'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {PAGE_PERMISSIONS.map((page) => {
+                    const Icon = PAGE_ICONS[page.icon] || Shield;
+                    const checked = selectedPages.includes(page.name);
+                    return (
+                      <button
+                        key={page.name}
+                        type="button"
+                        onClick={() => togglePage(page.name)}
+                        className={`flex items-center gap-2.5 p-3 rounded-xl border text-sm font-medium transition-all ${
+                          checked
+                            ? 'bg-primary/10 border-primary text-primary'
+                            : 'bg-muted/30 border-border text-muted-foreground hover:border-primary/40'
+                        }`}
+                      >
+                        <div className={`size-4 rounded flex items-center justify-center shrink-0 border ${checked ? 'bg-primary border-primary' : 'border-muted-foreground/40'}`}>
+                          {checked && <span className="text-white text-[10px] font-bold">✓</span>}
+                        </div>
+                        <Icon className="size-4 shrink-0" />
+                        <span className="truncate">{page.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Action Buttons */}
           <div className="flex items-center justify-end gap-3 pt-6 border-t">
