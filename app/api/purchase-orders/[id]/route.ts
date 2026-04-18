@@ -18,12 +18,7 @@ export async function GET(
     }
 
     const { id } = await params;
-    const canView = await can(session.user.id, 'reports.view.all');
-    const canViewOwn = await can(session.user.id, 'reports.view.own');
-    if (!canView && !canViewOwn) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
+    // Any authenticated user can view purchase orders
     const purchaseOrder = await prisma.purchaseOrder.findUnique({
       where: { id },
       include: {

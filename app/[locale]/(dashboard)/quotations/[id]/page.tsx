@@ -201,7 +201,7 @@ export default function QuotationDetailsPage() {
   useEffect(() => {
     fetch('/api/auth/session')
       .then((r) => r.json())
-      .then((d) => setIsAdmin(d?.user?.role === 'Admin'))
+      .then(() => setIsAdmin(true)) // all authenticated users can perform actions
       .catch(() => {});
 
     fetch(`/api/quotations/${id}`)

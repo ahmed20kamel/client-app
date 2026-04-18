@@ -29,10 +29,7 @@ export async function GET(
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await params;
-    const canViewAll = await can(session.user.id, 'reports.view.all');
-    const canViewOwn = await can(session.user.id, 'reports.view.own');
-    if (!canViewAll && !canViewOwn) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-
+    // Any authenticated user can view quotations
     const quotation = await prisma.quotation.findUnique({
       where: { id },
       include: QUOTATION_INCLUDE,
@@ -56,9 +53,7 @@ export async function PATCH(
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await params;
-    const canAdmin = await can(session.user.id, 'reports.view.all');
-    const canOwn   = await can(session.user.id, 'reports.view.own');
-    if (!canAdmin && !canOwn) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const canAdmin = true; // all authenticated users can perform actions
 
     const existing = await prisma.quotation.findUnique({ where: { id } });
     if (!existing) return NextResponse.json({ error: 'Quotation not found' }, { status: 404 });
