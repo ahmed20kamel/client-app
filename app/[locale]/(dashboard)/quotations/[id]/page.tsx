@@ -97,25 +97,35 @@ interface Quotation {
 // ── Workflow steps ─────────────────────────────────────────────────────────────
 // Status order for the stepper
 const STEPS = [
-  { key: 'DRAFT',           label: 'Draft',            icon: FileText },
-  { key: 'SENT',            label: 'Sent',             icon: Send },
-  { key: 'CLIENT_APPROVED', label: 'Client Approved',  icon: ThumbsUp },
-  { key: 'CONFIRMED',       label: 'Finance Confirmed', icon: CheckCircle2 },
-  { key: 'CONVERTED',       label: 'Converted',        icon: TrendingUp },
+  { key: 'DRAFT',           label: 'Draft',             icon: FileText },
+  { key: 'SENT',            label: 'Sent',              icon: Send },
+  { key: 'CLIENT_APPROVED', label: 'Client Approved',   icon: ThumbsUp },
+  { key: 'CONFIRMED',       label: 'Finance Confirmed',  icon: CheckCircle2 },
+  { key: 'WORK_ORDER',      label: 'Work Order',         icon: ClipboardList },
+  { key: 'INVOICED',        label: 'Invoiced',           icon: Receipt },
+  { key: 'CONVERTED',       label: 'Delivered',          icon: TrendingUp },
 ] as const;
 
 type StepKey = typeof STEPS[number]['key'];
 
-function activeIndex(status: string): number {
-  // legacy APPROVED → treat as CLIENT_APPROVED
+function activeIndex(status: string, hasWorkOrders: boolean, hasTaxInvoices: boolean, hasDeliveryNotes: boolean): number {
   const s = status === 'APPROVED' ? 'CLIENT_APPROVED' : status;
+  if (s === 'CONVERTED') return 6;
+  if (s === 'CONFIRMED') {
+    if (hasDeliveryNotes) return 6;
+    if (hasTaxInvoices) return 5;
+    if (hasWorkOrders) return 4;
+    return 3;
+  }
   const idx = STEPS.findIndex((st) => st.key === s);
   return idx === -1 ? 0 : idx;
 }
 
-function WorkflowStepper({ status }: { status: string }) {
+function WorkflowStepper({ status, hasWorkOrders, hasTaxInvoices, hasDeliveryNotes }: {
+  status: string; hasWorkOrders: boolean; hasTaxInvoices: boolean; hasDeliveryNotes: boolean;
+}) {
   const isRejected = status === 'CLIENT_REJECTED';
-  const current = activeIndex(status);
+  const current = activeIndex(status, hasWorkOrders, hasTaxInvoices, hasDeliveryNotes);
 
   return (
     <div className={`px-6 py-4 border-b border-border ${isRejected ? 'bg-destructive/5' : 'bg-muted/20'}`}>
@@ -485,34 +495,39 @@ export default function QuotationDetailsPage() {
               </Button>
             )}
 
-            {/* CONFIRMED: Create Work Order */}
+            {/* Step 1: CONFIRMED → Create Work Order */}
             {quotation.status === 'CONFIRMED' && !hasWorkOrders && isAdmin && (
               <Button size="sm" variant="outline"
                 onClick={() => router.push(`/${locale}/work-orders/new?quotationId=${quotation.id}`)}>
-                <ClipboardList className="size-3.5 me-1.5" />{t('workOrders.createFromQuotation')}
+                <ClipboardList className="size-3.5 me-1.5" />{t('quotations.createWorkOrder')}
               </Button>
             )}
 
-            {/* CONFIRMED + has work order: Create Delivery Note */}
-            {quotation.status === 'CONFIRMED' && hasWorkOrders && !hasDeliveryNotes && isAdmin && (
+            {/* Step 2: has Work Order → Create Tax Invoice */}
+            {quotation.status === 'CONFIRMED' && hasWorkOrders && !hasTaxInvoices && isAdmin && (
               <Button size="sm" variant="outline"
-                onClick={() => router.push(`/${locale}/delivery-notes/new?quotationId=${quotation.id}`)}>
-                <Package className="size-3.5 me-1.5" />{t('quotations.createDeliveryNote') || 'Create Delivery Note'}
-              </Button>
-            )}
-
-            {/* CONFIRMED + has delivery note: Create Tax Invoice (last step) */}
-            {quotation.status === 'CONFIRMED' && hasDeliveryNotes && !hasTaxInvoices && isAdmin && (
-              <Button size="sm" className="btn-premium"
                 onClick={() => router.push(`/${locale}/tax-invoices/new?quotationId=${quotation.id}`)}>
                 <Receipt className="size-3.5 me-1.5" />{t('quotations.createTaxInvoice')}
+              </Button>
+            )}
+
+            {/* Step 3: has Tax Invoice → Create Delivery Note (last step) */}
+            {quotation.status === 'CONFIRMED' && hasTaxInvoices && !hasDeliveryNotes && isAdmin && (
+              <Button size="sm" className="btn-premium"
+                onClick={() => router.push(`/${locale}/delivery-notes/new?quotationId=${quotation.id}`)}>
+                <Package className="size-3.5 me-1.5" />{t('quotations.createDeliveryNote')}
               </Button>
             )}
           </div>
         </div>
 
         {/* ── Workflow Stepper ────────────────────────────────────────────── */}
-        <WorkflowStepper status={quotation.status} />
+        <WorkflowStepper
+          status={quotation.status}
+          hasWorkOrders={hasWorkOrders}
+          hasTaxInvoices={hasTaxInvoices}
+          hasDeliveryNotes={hasDeliveryNotes}
+        />
 
         {/* ── Status Banners ──────────────────────────────────────────────── */}
         <div className="px-6 pt-4 space-y-3">

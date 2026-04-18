@@ -962,6 +962,8 @@
     "rejectDesc": "هل أنت متأكد من رفض عرض السعر؟",
     "rejectionReasonPlaceholder": "أدخل سبب الرفض (اختياري)...",
     "createTaxInvoice": "إنشاء فاتورة ضريبية",
+    "createDeliveryNote": "إنشاء إشعار تسليم",
+    "createWorkOrder": "إنشاء أمر شغل",
     "taxInvoices": "الفواتير الضريبية",
     "linkedInvoices": "الفواتير المرتبطة",
     "invoiceNumber": "رقم الفاتورة",

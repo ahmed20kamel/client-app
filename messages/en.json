@@ -963,6 +963,8 @@
     "rejectDesc": "Are you sure you want to reject this quotation?",
     "rejectionReasonPlaceholder": "Enter rejection reason (optional)...",
     "createTaxInvoice": "Create Tax Invoice",
+    "createDeliveryNote": "Create Delivery Note",
+    "createWorkOrder": "Create Work Order",
     "taxInvoices": "Tax Invoices",
     "linkedInvoices": "Linked Invoices",
     "invoiceNumber": "Invoice #",
