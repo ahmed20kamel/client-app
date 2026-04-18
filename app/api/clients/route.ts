@@ -60,7 +60,9 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const canCreate = await can(session.user.id, 'customer.create');
-    if (!canCreate) {
+    const pagePerms = session.user.pagePermissions ?? [];
+    const hasPageAccess = pagePerms.includes('page.clients') || pagePerms.includes('page.quotations');
+    if (!canCreate && !hasPageAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
