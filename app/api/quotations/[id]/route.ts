@@ -347,9 +347,9 @@ export async function PATCH(
       const discountPercent = validatedData.discountPercent ?? existing.discountPercent;
       const discountAmount = subtotal * discountPercent / 100;
       const taxPercent = validatedData.taxPercent ?? existing.taxPercent;
-      const taxAmount = (subtotal - discountAmount) * taxPercent / 100;
       const deliveryCharges = validatedData.deliveryCharges ?? existing.deliveryCharges;
-      const total = subtotal - discountAmount + taxAmount + deliveryCharges;
+      const taxAmount = (subtotal - discountAmount + deliveryCharges) * taxPercent / 100;
+      const total = subtotal - discountAmount + deliveryCharges + taxAmount;
 
       const result = await prisma.$transaction(async (tx) => {
         await tx.quotationItem.deleteMany({ where: { quotationId: id } });
@@ -389,7 +389,10 @@ export async function PATCH(
     }
     if (validatedData.deliveryCharges !== undefined) {
       updateData.deliveryCharges = validatedData.deliveryCharges;
-      updateData.total = existing.subtotal - existing.discountAmount + existing.taxAmount + validatedData.deliveryCharges;
+      const newDelivery = validatedData.deliveryCharges;
+      const newTax = (existing.subtotal - existing.discountAmount + newDelivery) * (existing.taxPercent / 100);
+      updateData.taxAmount = newTax;
+      updateData.total = existing.subtotal - existing.discountAmount + newDelivery + newTax;
     }
 
     const updated = await prisma.quotation.update({

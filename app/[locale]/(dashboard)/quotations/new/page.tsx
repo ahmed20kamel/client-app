@@ -175,8 +175,8 @@ export default function CreateQuotationPage() {
     const subtotal = items.reduce((sum, item) => {
       return sum + item.linearMeters * item.unitPrice * (1 - (item.discount || 0) / 100);
     }, 0);
-    const taxAmount = subtotal * (taxPercent / 100);
-    const total = subtotal + taxAmount + (deliveryCharges || 0);
+    const taxAmount = (subtotal + (deliveryCharges || 0)) * (taxPercent / 100);
+    const total = subtotal + (deliveryCharges || 0) + taxAmount;
     return { subtotal, taxAmount, total };
   }, [items, taxPercent, deliveryCharges]);
 

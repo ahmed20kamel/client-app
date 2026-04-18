@@ -124,9 +124,9 @@ export async function POST(request: NextRequest) {
     const discountPercent = validatedData.discountPercent || 0;
     const discountAmount = subtotal * discountPercent / 100;
     const taxPercent = validatedData.taxPercent ?? 5;
-    const taxAmount = (subtotal - discountAmount) * taxPercent / 100;
     const deliveryCharges = validatedData.deliveryCharges ?? 0;
-    const total = subtotal - discountAmount + taxAmount + deliveryCharges;
+    const taxAmount = (subtotal - discountAmount + deliveryCharges) * taxPercent / 100;
+    const total = subtotal - discountAmount + deliveryCharges + taxAmount;
 
     // validUntil default: 30 days from now
     const validUntilDate = validatedData.validUntil
