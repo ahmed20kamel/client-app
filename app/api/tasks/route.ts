@@ -29,12 +29,11 @@ export async function GET(request: NextRequest) {
 
     // Check permissions
     const canViewAll = await can(session.user.id, 'task.view.all');
-    const hasPageAccess = (session.user.pagePermissions ?? []).includes('page.tasks');
 
     // Build where clause
     const where: Record<string, unknown> = {};
 
-    // Scope-based filtering — page access shows only assigned tasks
+    // Scope-based filtering
     if (!canViewAll) {
       where.assignedToId = session.user.id;
     }

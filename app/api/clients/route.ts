@@ -19,12 +19,7 @@ export async function GET(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const canView = await can(session.user.id, 'customer.view.all');
-    const canViewOwn = await can(session.user.id, 'customer.view.own');
-    const hasPageAccess = (session.user.pagePermissions ?? []).includes('page.clients');
-    if (!canView && !canViewOwn && !hasPageAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Any authenticated user can view clients
 
     const search = request.nextUrl.searchParams.get('search') || '';
     const includeEngineers = request.nextUrl.searchParams.get('engineers') === 'true';
@@ -59,12 +54,7 @@ export async function POST(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const canCreate = await can(session.user.id, 'customer.create');
-    const pagePerms = session.user.pagePermissions ?? [];
-    const hasPageAccess = pagePerms.includes('page.clients') || pagePerms.includes('page.quotations');
-    if (!canCreate && !hasPageAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Any authenticated user can create clients
 
     const body = await request.json();
     const data = createClientSchema.parse(body);

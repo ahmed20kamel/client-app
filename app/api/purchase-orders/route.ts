@@ -15,12 +15,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const canView = await can(session.user.id, 'reports.view.all');
-    const canViewOwn = await can(session.user.id, 'reports.view.own');
-    const hasPageAccess = (session.user.pagePermissions ?? []).includes('page.purchase-orders');
-    if (!canView && !canViewOwn && !hasPageAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Any authenticated user can view purchase orders
 
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');

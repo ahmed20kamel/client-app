@@ -16,12 +16,7 @@ export async function GET(request: NextRequest) {
 
     // Check permission
     const canViewAll = await can(session.user.id, 'customer.view.all');
-    const canViewOwn = await can(session.user.id, 'customer.view.own');
-    const hasPageAccess = (session.user.pagePermissions ?? []).includes('page.customers');
-
-    if (!canViewAll && !canViewOwn && !hasPageAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Any authenticated user can view customers (own or all based on role)
 
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;

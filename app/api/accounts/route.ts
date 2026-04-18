@@ -9,9 +9,7 @@ export async function GET(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const canView = await can(session.user.id, 'reports.view.all');
-    const hasPageAccess = (session.user.pagePermissions ?? []).includes('page.accounts');
-    if (!canView && !hasPageAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Any authenticated user can view accounts
 
     const search = request.nextUrl.searchParams.get('search') || '';
     const filter = request.nextUrl.searchParams.get('filter') || 'all'; // all | outstanding | paid | noInvoice

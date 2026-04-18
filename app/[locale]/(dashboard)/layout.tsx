@@ -53,14 +53,11 @@ export default async function DashboardLayout({
     { href: `/${locale}/accounts`,        label: 'Accounts',                     icon: 'Wallet',          perm: 'page.accounts' },
   ] as (NavItem & { perm: string | null })[];
 
-  const navItems: NavItem[] = isAdmin
-    ? allNavItems.filter((i) => (i as any).perm !== '__admin__' || isAdmin)
-    : allNavItems.filter((i) => {
-        const perm = (i as any).perm;
-        if (perm === '__admin__') return false;
-        if (perm === null) return true; // internal-tasks always visible
-        return pagePerms.has(perm);
-      });
+  const navItems: NavItem[] = allNavItems.filter((i) => {
+    const perm = (i as any).perm;
+    if (perm === '__admin__') return isAdmin;
+    return true;
+  });
 
   const adminItems: NavItem[] = isAdmin
     ? [{ href: `/${locale}/departments`, label: t('navigation.departments'), icon: 'Building2' }]
