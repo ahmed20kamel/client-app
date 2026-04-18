@@ -69,9 +69,6 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    if (session.user.role !== 'Admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
 
     const existing = await prisma.deliveryNote.findUnique({ where: { id } });
     if (!existing) {
@@ -189,9 +186,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    if (session.user.role !== 'Admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
 
     const note = await prisma.deliveryNote.findUnique({ where: { id } });
     if (!note) {

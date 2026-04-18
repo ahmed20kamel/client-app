@@ -16,9 +16,6 @@ export async function POST(
     }
 
     const { id } = await params;
-    if (session.user.role !== 'Admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
 
     const quotation = await prisma.quotation.findUnique({
       where: { id },

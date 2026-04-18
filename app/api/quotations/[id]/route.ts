@@ -418,7 +418,6 @@ export async function DELETE(
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await params;
-    if (session.user.role !== 'Admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const quotation = await prisma.quotation.findUnique({
       where: { id },

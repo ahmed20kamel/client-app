@@ -145,9 +145,6 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    if (session.user.role !== 'Admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
 
     const invoice = await prisma.taxInvoice.findUnique({
       where: { id },
