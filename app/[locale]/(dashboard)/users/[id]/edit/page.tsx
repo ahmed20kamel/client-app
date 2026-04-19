@@ -710,8 +710,8 @@ export default function EditUserPage() {
                               }`}>
                                 {checked && <span className="text-white text-[9px] font-bold">✓</span>}
                               </div>
-                              <span className="truncate leading-tight" dir="rtl">
-                                {perm.labelAr}
+                              <span className="truncate leading-tight">
+                                {locale === 'ar' ? perm.labelAr : perm.labelEn}
                               </span>
                             </button>
                           );
