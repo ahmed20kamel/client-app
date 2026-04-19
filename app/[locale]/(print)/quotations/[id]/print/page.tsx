@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { COMPANY } from '@/lib/company';
 
-/* ─── Brand colour (shared across all print docs) ─── */
-const BRAND = '#1e40af';
+const BRAND       = '#1e40af';
+const BRAND_LIGHT = '#dbeafe';
 
 interface QuotationItem {
   id: string;
@@ -47,11 +47,18 @@ interface Quotation {
   items: QuotationItem[];
 }
 
+/* Strip trailing size label that was appended to the description on creation */
+function cleanDescription(description: string, size: string | null): string {
+  if (!size) return description;
+  const suffix = ` ${size}`;
+  return description.endsWith(suffix) ? description.slice(0, -suffix.length) : description;
+}
+
 export default function QuotationPrintPage() {
   const params = useParams();
   const id = params.id as string;
   const [quotation, setQuotation] = useState<Quotation | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]     = useState(true);
 
   useEffect(() => {
     fetch(`/api/quotations/${id}`)
@@ -72,10 +79,9 @@ export default function QuotationPrintPage() {
     </div>
   );
 
-  const billTo = quotation.client?.companyName || quotation.customer?.fullName || '—';
-  const attn   = quotation.engineer?.name || quotation.engineerName;
-  const tel    = quotation.engineer?.mobile || quotation.mobileNumber;
-
+  const billTo      = quotation.client?.companyName || quotation.customer?.fullName || '—';
+  const attn        = quotation.engineer?.name || quotation.engineerName;
+  const tel         = quotation.engineer?.mobile || quotation.mobileNumber;
   const totalPieces = quotation.items.reduce((s, it) => s + it.quantity, 0);
   const totalLM     = quotation.items.reduce((s, it) => s + (it.linearMeters ?? 0), 0);
 
@@ -91,6 +97,10 @@ export default function QuotationPrintPage() {
         .doc-page { max-width: 210mm; margin: 0 auto; padding: 14px 18px; background: #fff; }
         table { border-collapse: collapse; }
         th, td { padding: 0; }
+        .ar { font-family: 'Arial', sans-serif; direction: rtl; }
+        .bilabel { display: flex; flex-direction: column; gap: 1px; }
+        .bilabel-en { font-size: 9px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .06em; }
+        .bilabel-ar { font-size: 8px; color: #b0bec5; direction: rtl; }
       `}</style>
 
       {/* Toolbar */}
@@ -105,44 +115,69 @@ export default function QuotationPrintPage() {
 
       <div className="doc-page">
 
-        {/* ── HEADER: 3-column — Company | Logo (center) | Title ── */}
-        <table style={{ width: '100%', marginBottom: 18 }}>
+        {/* ── HEADER ─────────────────────────────────────────────────────── */}
+        <table style={{ width: '100%', marginBottom: 14 }}>
           <tbody><tr>
-            {/* Left — Company info */}
-            <td style={{ verticalAlign: 'top', width: '33%' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>{COMPANY.name}</div>
-              <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{COMPANY.address}</div>
-              {COMPANY.vat   && <div style={{ fontSize: 10, color: '#64748b' }}>VAT Reg: {COMPANY.vat}</div>}
-              {COMPANY.phone && <div style={{ fontSize: 10, color: '#64748b' }}>Tel: {COMPANY.phone}</div>}
+
+            {/* Left — Company info (English) */}
+            <td style={{ verticalAlign: 'top', width: '30%' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#111', lineHeight: 1.3 }}>{COMPANY.name}</div>
+              <div style={{ fontSize: 9, color: '#64748b', marginTop: 2 }}>{COMPANY.address}</div>
+              {COMPANY.vat   && <div style={{ fontSize: 9, color: '#64748b' }}>VAT Reg: {COMPANY.vat}</div>}
+              {COMPANY.phone && <div style={{ fontSize: 9, color: '#64748b' }}>Tel: {COMPANY.phone}</div>}
             </td>
-            {/* Center — Logo */}
-            <td style={{ verticalAlign: 'middle', width: '34%', textAlign: 'center' }}>
+
+            {/* Center — Logo (perfectly centered) */}
+            <td style={{ width: '40%', textAlign: 'center', verticalAlign: 'middle', padding: '0 8px' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.svg" alt="Logo" style={{ width: 110, height: 'auto' }} />
+              <img src="/logo.svg" alt="Logo" style={{ width: 115, height: 'auto', display: 'inline-block' }} />
             </td>
-            {/* Right — Doc title + meta */}
-            <td style={{ textAlign: 'right', verticalAlign: 'top', width: '33%' }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: BRAND, letterSpacing: '-0.5px', lineHeight: 1 }}>QUOTATION</div>
-              <div style={{ marginTop: 10, fontSize: 12 }}>
-                <div style={{ marginBottom: 2 }}><span style={{ color: '#64748b' }}>Quotation No: </span><strong>{quotation.quotationNumber}</strong></div>
-                <div style={{ marginBottom: 2 }}><span style={{ color: '#64748b' }}>Date: </span><strong>{fmtDate(quotation.createdAt)}</strong></div>
-                {quotation.validUntil && <div><span style={{ color: '#64748b' }}>Valid Until: </span><strong>{fmtDate(quotation.validUntil)}</strong></div>}
+
+            {/* Right — Doc title + meta (Arabic + English) */}
+            <td style={{ textAlign: 'right', verticalAlign: 'top', width: '30%' }}>
+              {/* Bilingual title */}
+              <div style={{ lineHeight: 1 }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: BRAND, letterSpacing: '-0.5px' }}>QUOTATION</div>
+                <div className="ar" style={{ fontSize: 14, fontWeight: 700, color: BRAND, marginTop: 2 }}>عرض سعر</div>
+              </div>
+              <div style={{ marginTop: 8, fontSize: 11 }}>
+                <div style={{ marginBottom: 2 }}>
+                  <span style={{ color: '#64748b' }}>Quotation No / </span>
+                  <span className="ar" style={{ fontSize: 10, color: '#64748b' }}>رقم العرض: </span>
+                  <strong>{quotation.quotationNumber}</strong>
+                </div>
+                <div style={{ marginBottom: 2 }}>
+                  <span style={{ color: '#64748b' }}>Date / </span>
+                  <span className="ar" style={{ fontSize: 10, color: '#64748b' }}>التاريخ: </span>
+                  <strong>{fmtDate(quotation.createdAt)}</strong>
+                </div>
+                {quotation.validUntil && (
+                  <div>
+                    <span style={{ color: '#64748b' }}>Valid Until / </span>
+                    <span className="ar" style={{ fontSize: 10, color: '#64748b' }}>صالح حتى: </span>
+                    <strong>{fmtDate(quotation.validUntil)}</strong>
+                  </div>
+                )}
               </div>
             </td>
+
           </tr></tbody>
         </table>
 
         {/* ── DIVIDER ── */}
-        <div style={{ height: 3, background: `linear-gradient(90deg, ${BRAND}, #3b82f6)`, borderRadius: 2, marginBottom: 16 }} />
+        <div style={{ height: 3, background: `linear-gradient(90deg, ${BRAND}, #3b82f6)`, borderRadius: 2, marginBottom: 14 }} />
 
         {/* ── BILL TO / PROJECT ── */}
-        <table style={{ width: '100%', marginBottom: 16 }}>
+        <table style={{ width: '100%', marginBottom: 14 }}>
           <tbody><tr>
-            <td style={{ width: '50%', verticalAlign: 'top', paddingRight: 12 }}>
+            <td style={{ width: '50%', verticalAlign: 'top', paddingRight: 10 }}>
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 7, padding: '10px 12px' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>BILL TO</div>
+                <div className="bilabel" style={{ marginBottom: 6 }}>
+                  <span className="bilabel-en">BILL TO</span>
+                  <span className="bilabel-ar">فاتورة إلى</span>
+                </div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 3 }}>{billTo}</div>
-                {quotation.client?.trn && <div style={{ fontSize: 10, color: '#475569' }}>TRN: {quotation.client.trn}</div>}
+                {quotation.client?.trn     && <div style={{ fontSize: 10, color: '#475569' }}>TRN: {quotation.client.trn}</div>}
                 {quotation.client?.address && <div style={{ fontSize: 10, color: '#475569' }}>{quotation.client.address}</div>}
                 {attn && <div style={{ fontSize: 11, color: '#475569', marginTop: 3 }}>Attn: {attn}</div>}
                 {tel  && <div style={{ fontSize: 11, color: '#475569' }}>Tel: {tel}</div>}
@@ -150,9 +185,12 @@ export default function QuotationPrintPage() {
             </td>
             <td style={{ width: '50%', verticalAlign: 'top' }}>
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 7, padding: '10px 12px' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>PROJECT DETAILS</div>
-                {quotation.projectName && <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 3 }}>{quotation.projectName}</div>}
-                {quotation.lpoNumber   && <div style={{ fontSize: 11, color: '#475569' }}>LPO: {quotation.lpoNumber}</div>}
+                <div className="bilabel" style={{ marginBottom: 6 }}>
+                  <span className="bilabel-en">PROJECT DETAILS</span>
+                  <span className="bilabel-ar">تفاصيل المشروع</span>
+                </div>
+                {quotation.projectName  && <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 3 }}>{quotation.projectName}</div>}
+                {quotation.lpoNumber    && <div style={{ fontSize: 11, color: '#475569' }}>LPO: {quotation.lpoNumber}</div>}
                 {quotation.paymentTerms && <div style={{ fontSize: 11, color: '#475569' }}>Payment: {quotation.paymentTerms}</div>}
               </div>
             </td>
@@ -163,8 +201,26 @@ export default function QuotationPrintPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 4, fontSize: 11 }}>
           <thead>
             <tr style={{ background: BRAND, color: '#fff' }}>
-              {['#','DESCRIPTION','L/PC (m)','UNIT','QTY','LM','UNIT PRICE','TOTAL (AED)'].map((h, i) => (
-                <th key={h} style={{ padding: '9px 7px', textAlign: i === 0 || i === 1 ? 'left' : i === 7 || i === 6 ? 'right' : 'center', fontWeight: 700, fontSize: 10, whiteSpace: 'nowrap' }}>{h}</th>
+              {[
+                { en: '#',           ar: '#' },
+                { en: 'DESCRIPTION', ar: 'الوصف' },
+                { en: 'L/PC (m)',    ar: 'الطول/قطعة' },
+                { en: 'UNIT',        ar: 'الوحدة' },
+                { en: 'QTY',         ar: 'الكمية' },
+                { en: 'LM',          ar: 'م.خ' },
+                { en: 'UNIT PRICE',  ar: 'سعر الوحدة' },
+                { en: 'TOTAL (AED)', ar: 'الإجمالي' },
+              ].map(({ en, ar }, i) => (
+                <th key={en} style={{
+                  padding: '7px 7px',
+                  textAlign: i === 0 || i === 1 ? 'left' : i >= 6 ? 'right' : 'center',
+                  fontWeight: 700,
+                  fontSize: 9,
+                  whiteSpace: 'nowrap',
+                }}>
+                  <div>{en}</div>
+                  <div className="ar" style={{ fontSize: 8, fontWeight: 400, opacity: 0.85, marginTop: 1 }}>{ar}</div>
+                </th>
               ))}
             </tr>
           </thead>
@@ -172,7 +228,9 @@ export default function QuotationPrintPage() {
             {quotation.items.map((item, i) => (
               <tr key={item.id} style={{ background: i % 2 === 0 ? '#fff' : '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                 <td style={{ padding: '8px 7px', color: '#64748b' }}>{i + 1}</td>
-                <td style={{ padding: '8px 7px', fontWeight: 500 }}>{item.description}</td>
+                <td style={{ padding: '8px 7px', fontWeight: 500 }}>
+                  {cleanDescription(item.description, item.size)}
+                </td>
                 <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>
                   {item.unit === 'LM' && item.length != null ? item.length.toFixed(2) : (item.size || '—')}
                 </td>
@@ -186,30 +244,33 @@ export default function QuotationPrintPage() {
               </tr>
             ))}
           </tbody>
+
           {/* ── TOTALS SUMMARY ROW ── */}
           <tfoot>
-            <tr style={{ background: '#dbeafe', borderTop: '2px solid #93c5fd' }}>
-              <td colSpan={4} style={{ padding: '7px 7px', fontSize: 10, fontWeight: 700, color: '#1e40af', textAlign: 'left' }}>
-                TOTAL SUMMARY
+            <tr style={{ background: BRAND_LIGHT, borderTop: `2px solid ${BRAND}` }}>
+              <td colSpan={3} style={{ padding: '7px 9px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: BRAND }}>TOTAL SUMMARY</div>
+                <div className="ar" style={{ fontSize: 9, color: '#3b82f6', marginTop: 1 }}>ملخص الإجمالي</div>
               </td>
-              <td style={{ padding: '7px 7px', textAlign: 'center', fontWeight: 700, color: '#1e40af', fontSize: 11 }}>
-                {totalPieces}
+              <td style={{ padding: '7px 7px', textAlign: 'center' }}>
+                <div style={{ fontSize: 9, color: '#64748b' }}>Unit / وحدة</div>
               </td>
-              <td style={{ padding: '7px 7px', textAlign: 'center', fontWeight: 700, color: '#1e40af', fontSize: 11 }}>
-                {totalLM > 0 ? totalLM.toFixed(2) : '—'}
+              <td style={{ padding: '7px 7px', textAlign: 'center' }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: BRAND }}>{totalPieces}</div>
+                <div style={{ fontSize: 8, color: '#64748b' }}>pcs / قطعة</div>
               </td>
-              <td style={{ padding: '7px 7px', textAlign: 'right', fontSize: 10, color: '#475569' }}>
-                <span style={{ fontSize: 9, color: '#64748b' }}>Total Pieces</span>
+              <td style={{ padding: '7px 7px', textAlign: 'center' }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: BRAND }}>{totalLM > 0 ? totalLM.toFixed(2) : '—'}</div>
+                <div style={{ fontSize: 8, color: '#64748b' }}>m / متر</div>
               </td>
-              <td style={{ padding: '7px 7px', textAlign: 'right', fontSize: 10, color: '#475569' }}>
-                <span style={{ fontSize: 9, color: '#64748b' }}>Total LM</span>
+              <td style={{ padding: '7px 9px', textAlign: 'right' }}>
+                <div style={{ fontSize: 9, color: '#475569' }}>Total Pieces</div>
+                <div className="ar" style={{ fontSize: 8, color: '#64748b' }}>إجمالي القطع</div>
               </td>
-            </tr>
-            <tr style={{ background: '#eff6ff', borderBottom: '1px solid #bfdbfe' }}>
-              <td colSpan={4} style={{ padding: '4px 7px' }} />
-              <td style={{ padding: '4px 7px', textAlign: 'center', fontSize: 9, color: '#64748b' }}>pcs</td>
-              <td style={{ padding: '4px 7px', textAlign: 'center', fontSize: 9, color: '#64748b' }}>m</td>
-              <td colSpan={2} style={{ padding: '4px 7px' }} />
+              <td style={{ padding: '7px 9px', textAlign: 'right' }}>
+                <div style={{ fontSize: 9, color: '#475569' }}>Total LM</div>
+                <div className="ar" style={{ fontSize: 8, color: '#64748b' }}>إجمالي الأمتار</div>
+              </td>
             </tr>
           </tfoot>
         </table>
@@ -221,37 +282,60 @@ export default function QuotationPrintPage() {
             <td style={{ width: '52%', verticalAlign: 'top', paddingRight: 12 }}>
               {quotation.notes && (
                 <div>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>NOTES</div>
+                  <div className="bilabel" style={{ marginBottom: 5 }}>
+                    <span className="bilabel-en">NOTES</span>
+                    <span className="bilabel-ar">ملاحظات</span>
+                  </div>
                   <div style={{ fontSize: 11, color: '#475569', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{quotation.notes}</div>
                 </div>
               )}
             </td>
             {/* Totals */}
             <td style={{ width: '48%', verticalAlign: 'top' }}>
-              <div style={{ border: `1px solid #e2e8f0`, borderRadius: 7, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
-                  <span style={{ color: '#64748b' }}>Subtotal</span>
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: 7, overflow: 'hidden' }}>
+                {/* Subtotal */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
+                  <div>
+                    <div style={{ color: '#64748b' }}>Subtotal</div>
+                    <div className="ar" style={{ fontSize: 9, color: '#94a3b8' }}>المجموع الفرعي</div>
+                  </div>
                   <span style={{ fontWeight: 600 }}>{fmt(quotation.subtotal)} AED</span>
                 </div>
+                {/* Discount */}
                 {quotation.discountAmount > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
-                    <span style={{ color: '#64748b' }}>Discount ({quotation.discountPercent}%)</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
+                    <div>
+                      <div style={{ color: '#64748b' }}>Discount ({quotation.discountPercent}%)</div>
+                      <div className="ar" style={{ fontSize: 9, color: '#94a3b8' }}>خصم</div>
+                    </div>
                     <span style={{ fontWeight: 600, color: '#dc2626' }}>−{fmt(quotation.discountAmount)} AED</span>
                   </div>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
-                  <span style={{ color: '#64748b' }}>VAT ({quotation.taxPercent}%)</span>
+                {/* VAT */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
+                  <div>
+                    <div style={{ color: '#64748b' }}>VAT ({quotation.taxPercent}%)</div>
+                    <div className="ar" style={{ fontSize: 9, color: '#94a3b8' }}>ضريبة القيمة المضافة</div>
+                  </div>
                   <span style={{ fontWeight: 600 }}>+{fmt(quotation.taxAmount)} AED</span>
                 </div>
+                {/* Delivery */}
                 {quotation.deliveryCharges > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
-                    <span style={{ color: '#64748b' }}>Delivery Charges</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
+                    <div>
+                      <div style={{ color: '#64748b' }}>Delivery Charges</div>
+                      <div className="ar" style={{ fontSize: 9, color: '#94a3b8' }}>رسوم التوصيل</div>
+                    </div>
                     <span style={{ fontWeight: 600 }}>+{fmt(quotation.deliveryCharges)} AED</span>
                   </div>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 11px', background: BRAND, fontSize: 13 }}>
-                  <span style={{ fontWeight: 700, color: '#fff' }}>TOTAL</span>
-                  <span style={{ fontWeight: 700, color: '#fff' }}>{fmt(quotation.total)} AED</span>
+                {/* Total */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 11px', background: BRAND }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#fff', fontSize: 13 }}>TOTAL</div>
+                    <div className="ar" style={{ fontSize: 10, color: '#bfdbfe' }}>الإجمالي</div>
+                  </div>
+                  <span style={{ fontWeight: 700, color: '#fff', fontSize: 13 }}>{fmt(quotation.total)} AED</span>
                 </div>
               </div>
             </td>
@@ -261,7 +345,10 @@ export default function QuotationPrintPage() {
         {/* ── TERMS ── */}
         {quotation.terms && (
           <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 10, marginBottom: 16 }}>
-            <div style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>TERMS & CONDITIONS</div>
+            <div className="bilabel" style={{ marginBottom: 4 }}>
+              <span className="bilabel-en">TERMS & CONDITIONS</span>
+              <span className="bilabel-ar">الشروط والأحكام</span>
+            </div>
             <div style={{ fontSize: 10, color: '#475569', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{quotation.terms}</div>
           </div>
         )}
@@ -271,34 +358,35 @@ export default function QuotationPrintPage() {
           <tbody><tr>
             <td style={{ width: '45%', verticalAlign: 'bottom', paddingRight: 16 }}>
               <div style={{ borderTop: '1.5px solid #cbd5e1', paddingTop: 6 }}>
-                <div style={{ fontSize: 10, color: '#64748b', marginBottom: 2 }}>Authorized Signature</div>
-                {/* Sales engineer info from the user who created the quotation */}
+                <div style={{ fontSize: 10, color: '#64748b' }}>Authorized Signature</div>
+                <div className="ar" style={{ fontSize: 9, color: '#94a3b8', marginTop: 1 }}>التوقيع المعتمد</div>
                 {quotation.createdBy && (
-                  <div style={{ marginTop: 4 }}>
+                  <div style={{ marginTop: 6 }}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: '#111' }}>{quotation.createdBy.fullName}</div>
                     {quotation.createdBy.phone && (
                       <div style={{ fontSize: 10, color: '#475569' }}>Tel: {quotation.createdBy.phone}</div>
                     )}
                   </div>
                 )}
-                <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 14 }}>Name / Title / Date</div>
+                <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 14 }}>Name / Title / Date — الاسم / المسمى / التاريخ</div>
               </div>
             </td>
             <td style={{ width: '10%' }} />
             <td style={{ width: '45%', verticalAlign: 'bottom' }}>
               <div style={{ borderTop: '1.5px solid #cbd5e1', paddingTop: 6 }}>
-                <div style={{ fontSize: 10, color: '#64748b', marginBottom: 2 }}>Client Acceptance</div>
-                <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 18 }}>Name / Signature / Date</div>
+                <div style={{ fontSize: 10, color: '#64748b' }}>Client Acceptance</div>
+                <div className="ar" style={{ fontSize: 9, color: '#94a3b8', marginTop: 1 }}>موافقة العميل</div>
+                <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 18 }}>Name / Signature / Date — الاسم / التوقيع / التاريخ</div>
               </div>
             </td>
           </tr></tbody>
         </table>
 
         {/* ── FOOTER ── */}
-        <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#94a3b8' }}>
+        <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 9, color: '#94a3b8' }}>
           <span>{COMPANY.name} — {COMPANY.address}</span>
           <span>{quotation.quotationNumber}</span>
-          <span>This is a computer-generated document</span>
+          <span>This is a computer-generated document / وثيقة معتمدة من الحاسب الآلي</span>
         </div>
 
       </div>

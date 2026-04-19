@@ -267,7 +267,7 @@ export default function EditQuotationPage() {
         const len = updated[index].length || 100;
         updated[index] = {
           ...updated[index], productId,
-          description: product.name + (product.size ? ` ${product.size}` : ''),
+          description: product.name,
           size: product.size || '',
           unitPrice: product.sellingPrice || 0,
           linearMeters: Number((qty * len / 100).toFixed(4)),
