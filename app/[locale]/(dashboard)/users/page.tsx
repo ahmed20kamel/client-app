@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { DualLanguageName } from '@/components/DualLanguageName';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,7 @@ interface User {
   id: string;
   email: string;
   fullName: string;
+  fullNameAr: string | null;
   jobTitle: string | null;
   phone: string | null;
   status: 'ACTIVE' | 'DISABLED';
@@ -242,7 +244,7 @@ export default function UsersPage() {
                       {user.fullName.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate">{user.fullName}</p>
+                      <DualLanguageName name={user.fullName} nameAr={user.fullNameAr} />
                       {user.jobTitle && <p className="text-xs text-muted-foreground">{user.jobTitle}</p>}
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                         <Mail className="size-3 shrink-0" />
@@ -331,7 +333,7 @@ export default function UsersPage() {
                             {user.fullName.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-foreground">{user.fullName}</p>
+                            <DualLanguageName name={user.fullName} nameAr={user.fullNameAr} />
                             {user.jobTitle && (
                               <p className="text-xs text-muted-foreground">{user.jobTitle}</p>
                             )}

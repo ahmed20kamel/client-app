@@ -12,17 +12,19 @@ import {
   Pencil, Trash2, Loader2, ChevronRight, Users, UserPlus, X,
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
+import { PhoneInput } from '@/components/PhoneInput';
+import { DualLanguageName } from '@/components/DualLanguageName';
 
-interface Engineer { id: string; name: string; mobile: string | null; email: string | null; }
+interface Engineer { id: string; name: string; nameAr: string | null; mobile: string | null; email: string | null; }
 interface Client {
-  id: string; companyName: string; trn: string | null;
+  id: string; companyName: string; companyNameAr: string | null; trn: string | null;
   phone: string | null; email: string | null; address: string | null; notes: string | null;
   engineers: Engineer[];
   _count: { quotations: number; taxInvoices: number; };
 }
 
-const emptyClient = { companyName: '', trn: '', phone: '', email: '', address: '', notes: '' };
-const emptyEngineer = { name: '', mobile: '', email: '' };
+const emptyClient = { companyName: '', companyNameAr: '', trn: '', phone: '', email: '', address: '', notes: '' };
+const emptyEngineer = { name: '', nameAr: '', mobile: '', email: '' };
 
 export default function ClientsPage() {
   const t = useTranslations();
@@ -70,7 +72,7 @@ export default function ClientsPage() {
   }, [search]);
 
   const openCreate = () => setClientModal({ open: true, mode: 'create', data: { ...emptyClient } });
-  const openEdit = (c: Client) => setClientModal({ open: true, mode: 'edit', id: c.id, data: { companyName: c.companyName, trn: c.trn || '', phone: c.phone || '', email: c.email || '', address: c.address || '', notes: c.notes || '' } });
+  const openEdit = (c: Client) => setClientModal({ open: true, mode: 'edit', id: c.id, data: { companyName: c.companyName, companyNameAr: c.companyNameAr || '', trn: c.trn || '', phone: c.phone || '', email: c.email || '', address: c.address || '', notes: c.notes || '' } });
 
   const saveClient = async () => {
     if (!clientModal.data.companyName.trim()) { toast.error(t('clients.companyName') + ' is required'); return; }
@@ -187,8 +189,12 @@ export default function ClientsPage() {
                       <Building2 className="size-5 text-primary" />
                     </div>
                     <div className="min-w-0">
-                      <h2 className="font-bold truncate">{client.companyName}</h2>
-                      {client.trn && <p className="text-xs text-muted-foreground">TRN: {client.trn}</p>}
+                      <DualLanguageName
+                        name={client.companyName}
+                        nameAr={client.companyNameAr}
+                        className="min-w-0"
+                      />
+                      {client.trn && <p className="text-xs text-muted-foreground mt-0.5">TRN: {client.trn}</p>}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -248,9 +254,9 @@ export default function ClientsPage() {
                   <div className="space-y-1.5">
                     {client.engineers.map(eng => (
                       <div key={eng.id} className="flex items-center justify-between bg-muted/40 rounded-lg px-3 py-2">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{eng.name}</p>
-                          {eng.mobile && <p className="text-xs text-muted-foreground">{eng.mobile}</p>}
+                        <div className="min-w-0 flex-1">
+                          <DualLanguageName name={eng.name} nameAr={eng.nameAr} size="sm" />
+                          {eng.mobile && <p className="text-xs text-muted-foreground font-mono mt-0.5">{eng.mobile}</p>}
                         </div>
                         <Button variant="ghost" size="icon" className="size-7 shrink-0 text-destructive/50 hover:text-destructive"
                           onClick={() => setDeleteTarget({ type: 'engineer', id: eng.id, clientId: client.id, name: eng.name })}>
@@ -284,12 +290,25 @@ export default function ClientsPage() {
               {clientModal.mode === 'create' ? t('clients.create') : t('clients.edit')}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium block mb-1.5">{t('clients.companyName')} *</label>
-              <Input value={clientModal.data.companyName}
-                onChange={e => setClientModal(p => ({ ...p, data: { ...p.data, companyName: e.target.value } }))}
-                placeholder="e.g. ABC Construction LLC" />
+          <div className="space-y-3 py-2">
+            {/* Company name — bilingual */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                  {t('clients.companyName')} (EN) *
+                </label>
+                <Input dir="ltr" value={clientModal.data.companyName}
+                  onChange={e => setClientModal(p => ({ ...p, data: { ...p.data, companyName: e.target.value } }))}
+                  placeholder="ABC Construction LLC" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                  {t('clients.companyName')} (AR)
+                </label>
+                <Input dir="rtl" value={(clientModal.data as typeof emptyClient).companyNameAr}
+                  onChange={e => setClientModal(p => ({ ...p, data: { ...p.data, companyNameAr: e.target.value } }))}
+                  placeholder="ش.م.م الإنشاءات" />
+              </div>
             </div>
             <div>
               <label className="text-sm font-medium block mb-1.5">{t('clients.trn')}</label>
@@ -300,9 +319,8 @@ export default function ClientsPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium block mb-1.5">{t('clients.phone')}</label>
-                <Input value={clientModal.data.phone}
-                  onChange={e => setClientModal(p => ({ ...p, data: { ...p.data, phone: e.target.value } }))}
-                  placeholder="+971..." />
+                <PhoneInput value={clientModal.data.phone}
+                  onChange={v => setClientModal(p => ({ ...p, data: { ...p.data, phone: v } }))} />
               </div>
               <div>
                 <label className="text-sm font-medium block mb-1.5">{t('clients.email')}</label>
@@ -342,18 +360,30 @@ export default function ClientsPage() {
               <UserPlus className="size-4 text-primary" />{t('clients.addEngineer')}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium block mb-1.5">{t('clients.engineerName')} *</label>
-              <Input value={engModal.data.name}
-                onChange={e => setEngModal(p => ({ ...p, data: { ...p.data, name: e.target.value } }))}
-                placeholder="Eng. Ahmed Mohamed" />
+          <div className="space-y-3 py-2">
+            {/* Name — bilingual */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                  {t('clients.engineerName')} (EN) *
+                </label>
+                <Input dir="ltr" value={engModal.data.name}
+                  onChange={e => setEngModal(p => ({ ...p, data: { ...p.data, name: e.target.value } }))}
+                  placeholder="Eng. Ahmed" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                  {t('clients.engineerName')} (AR)
+                </label>
+                <Input dir="rtl" value={(engModal.data as typeof emptyEngineer).nameAr}
+                  onChange={e => setEngModal(p => ({ ...p, data: { ...p.data, nameAr: e.target.value } }))}
+                  placeholder="م. أحمد" />
+              </div>
             </div>
             <div>
               <label className="text-sm font-medium block mb-1.5">{t('clients.engineerMobile')}</label>
-              <Input value={engModal.data.mobile}
-                onChange={e => setEngModal(p => ({ ...p, data: { ...p.data, mobile: e.target.value } }))}
-                placeholder="+971..." />
+              <PhoneInput value={engModal.data.mobile}
+                onChange={v => setEngModal(p => ({ ...p, data: { ...p.data, mobile: v } }))} />
             </div>
             <div>
               <label className="text-sm font-medium block mb-1.5">{t('clients.engineerEmail')}</label>

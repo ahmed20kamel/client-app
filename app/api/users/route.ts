@@ -137,6 +137,7 @@ export async function POST(request: NextRequest) {
       data: {
         email: validatedData.email,
         fullName: validatedData.fullName,
+        fullNameAr: (validatedData as { fullNameAr?: string }).fullNameAr || null,
         jobTitle: validatedData.jobTitle,
         phone: validatedData.phone,
         passwordHash,

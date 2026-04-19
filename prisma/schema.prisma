@@ -11,6 +11,7 @@ model User {
   id                  String               @id @default(uuid())
   email               String               @unique
   fullName            String
+  fullNameAr          String?
   jobTitle            String?
   phone               String?
   profileImage        String?
@@ -444,9 +445,10 @@ model PerformanceReview {
 // ==========================================
 
 model Client {
-  id          String     @id @default(uuid())
-  companyName String
-  trn         String?    // Tax Registration Number
+  id             String     @id @default(uuid())
+  companyName    String
+  companyNameAr  String?
+  trn            String?    // Tax Registration Number
   address     String?
   phone       String?
   email       String?
@@ -472,6 +474,7 @@ model Engineer {
   id        String   @id @default(uuid())
   clientId  String
   name      String
+  nameAr    String?
   mobile    String?
   email     String?
   createdAt DateTime @default(now())

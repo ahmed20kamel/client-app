@@ -1,13 +1,16 @@
 import { z } from 'zod';
 
+const phoneValidation = z.string().optional().refine(
+  val => !val || /^\+\d{7,15}$/.test(val),
+  { message: 'Invalid phone number' }
+);
+
 export const createUserSchema = z.object({
   email: z.string().email('Invalid email address'),
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+  fullNameAr: z.string().optional(),
   jobTitle: z.string().optional(),
-  phone: z.string().optional().refine(
-    val => !val || val === '+971' || /^\+971[1-9]\d{7,8}$/.test(val),
-    { message: 'Phone must be a valid UAE number (+971XXXXXXXXX)' }
-  ),
+  phone: phoneValidation,
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
@@ -22,11 +25,9 @@ export const createUserSchema = z.object({
 export const updateUserSchema = z.object({
   email: z.string().email('Invalid email address').optional(),
   fullName: z.string().min(2, 'Full name must be at least 2 characters').optional(),
+  fullNameAr: z.string().optional(),
   jobTitle: z.string().optional(),
-  phone: z.string().optional().refine(
-    val => !val || val === '+971' || /^\+971[1-9]\d{7,8}$/.test(val),
-    { message: 'Phone must be a valid UAE number (+971XXXXXXXXX)' }
-  ),
+  phone: phoneValidation,
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')

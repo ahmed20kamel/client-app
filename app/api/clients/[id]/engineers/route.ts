@@ -5,8 +5,9 @@ import { z } from 'zod';
 
 const engineerSchema = z.object({
   name: z.string().min(1),
+  nameAr: z.string().optional().nullable(),
   mobile: z.string().optional().nullable(),
-  email: z.string().email().optional().nullable(),
+  email: z.string().email().optional().nullable().or(z.literal('')),
 });
 
 // GET /api/clients/[id]/engineers
@@ -42,6 +43,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       data: {
         clientId,
         name: data.name,
+        nameAr: data.nameAr || null,
         mobile: data.mobile || null,
         email: data.email || null,
       },

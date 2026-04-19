@@ -47,10 +47,11 @@ import { PageSkeleton } from '@/components/ui/page-skeleton';
 const updateUserSchema = z.object({
   email: z.string().email('Invalid email address'),
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+  fullNameAr: z.string().optional(),
   jobTitle: z.string().optional(),
   phone: z.string().optional().refine(
-    val => !val || val === '+971' || /^\+971[1-9]\d{7,8}$/.test(val),
-    { message: 'Phone must be a valid UAE number (+971XXXXXXXXX)' }
+    val => !val || /^\+\d{7,15}$/.test(val),
+    { message: 'Invalid phone number' }
   ),
   password: z
     .string()
@@ -83,6 +84,7 @@ interface UserData {
   id: string;
   email: string;
   fullName: string;
+  fullNameAr: string | null;
   jobTitle: string | null;
   phone: string | null;
   profileImage: string | null;
@@ -148,6 +150,7 @@ export default function EditUserPage() {
         form.reset({
           email: user.email,
           fullName: user.fullName,
+          fullNameAr: user.fullNameAr || '',
           jobTitle: user.jobTitle || '',
           phone: user.phone || '',
           roleId: user.role?.id || '',
@@ -365,17 +368,35 @@ export default function EditUserPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Full Name */}
+                {/* Full Name EN */}
                 <FormField
                   control={form.control}
                   name="fullName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('users.fullName')} *</FormLabel>
+                      <FormLabel>{t('users.fullName')} (EN) *</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <User className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                          <Input {...field} disabled={isLoading} className="ps-10" placeholder={t('users.fullName')} />
+                          <Input {...field} dir="ltr" disabled={isLoading} className="ps-10" placeholder="Ahmed Mohamed" />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Full Name AR */}
+                <FormField
+                  control={form.control}
+                  name="fullNameAr"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('users.fullName')} (AR)</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <User className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                          <Input {...field} dir="rtl" disabled={isLoading} className="ps-10" placeholder="أحمد محمد" />
                         </div>
                       </FormControl>
                       <FormMessage />

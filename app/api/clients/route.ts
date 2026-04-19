@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 const createClientSchema = z.object({
   companyName: z.string().min(1),
+  companyNameAr: z.string().optional().nullable(),
   trn: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
@@ -62,6 +63,7 @@ export async function POST(request: NextRequest) {
     const client = await prisma.client.create({
       data: {
         companyName: data.companyName,
+        companyNameAr: data.companyNameAr || null,
         trn: data.trn || null,
         address: data.address || null,
         phone: data.phone || null,

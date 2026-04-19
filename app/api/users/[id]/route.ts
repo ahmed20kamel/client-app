@@ -152,6 +152,7 @@ export async function PATCH(
 
     if (validatedData.email) updateData.email = validatedData.email;
     if (validatedData.fullName) updateData.fullName = validatedData.fullName;
+    if (validatedData.fullNameAr !== undefined) updateData.fullNameAr = validatedData.fullNameAr || null;
     if (validatedData.jobTitle !== undefined) updateData.jobTitle = validatedData.jobTitle;
     if (validatedData.phone !== undefined) updateData.phone = validatedData.phone;
     if (validatedData.status) updateData.status = validatedData.status;
