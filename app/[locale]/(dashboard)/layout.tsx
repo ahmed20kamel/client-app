@@ -57,7 +57,9 @@ export default async function DashboardLayout({
   const navItems: NavItem[] = allNavItems.filter((i) => {
     const perm = (i as any).perm;
     if (perm === '__admin__') return isAdmin;
-    return true;
+    if (perm === null) return true;          // no permission required (e.g. internal-tasks)
+    if (isAdmin) return true;                // admin always sees everything
+    return pagePerms.has(perm);             // non-admin: check their page permissions
   });
 
   const adminItems: NavItem[] = isAdmin

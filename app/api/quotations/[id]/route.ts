@@ -30,13 +30,15 @@ export async function GET(
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await params;
-    // Any authenticated user can view quotations
-    const quotation = await prisma.quotation.findUnique({
-      where: { id },
-      include: QUOTATION_INCLUDE,
-    });
-
+    const quotation = await prisma.quotation.findUnique({ where: { id }, include: QUOTATION_INCLUDE });
     if (!quotation) return NextResponse.json({ error: 'Quotation not found' }, { status: 404 });
+
+    const canViewAll = await can(session.user.id, 'quotation.view.all');
+    const canViewOwn = await can(session.user.id, 'quotation.view.own', quotation);
+    if (!canViewAll && !canViewOwn) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     return NextResponse.json({ data: quotation });
   } catch (error) {
     logError('GET quotation error:', error);
@@ -54,10 +56,13 @@ export async function PATCH(
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await params;
-    const canAdmin = true; // all authenticated users can perform actions
-
     const existing = await prisma.quotation.findUnique({ where: { id } });
     if (!existing) return NextResponse.json({ error: 'Quotation not found' }, { status: 404 });
+
+    const canEditAll    = await can(session.user.id, 'quotation.edit.all');
+    const canEditOwn    = await can(session.user.id, 'quotation.edit.own', existing);
+    const canApprove    = await can(session.user.id, 'quotation.approve');
+    const canEdit       = canEditAll || canEditOwn;
 
     const body = await request.json();
     const { action } = body;
@@ -66,6 +71,7 @@ export async function PATCH(
     // ACTION: send  (DRAFT → SENT)
     // ──────────────────────────────────────────────────────────────────────────
     if (action === 'send') {
+      if (!canEdit) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       if (existing.status !== 'DRAFT') {
         return NextResponse.json({ error: 'Only a DRAFT quotation can be sent.' }, { status: 400 });
       }
@@ -83,7 +89,7 @@ export async function PATCH(
     // Optionally captures the client's LPO number at this stage.
     // ──────────────────────────────────────────────────────────────────────────
     if (action === 'client_approve') {
-      if (!canAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      if (!canApprove && !canEdit) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       if (existing.status !== 'SENT') {
         return NextResponse.json(
           { error: 'Quotation must be in SENT status for client approval.' },
@@ -116,7 +122,7 @@ export async function PATCH(
     // Records that the client declined or requested revisions.
     // ──────────────────────────────────────────────────────────────────────────
     if (action === 'client_reject') {
-      if (!canAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      if (!canApprove && !canEdit) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       if (existing.status !== 'SENT') {
         return NextResponse.json(
           { error: 'Quotation must be in SENT status to record client rejection.' },
@@ -147,7 +153,7 @@ export async function PATCH(
     // Allows the sales team to revise and re-send after client rejection.
     // ──────────────────────────────────────────────────────────────────────────
     if (action === 'revert_to_draft') {
-      if (!canAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      if (!canApprove && !canEdit) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       if (existing.status !== 'CLIENT_REJECTED') {
         return NextResponse.json(
           { error: 'Only a CLIENT_REJECTED quotation can be reverted to draft.' },
@@ -174,7 +180,7 @@ export async function PATCH(
     // Finance/Admin confirms payment arrangement → triggers production/order.
     // ──────────────────────────────────────────────────────────────────────────
     if (action === 'finance_confirm') {
-      if (!canAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      if (!canApprove) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       if (!['CLIENT_APPROVED', 'APPROVED'].includes(existing.status)) {
         return NextResponse.json(
           { error: 'Finance confirmation requires CLIENT_APPROVED status.' },
@@ -214,7 +220,7 @@ export async function PATCH(
     // Kept for backward compat with older records.
     // ──────────────────────────────────────────────────────────────────────────
     if (action === 'approve') {
-      if (!canAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      if (!canApprove && !canEdit) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       if (existing.status !== 'SENT') {
         return NextResponse.json({ error: 'Only a SENT quotation can use the legacy approve action.' }, { status: 400 });
       }
@@ -254,7 +260,7 @@ export async function PATCH(
     // LEGACY ACTION: reject  (SENT or APPROVED → REJECTED)
     // ──────────────────────────────────────────────────────────────────────────
     if (action === 'reject') {
-      if (!canAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      if (!canApprove && !canEdit) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       if (!['SENT', 'APPROVED', 'CLIENT_APPROVED'].includes(existing.status)) {
         return NextResponse.json({ error: 'Cannot reject a quotation in this status.' }, { status: 400 });
       }
@@ -278,7 +284,7 @@ export async function PATCH(
     // LEGACY ACTION: confirm  (APPROVED → CONFIRMED, for old records)
     // ──────────────────────────────────────────────────────────────────────────
     if (action === 'confirm') {
-      if (!canAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      if (!canApprove && !canEdit) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       if (!['APPROVED', 'CLIENT_APPROVED'].includes(existing.status)) {
         return NextResponse.json({ error: 'Quotation must be CLIENT_APPROVED to confirm.' }, { status: 400 });
       }
@@ -310,6 +316,8 @@ export async function PATCH(
     // ──────────────────────────────────────────────────────────────────────────
     // Normal field update (no action)
     // ──────────────────────────────────────────────────────────────────────────
+    if (!canEdit) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
     if (body.status !== undefined) {
       return NextResponse.json(
         { error: 'Use explicit action param to change status.' },
@@ -426,6 +434,10 @@ export async function DELETE(
       },
     });
     if (!quotation) return NextResponse.json({ error: 'Quotation not found' }, { status: 404 });
+
+    if (!(await can(session.user.id, 'quotation.delete.all'))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     if (quotation.taxInvoices.length > 0) {
       return NextResponse.json(

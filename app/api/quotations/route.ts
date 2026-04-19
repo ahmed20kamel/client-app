@@ -37,7 +37,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Any authenticated user can view quotations
+    const canViewAll = await can(session.user.id, 'quotation.view.all');
+    const canViewOwn = await can(session.user.id, 'quotation.view.own');
+    if (!canViewAll && !canViewOwn) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
@@ -49,12 +53,16 @@ export async function GET(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
 
+    // Scope: non-admin employees only see their own quotations
+    if (!canViewAll) {
+      where.createdById = session.user.id;
+    }
+
     if (search) {
       where.OR = [
         { quotationNumber: { contains: search, mode: 'insensitive' } },
-
-        { projectName: { contains: search, mode: 'insensitive' } },
-        { engineerName: { contains: search, mode: 'insensitive' } },
+        { projectName:     { contains: search, mode: 'insensitive' } },
+        { engineerName:    { contains: search, mode: 'insensitive' } },
         { customer: { fullName: { contains: search, mode: 'insensitive' } } },
       ];
     }
@@ -94,7 +102,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Any authenticated user can create quotations
+    if (!(await can(session.user.id, 'quotation.create'))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const body = await request.json();
     const validatedData = createQuotationSchema.parse(body);
