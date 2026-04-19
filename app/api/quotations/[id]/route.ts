@@ -11,7 +11,7 @@ const QUOTATION_INCLUDE = {
   customer: { select: { id: true, fullName: true } },
   client: { select: { id: true, companyName: true, trn: true } },
   engineer: { select: { id: true, name: true, mobile: true } },
-  createdBy: { select: { id: true, fullName: true } },
+  createdBy: { select: { id: true, fullName: true, phone: true } },
   confirmedBy: { select: { id: true, fullName: true } },
   clientApprovedBy: { select: { id: true, fullName: true } },
   items: { orderBy: { sortOrder: 'asc' as const } },
