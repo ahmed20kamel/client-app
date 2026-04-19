@@ -599,16 +599,19 @@ export default function EditQuotationPage() {
                         <span className="text-muted-foreground">{t('quotations.subtotal')}</span>
                         <span className="font-medium">{fmt(calculations.subtotal)} AED</span>
                       </div>
-                      <div className="flex justify-between px-4 py-2.5 border-b border-border/40">
-                        <span className="text-muted-foreground">VAT ({taxPercent}%)</span>
-                        <span className="font-medium">+{fmt(calculations.taxAmount)} AED</span>
-                      </div>
                       {deliveryCharges > 0 && (
                         <div className="flex justify-between px-4 py-2.5 border-b border-border/40">
                           <span className="text-muted-foreground">{t('quotations.deliveryCharges')}</span>
                           <span className="font-medium">+{fmt(deliveryCharges)} AED</span>
                         </div>
                       )}
+                      <div className="flex justify-between px-4 py-2.5 border-b border-border/40">
+                        <span className="text-muted-foreground">
+                          VAT ({taxPercent}%)
+                          {deliveryCharges > 0 && <span className="text-xs ms-1 opacity-60">(incl. delivery)</span>}
+                        </span>
+                        <span className="font-medium">+{fmt(calculations.taxAmount)} AED</span>
+                      </div>
                       <div className="flex justify-between px-4 py-3 bg-primary text-primary-foreground font-bold text-base">
                         <span>{t('quotations.total')}</span>
                         <span>{fmt(calculations.total)} AED</span>
