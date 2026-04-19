@@ -57,7 +57,24 @@
     "clear": "Clear",
     "new": "New",
     "add": "Add",
-    "optional": "Optional"
+    "optional": "Optional",
+    "and": "&",
+    "download": "Download",
+    "clearAll": "Clear All",
+    "uploadFile": "Upload",
+    "noAttachmentsYet": "No attachments yet",
+    "clickToAdd": "Click Upload to add a file"
+  },
+  "permissions": {
+    "title": "Permissions",
+    "description": "Fine-tune user permissions — load a role preset or customize manually",
+    "loadRolePreset": "Load Role Preset",
+    "selectAll": "Select All",
+    "clearAll": "Clear All",
+    "selectedCount": "{count} permissions selected",
+    "loadedSuccess": "Role permissions loaded",
+    "loadFailed": "Failed to load role permissions",
+    "saveFailed": "Failed to save permissions"
   },
   "auth": {
     "login": "Login",

@@ -287,7 +287,7 @@ export default function EditCustomerPage() {
                     {t('customers.basicInfo')}
                   </CardTitle>
                   <CardDescription>
-                    {t('customers.fullName')} {locale === 'ar' ? 'و' : '&'} {t('common.phone')}
+                    {t('customers.fullName')} {t('common.and')} {t('common.phone')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -599,7 +599,7 @@ export default function EditCustomerPage() {
                     {t('customers.projectDetails')}
                   </CardTitle>
                   <CardDescription>
-                    {t('customers.projectType')} {locale === 'ar' ? 'و' : '&'} {t('customers.productType')}
+                    {t('customers.projectType')} {t('common.and')} {t('customers.productType')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -770,7 +770,7 @@ export default function EditCustomerPage() {
                     {t('customers.leadInfo')}
                   </CardTitle>
                   <CardDescription>
-                    {t('customers.leadSource')} {locale === 'ar' ? 'و' : '&'} {t('customers.estimatedValue')}
+                    {t('customers.leadSource')} {t('common.and')} {t('customers.estimatedValue')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -940,7 +940,7 @@ export default function EditCustomerPage() {
                       {t('customers.followUpInfo')}
                     </CardTitle>
                     <CardDescription>
-                      {t('customers.lastFollowUp')} {locale === 'ar' ? 'و' : '&'} {t('customers.nextFollowUp')}
+                      {t('customers.lastFollowUp')} {t('common.and')} {t('customers.nextFollowUp')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

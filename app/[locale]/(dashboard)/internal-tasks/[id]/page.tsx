@@ -818,7 +818,7 @@ export default function InternalTaskDetailPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Paperclip className="size-4" />
-                  {locale === 'ar' ? 'المرفقات' : 'Attachments'} ({attachments.length})
+                  {t('attachments.title')} ({attachments.length})
                 </CardTitle>
                 <label className="cursor-pointer">
                   <input
@@ -834,7 +834,7 @@ export default function InternalTaskDetailPage() {
                     ) : (
                       <Upload className="size-3.5" />
                     )}
-                    {locale === 'ar' ? 'رفع ملف' : 'Upload'}
+                    {t('common.uploadFile')}
                   </span>
                 </label>
               </div>
@@ -844,10 +844,10 @@ export default function InternalTaskDetailPage() {
                 <div className="text-center py-10 border-2 border-dashed border-border rounded-lg">
                   <Paperclip className="size-8 mx-auto mb-2 text-muted-foreground/30" />
                   <p className="text-sm text-muted-foreground">
-                    {locale === 'ar' ? 'لا توجد مرفقات بعد' : 'No attachments yet'}
+                    {t('attachments.noAttachments')}
                   </p>
                   <p className="text-xs text-muted-foreground/60 mt-1">
-                    {locale === 'ar' ? 'اضغط رفع ملف لإضافة مرفق' : 'Click Upload to add a file'}
+                    {t('common.clickToAdd')}
                   </p>
                 </div>
               ) : (
@@ -870,7 +870,7 @@ export default function InternalTaskDetailPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="p-1.5 rounded-md hover:bg-muted transition-colors"
-                          title={locale === 'ar' ? 'تحميل' : 'Download'}
+                          title={t('common.download')}
                         >
                           <Download className="size-4 text-muted-foreground" />
                         </a>
@@ -880,7 +880,7 @@ export default function InternalTaskDetailPage() {
                             onClick={() => handleDeleteAttachment(attachment.id)}
                             disabled={isDeletingAttachment === attachment.id}
                             className="p-1.5 rounded-md hover:bg-destructive/10 transition-colors"
-                            title={locale === 'ar' ? 'حذف' : 'Delete'}
+                            title={t('common.delete')}
                           >
                             {isDeletingAttachment === attachment.id ? (
                               <Loader2 className="size-4 animate-spin text-destructive" />

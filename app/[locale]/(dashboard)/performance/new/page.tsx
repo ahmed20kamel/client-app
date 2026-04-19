@@ -252,7 +252,7 @@ export default function CreatePerformanceReviewPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="size-5 text-primary" />
-              {t('performance.strengths')} {locale === 'ar' ? 'و' : '&'} {t('performance.improvements')}
+              {t('performance.strengths')} {t('common.and')} {t('performance.improvements')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">

@@ -154,7 +154,7 @@ export default function CreateUserPage() {
                 {t('users.fullName')}
               </CardTitle>
               <CardDescription>
-                {t('common.email')} {locale === 'ar' ? 'و' : '&'} {t('common.phone')}
+                {t('common.email')} {t('common.and')} {t('common.phone')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -258,7 +258,7 @@ export default function CreateUserPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="size-5 text-primary" />
-                {t('users.role')} {locale === 'ar' ? 'و' : '&'} {t('auth.password')}
+                {t('users.role')} {t('common.and')} {t('auth.password')}
               </CardTitle>
             </CardHeader>
             <CardContent>

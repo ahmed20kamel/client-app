@@ -266,7 +266,7 @@ export default function EditInternalTaskPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <UserCheck className="size-5 text-primary" />
-                  {t('internalTasks.assignTo')} {locale === 'ar' ? 'و' : '&'} {t('internalTasks.dueDate')}
+                  {t('internalTasks.assignTo')} {t('common.and')} {t('internalTasks.dueDate')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -368,7 +368,7 @@ export default function EditInternalTaskPage() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Paperclip className="size-5 text-primary" />
-                    {locale === 'ar' ? 'المرفقات' : 'Attachments'} ({attachments.length})
+                    {t('attachments.title')} ({attachments.length})
                   </CardTitle>
                   <label className="cursor-pointer">
                     <input
@@ -385,7 +385,7 @@ export default function EditInternalTaskPage() {
                       ) : (
                         <Upload className="size-3.5" />
                       )}
-                      {locale === 'ar' ? 'رفع ملف' : 'Upload'}
+                      {t('common.uploadFile')}
                     </span>
                   </label>
                 </div>
@@ -395,7 +395,7 @@ export default function EditInternalTaskPage() {
                   <div className="text-center py-10 border-2 border-dashed border-border rounded-lg">
                     <Paperclip className="size-8 mx-auto mb-2 text-muted-foreground/30" />
                     <p className="text-sm text-muted-foreground">
-                      {locale === 'ar' ? 'لا توجد مرفقات بعد' : 'No attachments yet'}
+                      {t('attachments.noAttachments')}
                     </p>
                   </div>
                 ) : (

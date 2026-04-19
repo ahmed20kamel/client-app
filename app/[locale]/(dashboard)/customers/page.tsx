@@ -141,7 +141,7 @@ export default function CustomersPage() {
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Filter className="size-4 text-primary" />
-                {t('common.search')} {locale === 'ar' ? 'و' : '&'} {t('common.filter')}
+                {t('common.search')} {t('common.and')} {t('common.filter')}
               </CardTitle>
             </CardHeader>
             <CardContent>

@@ -217,9 +217,9 @@ export default function EditUserPage() {
       if (!res.ok) throw new Error();
       const { data } = await res.json();
       setSelectedPermissions(data ?? []);
-      toast.success(locale === 'ar' ? 'تم تحميل صلاحيات الدور' : 'Role permissions loaded');
+      toast.success(t('permissions.loadedSuccess'));
     } catch {
-      toast.error(locale === 'ar' ? 'فشل تحميل صلاحيات الدور' : 'Failed to load role permissions');
+      toast.error(t('permissions.loadFailed'));
     } finally {
       setLoadingRolePreset(false);
     }
@@ -260,7 +260,7 @@ export default function EditUserPage() {
         return;
       }
       if (!permsRes.ok) {
-        toast.error(locale === 'ar' ? 'فشل حفظ الصلاحيات' : 'Failed to save permissions');
+        toast.error(t('permissions.saveFailed'));
         return;
       }
 
@@ -372,7 +372,7 @@ export default function EditUserPage() {
                 {t('users.fullName')}
               </CardTitle>
               <CardDescription>
-                {t('common.email')} {locale === 'ar' ? 'و' : '&'} {t('common.phone')}
+                {t('common.email')} {t('common.and')} {t('common.phone')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -476,7 +476,7 @@ export default function EditUserPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="size-5 text-primary" />
-                {t('users.role')} {locale === 'ar' ? 'و' : '&'} {t('auth.password')}
+                {t('users.role')} {t('common.and')} {t('auth.password')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -591,12 +591,10 @@ export default function EditUserPage() {
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <Shield className="size-5 text-primary" />
-                    {locale === 'ar' ? 'الصلاحيات' : 'Permissions'}
+                    {t('permissions.title')}
                   </CardTitle>
                   <CardDescription className="mt-1">
-                    {locale === 'ar'
-                      ? 'حدد صلاحيات المستخدم بشكل دقيق — يمكنك تحميل قالب الدور أو تخصيصها يدوياً'
-                      : 'Fine-tune user permissions — load a role preset or customize manually'}
+                    {t('permissions.description')}
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -612,7 +610,7 @@ export default function EditUserPage() {
                     ) : (
                       <Shield className="size-3.5 me-1.5" />
                     )}
-                    {locale === 'ar' ? 'تحميل صلاحيات الدور' : 'Load Role Preset'}
+                    {t('permissions.loadRolePreset')}
                   </Button>
                   <Button
                     type="button"
@@ -621,7 +619,7 @@ export default function EditUserPage() {
                     onClick={selectAllPermissions}
                   >
                     <CheckCheck className="size-3.5 me-1.5" />
-                    {locale === 'ar' ? 'تحديد الكل' : 'Select All'}
+                    {t('permissions.selectAll')}
                   </Button>
                   <Button
                     type="button"
@@ -630,14 +628,14 @@ export default function EditUserPage() {
                     onClick={clearAllPermissions}
                   >
                     <X className="size-3.5 me-1.5" />
-                    {locale === 'ar' ? 'مسح الكل' : 'Clear All'}
+                    {t('permissions.clearAll')}
                   </Button>
                 </div>
               </div>
               {selectedPermissions.length > 0 && (
                 <div className="mt-2 flex items-center gap-2">
                   <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
-                    {selectedPermissions.length} {locale === 'ar' ? 'صلاحية محددة' : 'permissions selected'}
+                    {t('permissions.selectedCount', { count: selectedPermissions.length })}
                   </span>
                 </div>
               )}

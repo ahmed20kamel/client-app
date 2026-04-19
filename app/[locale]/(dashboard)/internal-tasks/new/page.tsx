@@ -297,7 +297,7 @@ export default function CreateInternalTaskPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserCheck className="size-5 text-primary" />
-              {t('internalTasks.assignTo')} {locale === 'ar' ? 'و' : '&'} {t('internalTasks.dueDate')}
+              {t('internalTasks.assignTo')} {t('common.and')} {t('internalTasks.dueDate')}
             </CardTitle>
           </CardHeader>
           <CardContent>

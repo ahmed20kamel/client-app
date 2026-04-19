@@ -57,7 +57,24 @@
     "clear": "مسح",
     "new": "جديد",
     "add": "إضافة",
-    "optional": "اختياري"
+    "optional": "اختياري",
+    "and": "و",
+    "download": "تحميل",
+    "clearAll": "مسح الكل",
+    "uploadFile": "رفع ملف",
+    "noAttachmentsYet": "لا توجد مرفقات بعد",
+    "clickToAdd": "اضغط رفع ملف لإضافة مرفق"
+  },
+  "permissions": {
+    "title": "الصلاحيات",
+    "description": "حدد صلاحيات المستخدم بدقة — يمكنك تحميل قالب الدور أو تخصيصها يدوياً",
+    "loadRolePreset": "تحميل صلاحيات الدور",
+    "selectAll": "تحديد الكل",
+    "clearAll": "مسح الكل",
+    "selectedCount": "{count} صلاحية محددة",
+    "loadedSuccess": "تم تحميل صلاحيات الدور",
+    "loadFailed": "فشل تحميل صلاحيات الدور",
+    "saveFailed": "فشل حفظ الصلاحيات"
   },
   "auth": {
     "login": "تسجيل الدخول",

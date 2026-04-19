@@ -205,7 +205,7 @@ export default function CreateTaskPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="size-5 text-primary" />
-                {t('tasks.assignedTo')} {locale === 'ar' ? 'و' : '&'} {t('tasks.dueDate')}
+                {t('tasks.assignedTo')} {t('common.and')} {t('tasks.dueDate')}
               </CardTitle>
             </CardHeader>
             <CardContent>

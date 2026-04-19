@@ -807,7 +807,7 @@ export default function CreateCustomerPage() {
                     {t('customers.leadInfo')}
                   </CardTitle>
                   <CardDescription>
-                    {t('customers.leadSource')} {locale === 'ar' ? 'و' : '&'} {t('customers.estimatedValue')}
+                    {t('customers.leadSource')} {t('common.and')} {t('customers.estimatedValue')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
