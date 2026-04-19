@@ -120,45 +120,55 @@ export default function QuotationPrintPage() {
           <tbody><tr>
 
             {/* Left — Company info (English) */}
-            <td style={{ verticalAlign: 'top', width: '30%' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#111', lineHeight: 1.3 }}>{COMPANY.name}</div>
+            <td style={{ verticalAlign: 'top', width: '28%' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#111', lineHeight: 1.3 }}>{COMPANY.name}</div>
               <div style={{ fontSize: 9, color: '#64748b', marginTop: 2 }}>{COMPANY.address}</div>
               {COMPANY.vat   && <div style={{ fontSize: 9, color: '#64748b' }}>VAT Reg: {COMPANY.vat}</div>}
               {COMPANY.phone && <div style={{ fontSize: 9, color: '#64748b' }}>Tel: {COMPANY.phone}</div>}
             </td>
 
             {/* Center — Logo (perfectly centered) */}
-            <td style={{ width: '40%', textAlign: 'center', verticalAlign: 'middle', padding: '0 8px' }}>
+            <td style={{ width: '37%', textAlign: 'center', verticalAlign: 'middle', padding: '0 8px' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/logo.svg" alt="Logo" style={{ width: 115, height: 'auto', display: 'inline-block' }} />
             </td>
 
             {/* Right — Doc title + meta (Arabic + English) */}
-            <td style={{ textAlign: 'right', verticalAlign: 'top', width: '30%' }}>
+            <td style={{ textAlign: 'right', verticalAlign: 'top', width: '35%' }}>
               {/* Bilingual title */}
-              <div style={{ lineHeight: 1 }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: BRAND, letterSpacing: '-0.5px' }}>QUOTATION</div>
-                <div className="ar" style={{ fontSize: 14, fontWeight: 700, color: BRAND, marginTop: 2 }}>عرض سعر</div>
+              <div style={{ lineHeight: 1, marginBottom: 10 }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: BRAND, letterSpacing: '-0.5px' }}>QUOTATION</div>
+                <div className="ar" style={{ fontSize: 13, fontWeight: 700, color: '#3b82f6', marginTop: 2, letterSpacing: '0.02em' }}>عرض سعر</div>
               </div>
-              <div style={{ marginTop: 8, fontSize: 11 }}>
-                <div style={{ marginBottom: 2 }}>
-                  <span style={{ color: '#64748b' }}>Quotation No / </span>
-                  <span className="ar" style={{ fontSize: 10, color: '#64748b' }}>رقم العرض: </span>
-                  <strong>{quotation.quotationNumber}</strong>
-                </div>
-                <div style={{ marginBottom: 2 }}>
-                  <span style={{ color: '#64748b' }}>Date / </span>
-                  <span className="ar" style={{ fontSize: 10, color: '#64748b' }}>التاريخ: </span>
-                  <strong>{fmtDate(quotation.createdAt)}</strong>
-                </div>
-                {quotation.validUntil && (
-                  <div>
-                    <span style={{ color: '#64748b' }}>Valid Until / </span>
-                    <span className="ar" style={{ fontSize: 10, color: '#64748b' }}>صالح حتى: </span>
-                    <strong>{fmtDate(quotation.validUntil)}</strong>
-                  </div>
-                )}
+
+              {/* Quotation number — prominent badge */}
+              <div style={{
+                background: BRAND, color: '#fff', borderRadius: 6,
+                padding: '5px 10px', marginBottom: 8, display: 'inline-block',
+                fontSize: 11, fontWeight: 700, letterSpacing: '0.03em',
+                whiteSpace: 'nowrap', maxWidth: '100%', overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}>
+                {quotation.quotationNumber}
               </div>
+
+              {/* Dates — stacked label / value */}
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
+                <tbody>
+                  <tr>
+                    <td style={{ paddingBottom: 5, paddingRight: 6 }}>
+                      <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Date / التاريخ</div>
+                      <div style={{ fontWeight: 700, color: '#111', fontSize: 11 }}>{fmtDate(quotation.createdAt)}</div>
+                    </td>
+                    {quotation.validUntil && (
+                      <td style={{ paddingBottom: 5, textAlign: 'right' }}>
+                        <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Valid Until / صالح حتى</div>
+                        <div style={{ fontWeight: 700, color: '#111', fontSize: 11 }}>{fmtDate(quotation.validUntil)}</div>
+                      </td>
+                    )}
+                  </tr>
+                </tbody>
+              </table>
             </td>
 
           </tr></tbody>
