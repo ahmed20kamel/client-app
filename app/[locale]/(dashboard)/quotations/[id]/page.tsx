@@ -249,6 +249,12 @@ export default function QuotationDetailsPage() {
 
   const fmt = (n: number) => fmtAmount(n, locale);
 
+  const cleanDesc = (desc: string, size: string | null) => {
+    if (!size) return desc;
+    const suffix = ` ${size}`;
+    return desc.endsWith(suffix) ? desc.slice(0, -suffix.length) : desc;
+  };
+
   // ── Actions ───────────────────────────────────────────────────────────────
   const handleSend = async () => {
     const ok = await patch({ action: 'send' });
@@ -584,38 +590,84 @@ export default function QuotationDetailsPage() {
 
             {/* Items Table */}
             <Card className="shadow-sm border-border/60 overflow-hidden">
+              {/* Header row with summary pills */}
               <div className="px-5 py-3.5 border-b border-border/60 flex items-center gap-2 bg-muted/10">
                 <Package className="size-4 text-muted-foreground" />
                 <span className="text-sm font-bold">{t('quotations.items')}</span>
-                <span className="ms-auto text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{quotation.items.length}</span>
+                <span className="ms-auto flex items-center gap-2">
+                  <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
+                    {quotation.items.length} {t('quotations.items')}
+                  </span>
+                  {(() => {
+                    const totalPcs = quotation.items.reduce((s, it) => s + it.quantity, 0);
+                    const totalLM  = quotation.items.reduce((s, it) => s + (it.linearMeters ?? 0), 0);
+                    return (
+                      <>
+                        <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-full font-semibold tabular-nums">
+                          {totalPcs} pcs
+                        </span>
+                        {totalLM > 0 && (
+                          <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full font-semibold tabular-nums">
+                            {totalLM.toFixed(2)} m
+                          </span>
+                        )}
+                      </>
+                    );
+                  })()}
+                </span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-muted/30 border-b border-border/40">
                       {[
-                        t('quotations.description'), t('quotations.size'), t('quotations.unit'),
-                        t('quotations.qty'), t('quotations.tableLM'), t('quotations.unitPrice'), t('quotations.total')
-                      ].map((h, i) => (
-                        <th key={h} className={`px-3 py-2.5 text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider ${i === 0 ? 'text-start ps-4' : i === 6 ? 'text-end pe-4' : 'text-center'}`}>{h}</th>
+                        { label: t('quotations.description'), align: 'text-start ps-4' },
+                        { label: 'L/PC (m)',                  align: 'text-center' },
+                        { label: t('quotations.unit'),        align: 'text-center' },
+                        { label: t('quotations.qty'),         align: 'text-center' },
+                        { label: t('quotations.tableLM'),     align: 'text-center' },
+                        { label: t('quotations.unitPrice'),   align: 'text-center' },
+                        { label: t('quotations.total'),       align: 'text-end pe-4' },
+                      ].map(({ label, align }) => (
+                        <th key={label} className={`px-3 py-2.5 text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider ${align}`}>{label}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/30">
                     {quotation.items.map((item, i) => (
                       <tr key={item.id} className={i % 2 === 1 ? 'bg-muted/5' : ''}>
-                        <td className="ps-4 pe-3 py-2.5 font-medium">{item.description}</td>
-                        <td className="px-3 py-2.5 text-center text-muted-foreground">{item.size || '—'}</td>
+                        <td className="ps-4 pe-3 py-2.5 font-medium">{cleanDesc(item.description, item.size)}</td>
+                        <td className="px-3 py-2.5 text-center text-muted-foreground">
+                          {item.unit === 'LM' && item.length != null ? item.length.toFixed(2) : (item.size || '—')}
+                        </td>
                         <td className="px-3 py-2.5 text-center text-muted-foreground">{item.unit || 'LM'}</td>
                         <td className="px-3 py-2.5 text-center tabular-nums">{item.quantity}</td>
                         <td className="px-3 py-2.5 text-center tabular-nums font-semibold text-emerald-600">
-                          {item.linearMeters ? item.linearMeters.toFixed(2) : item.quantity.toFixed(2)}
+                          {item.linearMeters ? item.linearMeters.toFixed(2) : '—'}
                         </td>
                         <td className="px-3 py-2.5 text-center tabular-nums">{fmt(item.unitPrice)}</td>
                         <td className="ps-3 pe-4 py-2.5 text-end tabular-nums font-bold">{fmt(item.total)}</td>
                       </tr>
                     ))}
                   </tbody>
+                  {/* Summary totals row */}
+                  {(() => {
+                    const totalPcs = quotation.items.reduce((s, it) => s + it.quantity, 0);
+                    const totalLM  = quotation.items.reduce((s, it) => s + (it.linearMeters ?? 0), 0);
+                    return (
+                      <tfoot>
+                        <tr className="bg-blue-50/60 border-t-2 border-blue-200">
+                          <td className="ps-4 pe-3 py-2 text-xs font-bold text-blue-800 uppercase tracking-wide">Total Summary</td>
+                          <td className="px-3 py-2 text-center text-xs text-muted-foreground">—</td>
+                          <td className="px-3 py-2 text-center text-xs text-muted-foreground">—</td>
+                          <td className="px-3 py-2 text-center tabular-nums font-extrabold text-blue-700">{totalPcs}</td>
+                          <td className="px-3 py-2 text-center tabular-nums font-extrabold text-emerald-700">{totalLM > 0 ? totalLM.toFixed(2) : '—'}</td>
+                          <td className="px-3 py-2 text-center text-xs text-muted-foreground">—</td>
+                          <td className="ps-3 pe-4 py-2 text-end text-xs text-muted-foreground">—</td>
+                        </tr>
+                      </tfoot>
+                    );
+                  })()}
                 </table>
               </div>
               {/* Totals */}
