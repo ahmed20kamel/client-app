@@ -476,7 +476,7 @@ export default function CreateQuotationPage() {
                     <div key={index} className="grid grid-cols-[2.5fr_0.8fr_0.7fr_0.8fr_0.9fr_0.8fr_0.9fr_32px] gap-x-3 items-center px-3 py-2 rounded-lg border border-border/30 bg-background hover:border-border/70 hover:bg-muted/10 transition-colors">
                       <div className="flex flex-col gap-1">
                         <SearchableSelect
-                          options={products.map(p => ({ value: p.id, label: `${p.name}${p.size ? ` (${p.size})` : ''}` }))}
+                          options={products.map(p => ({ value: p.id, label: p.name }))}
                           value={item.productId || ''}
                           onValueChange={(val) => handleProductSelect(index, val)}
                           placeholder={t('quotations.selectProduct')}

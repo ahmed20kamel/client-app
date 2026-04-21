@@ -520,7 +520,7 @@ export default function EditQuotationPage() {
                     <div key={index} className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_36px] gap-2 items-center p-3 border border-border/50 rounded-xl hover:bg-muted/10 transition-colors">
                       {/* Product */}
                       <SearchableSelect
-                        options={products.map(p => ({ value: p.id, label: `${p.name}${p.size ? ` (${p.size})` : ''}` }))}
+                        options={products.map(p => ({ value: p.id, label: p.name }))}
                         value={item.productId || ''}
                         onValueChange={(val) => handleProductSelect(index, val)}
                         placeholder={t('quotations.selectProduct')}
