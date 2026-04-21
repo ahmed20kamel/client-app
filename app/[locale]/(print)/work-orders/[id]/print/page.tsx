@@ -163,26 +163,22 @@ export default function WorkOrderPrintPage() {
         <table style={{ width: '100%', marginBottom: 16 }}>
           <thead>
             <tr style={{ background: BRAND, color: '#fff' }}>
-              <th style={{ padding: '7px 10px', textAlign: 'left',   fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>#</th>
               <th style={{ padding: '7px 10px', textAlign: 'left',   fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>Description / الوصف</th>
-              <th style={{ padding: '7px 10px', textAlign: 'center', fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>Size / المقاس</th>
+              <th style={{ padding: '7px 10px', textAlign: 'center', fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>L/PC (cm) / الطول</th>
               <th style={{ padding: '7px 10px', textAlign: 'center', fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>Unit / الوحدة</th>
               <th style={{ padding: '7px 10px', textAlign: 'center', fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>Qty / الكمية</th>
-              <th style={{ padding: '7px 10px', textAlign: 'center', fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>L/PC (cm)</th>
-              <th style={{ padding: '7px 10px', textAlign: 'center', fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>Total LM</th>
+              <th style={{ padding: '7px 10px', textAlign: 'center', fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>LM / م.خ</th>
             </tr>
           </thead>
           <tbody>
             {wo.items.map((item, idx) => (
               <tr key={item.id} style={{ background: idx % 2 === 0 ? '#fff' : '#f8fafc' }}>
-                <td style={{ padding: '6px 10px', border: '1px solid #e5e7eb', fontSize: 11, color: '#6b7280', textAlign: 'left' }}>{idx + 1}</td>
                 <td style={{ padding: '6px 10px', border: '1px solid #e5e7eb', fontSize: 11, fontWeight: 500 }}>{item.description}</td>
-                <td style={{ padding: '6px 10px', border: '1px solid #e5e7eb', fontSize: 11, textAlign: 'center', color: '#374151' }}>{item.size || '—'}</td>
-                <td style={{ padding: '6px 10px', border: '1px solid #e5e7eb', fontSize: 11, textAlign: 'center', color: '#374151' }}>{item.unit || '—'}</td>
-                <td style={{ padding: '6px 10px', border: '1px solid #e5e7eb', fontSize: 11, textAlign: 'center', fontWeight: 600 }}>{item.quantity}</td>
                 <td style={{ padding: '6px 10px', border: '1px solid #e5e7eb', fontSize: 11, textAlign: 'center', color: '#374151' }}>
                   {item.unit === 'LM' && item.length != null ? item.length.toFixed(2) : '—'}
                 </td>
+                <td style={{ padding: '6px 10px', border: '1px solid #e5e7eb', fontSize: 11, textAlign: 'center', color: '#374151' }}>{item.unit || '—'}</td>
+                <td style={{ padding: '6px 10px', border: '1px solid #e5e7eb', fontSize: 11, textAlign: 'center', fontWeight: 600 }}>{item.quantity}</td>
                 <td style={{ padding: '6px 10px', border: '1px solid #e5e7eb', fontSize: 11, textAlign: 'center', fontWeight: 600, color: BRAND }}>
                   {item.unit === 'LM' && item.linearMeters != null ? item.linearMeters.toFixed(2) : '—'}
                 </td>
@@ -190,11 +186,11 @@ export default function WorkOrderPrintPage() {
             ))}
             {/* Summary row */}
             <tr style={{ background: '#eff6ff', fontWeight: 700 }}>
-              <td colSpan={4} style={{ padding: '7px 10px', border: '1px solid #e5e7eb', textAlign: 'right', fontSize: 11, color: BRAND }}>
+              <td colSpan={2} style={{ padding: '7px 10px', border: '1px solid #e5e7eb', textAlign: 'right', fontSize: 11, color: BRAND }}>
                 Total / الإجمالي
               </td>
-              <td style={{ padding: '7px 10px', border: '1px solid #e5e7eb', textAlign: 'center', fontSize: 12, color: BRAND }}>{totalPcs}</td>
               <td style={{ padding: '7px 10px', border: '1px solid #e5e7eb' }} />
+              <td style={{ padding: '7px 10px', border: '1px solid #e5e7eb', textAlign: 'center', fontSize: 12, color: BRAND }}>{totalPcs}</td>
               <td style={{ padding: '7px 10px', border: '1px solid #e5e7eb', textAlign: 'center', fontSize: 12, color: BRAND }}>
                 {totalLM > 0 ? `${totalLM.toFixed(2)} LM` : '—'}
               </td>
