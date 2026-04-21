@@ -7,26 +7,15 @@ import { createQuotationSchema } from '@/lib/validations/quotation';
 import { withUniqueRetry } from '@/lib/db-utils';
 import { z } from 'zod';
 
-// Helper: generate serial SC-{PROJECT}-{seq}-{YY}
-async function generateQuotationNumber(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0], projectName?: string | null): Promise<string> {
-  const year = new Date().getFullYear().toString().slice(-2);
-  // Clean project name: uppercase, remove spaces/special chars, max 10 chars
-  const code = projectName
-    ? projectName.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10)
-    : 'LBS';
-  const prefix = `SC-${code}`;
-  const lastRecord = await tx.quotation.findFirst({
-    where: { quotationNumber: { startsWith: prefix } },
-    orderBy: { createdAt: 'desc' },
-    select: { quotationNumber: true },
-  });
-  let seq = 1;
-  if (lastRecord?.quotationNumber) {
-    const parts = lastRecord.quotationNumber.split('-');
-    const lastSeq = parseInt(parts[parts.length - 2]);
-    if (!isNaN(lastSeq)) seq = lastSeq + 1;
+// Helper: generate simple running quotation number starting from 136
+async function generateQuotationNumber(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0]): Promise<string> {
+  const all = await tx.quotation.findMany({ select: { quotationNumber: true } });
+  let max = 135; // next will be 136
+  for (const q of all) {
+    const n = parseInt(q.quotationNumber);
+    if (!isNaN(n) && n > max) max = n;
   }
-  return `${prefix}-${seq}-${year}`;
+  return String(max + 1);
 }
 
 // GET /api/quotations
@@ -150,7 +139,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await withUniqueRetry(() => prisma.$transaction(async (tx) => {
-      const quotationNumber = await generateQuotationNumber(tx, validatedData.projectName);
+      const quotationNumber = await generateQuotationNumber(tx);
       const quotation = await tx.quotation.create({
         data: {
           quotationNumber,

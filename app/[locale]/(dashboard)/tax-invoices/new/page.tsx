@@ -42,6 +42,7 @@ export default function NewTaxInvoicePage() {
   const [loading, setLoading] = useState(!!quotationId);
   const [saving, setSaving] = useState(false);
 
+  const [invoiceNumber, setInvoiceNumber] = useState('');
   const [notes, setNotes] = useState('');
   const [terms, setTerms] = useState('');
 
@@ -65,6 +66,7 @@ export default function NewTaxInvoicePage() {
 
   const handleSave = async () => {
     if (!quotation) { toast.error(t('taxInvoices.selectQuotation')); return; }
+    if (!invoiceNumber.trim()) { toast.error(t('taxInvoices.invoiceNumberRequired')); return; }
     setSaving(true);
     try {
       const items = quotation.items.map((item, i) => ({
@@ -85,6 +87,7 @@ export default function NewTaxInvoicePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           quotationId: quotation.id,
+          invoiceNumber: invoiceNumber.trim(),
           customerId: quotation.customerId || quotation.customer?.id,
           engineerName: quotation.engineerName,
           mobileNumber: quotation.mobileNumber,
@@ -133,6 +136,27 @@ export default function NewTaxInvoicePage() {
         />
 
         <div className="p-5 space-y-6">
+          {/* Invoice Number — manual entry */}
+          <Card className="shadow-premium border-primary/20">
+            <CardContent className="pt-5">
+              <div className="flex items-center gap-3">
+                <Receipt className="size-5 text-primary shrink-0" />
+                <div className="flex-1">
+                  <label className="text-sm font-semibold block mb-1.5">
+                    {t('taxInvoices.invoiceNumber')} <span className="text-destructive">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={invoiceNumber}
+                    onChange={e => setInvoiceNumber(e.target.value)}
+                    placeholder={t('taxInvoices.invoiceNumberPlaceholder')}
+                    className="w-full max-w-xs border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 bg-background"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Source Quotation Info */}
           {quotation && (
             <Card className="shadow-premium border-emerald-500/30 bg-emerald-500/5">

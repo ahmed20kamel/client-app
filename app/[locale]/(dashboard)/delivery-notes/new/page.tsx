@@ -10,19 +10,28 @@ import { toast } from 'sonner';
 import { Package2, ArrowLeft, Save, Loader2, User, Package, FileText, PenLine } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 
-interface InvoiceItem {
+interface SourceItem {
   id: string; description: string; quantity: number; length: number | null;
   linearMeters: number | null; size: string | null; unit: string | null;
   unitPrice: number; total: number;
   product: { id: string; name: string } | null;
 }
-interface TaxInvoice {
-  id: string; invoiceNumber: string; lpoNumber: string | null; paymentTerms: string | null;
-  engineerName: string | null; mobileNumber: string | null; projectName: string | null;
+interface SourceDoc {
+  id: string;
+  type: 'quotation' | 'invoice';
+  refNumber: string;
+  lpoNumber: string | null;
+  paymentTerms: string | null;
+  engineerName: string | null;
+  mobileNumber: string | null;
+  projectName: string | null;
+  customerId: string | null;
+  clientId: string | null;
   customer: { id: string; fullName: string } | null;
   client: { id: string; companyName: string } | null;
-  quotation: { id: string; quotationNumber: string } | null;
-  items: InvoiceItem[];
+  quotationId: string | null;
+  taxInvoiceId: string | null;
+  items: SourceItem[];
 }
 
 export default function NewDeliveryNotePage() {
@@ -32,9 +41,10 @@ export default function NewDeliveryNotePage() {
   const searchParams = useSearchParams();
   const locale = params.locale as string;
   const taxInvoiceId = searchParams.get('taxInvoiceId');
+  const quotationId  = searchParams.get('quotationId');
 
-  const [invoice, setInvoice] = useState<TaxInvoice | null>(null);
-  const [loading, setLoading] = useState(!!taxInvoiceId);
+  const [source, setSource] = useState<SourceDoc | null>(null);
+  const [loading, setLoading] = useState(!!(taxInvoiceId || quotationId));
   const [saving, setSaving] = useState(false);
 
   const [salesmanSign, setSalesmanSign] = useState('');
@@ -43,19 +53,47 @@ export default function NewDeliveryNotePage() {
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
-    if (!taxInvoiceId) { setLoading(false); return; }
-    fetch(`/api/tax-invoices/${taxInvoiceId}`)
-      .then(r => r.json())
-      .then(({ data }) => setInvoice(data))
-      .catch(() => toast.error(t('common.error')))
-      .finally(() => setLoading(false));
-  }, [taxInvoiceId, t]);
+    if (taxInvoiceId) {
+      fetch(`/api/tax-invoices/${taxInvoiceId}`)
+        .then(r => r.json())
+        .then(({ data }) => setSource({
+          id: data.id, type: 'invoice', refNumber: data.invoiceNumber,
+          lpoNumber: data.lpoNumber, paymentTerms: data.paymentTerms,
+          engineerName: data.engineerName, mobileNumber: data.mobileNumber,
+          projectName: data.projectName,
+          customerId: data.customer?.id || null, clientId: data.client?.id || null,
+          customer: data.customer, client: data.client,
+          quotationId: data.quotation?.id || null, taxInvoiceId: data.id,
+          items: data.items,
+        }))
+        .catch(() => toast.error(t('common.error')))
+        .finally(() => setLoading(false));
+    } else if (quotationId) {
+      fetch(`/api/quotations/${quotationId}`)
+        .then(r => r.json())
+        .then(({ data }) => setSource({
+          id: data.id, type: 'quotation', refNumber: data.quotationNumber,
+          lpoNumber: data.lpoNumber, paymentTerms: data.paymentTerms,
+          engineerName: data.engineerName, mobileNumber: data.mobileNumber,
+          projectName: data.projectName,
+          customerId: data.customerId || data.customer?.id || null,
+          clientId: data.clientId || data.client?.id || null,
+          customer: data.customer, client: data.client,
+          quotationId: data.id, taxInvoiceId: null,
+          items: data.items,
+        }))
+        .catch(() => toast.error(t('common.error')))
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, [taxInvoiceId, quotationId, t]);
 
   const handleSave = async () => {
-    if (!invoice) { toast.error(t('deliveryNotes.selectInvoice')); return; }
+    if (!source) { toast.error(t('deliveryNotes.selectInvoice')); return; }
     setSaving(true);
     try {
-      const items = invoice.items.map((item, i) => ({
+      const items = source.items.map((item, i) => ({
         productId: item.product?.id || null,
         description: item.description,
         quantity: item.quantity,
@@ -72,13 +110,13 @@ export default function NewDeliveryNotePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          taxInvoiceId: invoice.id,
-          quotationId: invoice.quotation?.id || null,
-          customerId: invoice.customer?.id || null,
-          clientId: invoice.client?.id || null,
-          engineerName: invoice.engineerName,
-          mobileNumber: invoice.mobileNumber,
-          projectName: invoice.projectName,
+          taxInvoiceId: source.taxInvoiceId,
+          quotationId: source.quotationId,
+          customerId: source.customerId,
+          clientId: source.clientId,
+          engineerName: source.engineerName,
+          mobileNumber: source.mobileNumber,
+          projectName: source.projectName,
           salesmanSign: salesmanSign || null,
           receiverName: receiverName || null,
           receiverSign: receiverSign || null,
@@ -122,30 +160,31 @@ export default function NewDeliveryNotePage() {
 
         <div className="p-5 space-y-6">
 
-          {/* Source Invoice Info */}
-          {invoice && (
+          {/* Source Doc Info */}
+          {source && (
             <Card className="shadow-premium border-primary/30 bg-primary/5">
               <CardContent className="pt-5">
                 <h3 className="text-sm font-extrabold mb-4 flex items-center gap-2">
                   <FileText className="size-4 text-primary" />
-                  {t('deliveryNotes.sourceInvoice')}: <span className="text-primary">{invoice.invoiceNumber}</span>
+                  {source.type === 'invoice' ? t('deliveryNotes.sourceInvoice') : t('taxInvoices.sourceQuotation')}:
+                  <span className="text-primary">{source.refNumber}</span>
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div><p className="text-[11px] text-muted-foreground font-medium">{t('quotations.customer')}</p><p className="font-bold">{invoice.client?.companyName || invoice.customer?.fullName || '—'}</p></div>
-                  <div><p className="text-[11px] text-muted-foreground font-medium">{t('quotations.projectName')}</p><p className="font-bold">{invoice.projectName || '—'}</p></div>
-                  <div><p className="text-[11px] text-muted-foreground font-medium">{t('quotations.lpoNumber')}</p><p className="font-bold">{invoice.lpoNumber || '—'}</p></div>
-                  <div><p className="text-[11px] text-muted-foreground font-medium">{t('quotations.paymentTerms')}</p><p className="font-bold">{invoice.paymentTerms || '—'}</p></div>
+                  <div><p className="text-[11px] text-muted-foreground font-medium">{t('quotations.customer')}</p><p className="font-bold">{source.client?.companyName || source.customer?.fullName || '—'}</p></div>
+                  <div><p className="text-[11px] text-muted-foreground font-medium">{t('quotations.projectName')}</p><p className="font-bold">{source.projectName || '—'}</p></div>
+                  <div><p className="text-[11px] text-muted-foreground font-medium">{t('quotations.lpoNumber')}</p><p className="font-bold">{source.lpoNumber || '—'}</p></div>
+                  <div><p className="text-[11px] text-muted-foreground font-medium">{t('quotations.paymentTerms')}</p><p className="font-bold">{source.paymentTerms || '—'}</p></div>
                 </div>
               </CardContent>
             </Card>
           )}
 
           {/* Items Preview */}
-          {invoice && (
+          {source && (
             <Card className="shadow-premium">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Package className="size-4 text-primary" />{t('quotations.items')} ({invoice.items.length})
+                  <Package className="size-4 text-primary" />{t('quotations.items')} ({source.items.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -162,7 +201,7 @@ export default function NewDeliveryNotePage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {invoice.items.map((item) => (
+                      {source.items.map((item) => (
                         <tr key={item.id} className="hover:bg-muted/10">
                           <td className="px-4 py-3 text-sm font-medium">{item.description}</td>
                           <td className="px-3 py-3 text-center text-sm text-muted-foreground">{item.size || '—'}</td>
@@ -227,7 +266,7 @@ export default function NewDeliveryNotePage() {
           {/* Actions */}
           <div className="flex items-center justify-end gap-3">
             <Button variant="outline" onClick={() => router.back()}>{t('common.cancel')}</Button>
-            <Button className="btn-premium" onClick={handleSave} disabled={saving || !invoice}>
+            <Button className="btn-premium" onClick={handleSave} disabled={saving || !source}>
               {saving ? <Loader2 className="size-4 me-2 animate-spin" /> : <Save className="size-4 me-2" />}
               {t('deliveryNotes.generateDN')}
             </Button>

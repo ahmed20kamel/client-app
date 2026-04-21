@@ -90,6 +90,7 @@ const taxInvoiceItemSchema = z.object({
 
 export const createTaxInvoiceSchema = z.object({
   quotationId: z.string().uuid('Invalid quotation ID'),
+  invoiceNumber: z.string().min(1, 'Invoice number is required'),
   customerId: z.string().uuid('Invalid customer ID').optional().nullable(),
   customerTrn: z.string().optional().nullable(),
   ourVatReg: z.string().optional().nullable(),

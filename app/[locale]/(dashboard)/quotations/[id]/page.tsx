@@ -101,8 +101,8 @@ const STEPS = [
   { key: 'CLIENT_APPROVED', labelKey: 'quotations.statusClientApproved', icon: ThumbsUp },
   { key: 'CONFIRMED',       labelKey: 'quotations.statusConfirmed',      icon: CheckCircle2 },
   { key: 'WORK_ORDER',      labelKey: 'quotations.stepWorkOrder',        icon: ClipboardList },
+  { key: 'CONVERTED',       labelKey: 'quotations.stepDelivered',        icon: Package },
   { key: 'INVOICED',        labelKey: 'quotations.stepInvoiced',         icon: Receipt },
-  { key: 'CONVERTED',       labelKey: 'quotations.stepDelivered',        icon: TrendingUp },
 ] as const;
 
 type StepKey = typeof STEPS[number]['key'];
@@ -111,8 +111,8 @@ function activeIndex(status: string, hasWorkOrders: boolean, hasTaxInvoices: boo
   const s = status === 'APPROVED' ? 'CLIENT_APPROVED' : status;
   if (s === 'CONVERTED') return 6;
   if (s === 'CONFIRMED') {
-    if (hasDeliveryNotes) return 6;
-    if (hasTaxInvoices) return 5;
+    if (hasTaxInvoices) return 6;
+    if (hasDeliveryNotes) return 5;
     if (hasWorkOrders) return 4;
     return 3;
   }
@@ -513,19 +513,19 @@ export default function QuotationDetailsPage() {
               </Button>
             )}
 
-            {/* Step 2: has Work Order → Create Tax Invoice */}
-            {quotation.status === 'CONFIRMED' && hasWorkOrders && !hasTaxInvoices && isAdmin && (
+            {/* Step 2: has Work Order → Create Delivery Note */}
+            {quotation.status === 'CONFIRMED' && hasWorkOrders && !hasDeliveryNotes && isAdmin && (
               <Button size="sm" variant="outline"
-                onClick={() => router.push(`/${locale}/tax-invoices/new?quotationId=${quotation.id}`)}>
-                <Receipt className="size-3.5 me-1.5" />{t('quotations.createTaxInvoice')}
+                onClick={() => router.push(`/${locale}/delivery-notes/new?quotationId=${quotation.id}`)}>
+                <Package className="size-3.5 me-1.5" />{t('quotations.createDeliveryNote')}
               </Button>
             )}
 
-            {/* Step 3: has Tax Invoice → Create Delivery Note (last step) */}
-            {quotation.status === 'CONFIRMED' && hasTaxInvoices && !hasDeliveryNotes && isAdmin && (
+            {/* Step 3: has Delivery Note → Create Tax Invoice (final step) */}
+            {quotation.status === 'CONFIRMED' && hasDeliveryNotes && !hasTaxInvoices && isAdmin && (
               <Button size="sm" className="btn-premium"
-                onClick={() => router.push(`/${locale}/delivery-notes/new?quotationId=${quotation.id}`)}>
-                <Package className="size-3.5 me-1.5" />{t('quotations.createDeliveryNote')}
+                onClick={() => router.push(`/${locale}/tax-invoices/new?quotationId=${quotation.id}`)}>
+                <Receipt className="size-3.5 me-1.5" />{t('quotations.createTaxInvoice')}
               </Button>
             )}
           </div>

@@ -1083,6 +1083,8 @@
     "statusPaid": "مدفوعة",
     "statusCancelled": "ملغاة",
     "allStatuses": "جميع الحالات",
+    "invoiceNumberRequired": "رقم الفاتورة مطلوب",
+    "invoiceNumberPlaceholder": "مثال: SC-671/26",
     "noInvoices": "لا توجد فواتير ضريبية",
     "createFromQuotation": "تُنشأ الفواتير الضريبية من عروض الأسعار المعتمدة",
     "vatInfo": "معلومات ضريبة القيمة المضافة",

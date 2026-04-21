@@ -7,24 +7,6 @@ import { createTaxInvoiceSchema } from '@/lib/validations/quotation';
 import { withUniqueRetry } from '@/lib/db-utils';
 import { z } from 'zod';
 
-// Helper: generate SC-671/26 format (atomic inside transaction)
-async function generateTaxInvoiceNumber(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0]): Promise<string> {
-  const year = new Date().getFullYear().toString().slice(-2);
-  const lastRecord = await tx.taxInvoice.findFirst({
-    orderBy: { createdAt: 'desc' },
-    select: { invoiceNumber: true },
-  });
-  let seq = 1;
-  if (lastRecord?.invoiceNumber) {
-    const parts = lastRecord.invoiceNumber.split('-');
-    if (parts.length >= 2) {
-      const seqPart = parts[1]?.split('/')[0];
-      const lastSeq = parseInt(seqPart || '0');
-      if (!isNaN(lastSeq)) seq = lastSeq + 1;
-    }
-  }
-  return `SC-${seq}/${year}`;
-}
 
 // GET /api/tax-invoices
 export async function GET(request: NextRequest) {
@@ -138,7 +120,7 @@ export async function POST(request: NextRequest) {
     });
 
     const result = await withUniqueRetry(() => prisma.$transaction(async (tx) => {
-      const invoiceNumber = await generateTaxInvoiceNumber(tx);
+      const invoiceNumber = validatedData.invoiceNumber;
       const invoice = await tx.taxInvoice.create({
         data: {
           invoiceNumber,

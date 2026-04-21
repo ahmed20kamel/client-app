@@ -1084,6 +1084,8 @@
     "statusPaid": "Paid",
     "statusCancelled": "Cancelled",
     "allStatuses": "All Statuses",
+    "invoiceNumberRequired": "Invoice number is required",
+    "invoiceNumberPlaceholder": "e.g. SC-671/26",
     "noInvoices": "No tax invoices found",
     "createFromQuotation": "Tax invoices are generated from approved quotations",
     "vatInfo": "VAT Information",

@@ -107,7 +107,7 @@ export default function WorkOrderDetailPage() {
           icon={ClipboardList}
           actions={
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => window.open(`/${locale}/print/work-orders/${id}`, '_blank')}>
+              <Button variant="outline" size="sm" onClick={() => window.open(`/${locale}/work-orders/${id}/print`, '_blank')}>
                 <Printer className="size-3.5 me-1.5" />{t('common.export')}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => router.back()}>
