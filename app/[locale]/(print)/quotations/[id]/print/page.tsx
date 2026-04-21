@@ -274,14 +274,7 @@ export default function QuotationPrintPage() {
                 <div style={{ fontSize: 13, fontWeight: 800, color: BRAND }}>{totalLM > 0 ? totalLM.toFixed(2) : '—'}</div>
                 <div style={{ fontSize: 8, color: '#64748b' }}>m / متر</div>
               </td>
-              <td style={{ padding: '7px 9px', textAlign: 'right' }}>
-                <div style={{ fontSize: 9, color: '#475569' }}>Total Pieces</div>
-                <div className="ar" style={{ fontSize: 8, color: '#64748b' }}>إجمالي القطع</div>
-              </td>
-              <td style={{ padding: '7px 9px', textAlign: 'right' }}>
-                <div style={{ fontSize: 9, color: '#475569' }}>Total LM</div>
-                <div className="ar" style={{ fontSize: 8, color: '#64748b' }}>إجمالي الأمتار</div>
-              </td>
+              <td colSpan={2} />
             </tr>
           </tfoot>
         </table>
