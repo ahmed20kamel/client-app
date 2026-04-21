@@ -191,6 +191,7 @@ export default function NewWorkOrderPage() {
                         <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">{t('workOrders.description')}</th>
                         <th className="px-3 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">{t('workOrders.unit')}</th>
                         <th className="px-3 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">{t('workOrders.quantity')}</th>
+                        <th className="px-3 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">L/PC (cm)</th>
                         <th className="px-3 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">{t('workOrders.totalLM')}</th>
                       </tr>
                     </thead>
@@ -200,6 +201,9 @@ export default function NewWorkOrderPage() {
                           <td className="px-4 py-3 text-sm font-medium">{item.description}</td>
                           <td className="px-3 py-3 text-center text-sm text-muted-foreground">{item.unit || '—'}</td>
                           <td className="px-3 py-3 text-center text-sm">{item.quantity}</td>
+                          <td className="px-3 py-3 text-center text-sm text-muted-foreground">
+                            {item.unit === 'LM' && item.length != null ? item.length.toFixed(2) : '—'}
+                          </td>
                           <td className="px-3 py-3 text-center text-sm text-emerald-600 font-semibold">
                             {item.unit === 'LM' && item.linearMeters ? `${item.linearMeters.toFixed(2)} LM` : '—'}
                           </td>
@@ -213,6 +217,7 @@ export default function NewWorkOrderPage() {
                         <td className="px-3 py-2 text-center tabular-nums font-extrabold text-blue-700">
                           {quotation.items.reduce((s, i) => s + i.quantity, 0)}
                         </td>
+                        <td className="px-3 py-2 text-center text-xs text-muted-foreground">—</td>
                         <td className="px-3 py-2 text-center tabular-nums font-extrabold text-emerald-700">
                           {(() => { const t2 = quotation.items.reduce((s, i) => s + (i.linearMeters ?? 0), 0); return t2 > 0 ? `${t2.toFixed(2)} LM` : '—'; })()}
                         </td>
