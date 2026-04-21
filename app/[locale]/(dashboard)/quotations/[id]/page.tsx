@@ -252,7 +252,8 @@ export default function QuotationDetailsPage() {
   const cleanDesc = (desc: string, size: string | null) => {
     if (!size) return desc;
     const suffix = ` ${size}`;
-    return desc.endsWith(suffix) ? desc.slice(0, -suffix.length) : desc;
+    const base = desc.endsWith(suffix) ? desc.slice(0, -suffix.length) : desc;
+    return `${base} ${size}`;
   };
 
   // ── Actions ───────────────────────────────────────────────────────────────

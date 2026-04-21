@@ -51,7 +51,8 @@ interface Quotation {
 function cleanDescription(description: string, size: string | null): string {
   if (!size) return description;
   const suffix = ` ${size}`;
-  return description.endsWith(suffix) ? description.slice(0, -suffix.length) : description;
+  const base = description.endsWith(suffix) ? description.slice(0, -suffix.length) : description;
+  return `${base} ${size}`;
 }
 
 export default function QuotationPrintPage() {
