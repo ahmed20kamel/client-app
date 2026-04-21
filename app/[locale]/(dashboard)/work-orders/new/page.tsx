@@ -189,21 +189,21 @@ export default function NewWorkOrderPage() {
                     <thead>
                       <tr className="border-b bg-muted/30">
                         <th className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">{t('workOrders.description')}</th>
+                        <th className="px-3 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">L/PC (cm)</th>
                         <th className="px-3 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">{t('workOrders.unit')}</th>
                         <th className="px-3 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">{t('workOrders.quantity')}</th>
-                        <th className="px-3 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">L/PC (cm)</th>
-                        <th className="px-3 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">{t('workOrders.totalLM')}</th>
+                        <th className="px-3 py-3 text-center text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">LM</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {quotation.items.map(item => (
                         <tr key={item.id} className="hover:bg-muted/10">
                           <td className="px-4 py-3 text-sm font-medium">{item.description}</td>
-                          <td className="px-3 py-3 text-center text-sm text-muted-foreground">{item.unit || '—'}</td>
-                          <td className="px-3 py-3 text-center text-sm">{item.quantity}</td>
                           <td className="px-3 py-3 text-center text-sm text-muted-foreground">
                             {item.unit === 'LM' && item.length != null ? item.length.toFixed(2) : '—'}
                           </td>
+                          <td className="px-3 py-3 text-center text-sm text-muted-foreground">{item.unit || '—'}</td>
+                          <td className="px-3 py-3 text-center text-sm">{item.quantity}</td>
                           <td className="px-3 py-3 text-center text-sm text-emerald-600 font-semibold">
                             {item.unit === 'LM' && item.linearMeters ? `${item.linearMeters.toFixed(2)} LM` : '—'}
                           </td>
