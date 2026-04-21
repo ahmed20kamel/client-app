@@ -909,6 +909,7 @@
     "tax": "Tax (VAT)",
     "taxPercent": "Tax %",
     "total": "Total",
+    "totalSummary": "Total Summary",
     "status": "Status",
     "items": "Items",
     "addItem": "Add Item",
