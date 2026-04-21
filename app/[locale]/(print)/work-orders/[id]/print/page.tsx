@@ -168,7 +168,7 @@ export default function WorkOrderPrintPage() {
               <th style={{ padding: '7px 10px', textAlign: 'center', fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>Size / المقاس</th>
               <th style={{ padding: '7px 10px', textAlign: 'center', fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>Unit / الوحدة</th>
               <th style={{ padding: '7px 10px', textAlign: 'center', fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>Qty / الكمية</th>
-              <th style={{ padding: '7px 10px', textAlign: 'center', fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>L/PC (m)</th>
+              <th style={{ padding: '7px 10px', textAlign: 'center', fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>L/PC (cm)</th>
               <th style={{ padding: '7px 10px', textAlign: 'center', fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>Total LM</th>
             </tr>
           </thead>

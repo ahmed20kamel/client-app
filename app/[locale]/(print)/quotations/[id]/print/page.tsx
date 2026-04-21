@@ -214,7 +214,7 @@ export default function QuotationPrintPage() {
               {[
                 { en: '#',           ar: '#' },
                 { en: 'DESCRIPTION', ar: 'الوصف' },
-                { en: 'L/PC (m)',    ar: 'الطول/قطعة' },
+                { en: 'L/PC (cm)',   ar: 'الطول/قطعة (سم)' },
                 { en: 'UNIT',        ar: 'الوحدة' },
                 { en: 'QTY',         ar: 'الكمية' },
                 { en: 'LM',          ar: 'م.خ' },

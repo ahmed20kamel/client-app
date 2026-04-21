@@ -622,7 +622,7 @@ export default function QuotationDetailsPage() {
                     <tr className="bg-muted/30 border-b border-border/40">
                       {[
                         { label: t('quotations.description'), align: 'text-start ps-4' },
-                        { label: 'L/PC (m)',                  align: 'text-center' },
+                        { label: 'L/PC (cm)',                 align: 'text-center' },
                         { label: t('quotations.unit'),        align: 'text-center' },
                         { label: t('quotations.qty'),         align: 'text-center' },
                         { label: t('quotations.tableLM'),     align: 'text-center' },
