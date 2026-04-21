@@ -108,9 +108,9 @@ export default function WorkOrderPrintPage() {
               </td>
 
               {/* Center: logo */}
-              <td style={{ width: '34%', textAlign: 'center', verticalAlign: 'middle' }}>
+              <td style={{ width: '34%', textAlign: 'center', verticalAlign: 'middle', padding: '0 8px' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.png" alt="Logo" style={{ maxHeight: 64, maxWidth: 160, objectFit: 'contain' }} />
+                <img src="/logo.svg" alt="Logo" style={{ width: 115, height: 'auto', display: 'inline-block' }} />
               </td>
 
               {/* Right: WO badge */}
