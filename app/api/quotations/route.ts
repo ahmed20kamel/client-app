@@ -9,13 +9,15 @@ import { z } from 'zod';
 
 // Helper: generate simple running quotation number starting from 136
 async function generateQuotationNumber(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0]): Promise<string> {
+  const yy = new Date().getFullYear().toString().slice(-2);
   const all = await tx.quotation.findMany({ select: { quotationNumber: true } });
-  let max = 135; // next will be 136
+  let max = 135;
   for (const q of all) {
-    const n = parseInt(q.quotationNumber);
-    if (!isNaN(n) && n > max) max = n;
+    // match SC-136-26 style or plain numbers
+    const m = q.quotationNumber.match(/^SC-(\d+)-\d+$/) || q.quotationNumber.match(/^(\d+)$/);
+    if (m) { const n = parseInt(m[1]); if (n > max) max = n; }
   }
-  return String(max + 1);
+  return `SC-${max + 1}-${yy}`;
 }
 
 // GET /api/quotations
