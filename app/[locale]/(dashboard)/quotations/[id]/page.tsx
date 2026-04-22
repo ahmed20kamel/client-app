@@ -44,6 +44,7 @@ interface LinkedDoc {
   id: string;
   invoiceNumber?: string;
   dnNumber?: string;
+  woNumber?: string;
   status: string;
   createdAt: string;
 }
@@ -759,6 +760,37 @@ export default function QuotationDetailsPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <StatusBadge status={dn.status} label={dn.status} size="sm" />
+                        <ChevronRight className="size-4 text-muted-foreground/40 group-hover:text-muted-foreground rtl:-scale-x-100" />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Linked Work Orders */}
+            {hasWorkOrders && (
+              <Card className="shadow-sm border-border/60 overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-border/60 flex items-center gap-2 bg-muted/10">
+                  <ClipboardList className="size-4 text-muted-foreground" />
+                  <span className="text-sm font-bold">{t('workOrders.title')}</span>
+                  <span className="ms-auto text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{quotation.workOrders!.length}</span>
+                </div>
+                <div className="divide-y divide-border/40">
+                  {quotation.workOrders!.map((wo) => (
+                    <Link key={wo.id} href={`/${locale}/work-orders/${wo.id}`}
+                      className="flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors group">
+                      <div className="flex items-center gap-3">
+                        <div className="size-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                          <ClipboardList className="size-3.5 text-amber-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold">{wo.woNumber || wo.id.slice(0, 8)}</p>
+                          <p className="text-xs text-muted-foreground">{formatDate(wo.createdAt, locale)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <StatusBadge status={wo.status} label={wo.status} size="sm" />
                         <ChevronRight className="size-4 text-muted-foreground/40 group-hover:text-muted-foreground rtl:-scale-x-100" />
                       </div>
                     </Link>
