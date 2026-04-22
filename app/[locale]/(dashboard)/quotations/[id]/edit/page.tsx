@@ -97,7 +97,8 @@ export default function EditQuotationPage() {
 
         const { data } = await quotationRes.json();
 
-        if (data.status !== 'DRAFT') {
+        const lockedStatuses = ['CLIENT_APPROVED', 'CONFIRMED', 'CONVERTED'];
+        if (lockedStatuses.includes(data.status)) {
           toast.error(t('quotations.cannotEditNonDraft'));
           router.push(`/${locale}/quotations/${id}`);
           return;
