@@ -51,6 +51,7 @@ export default async function DashboardLayout({
     { href: `/${locale}/work-orders`,     label: t('navigation.workOrders'),     icon: 'ClipboardList',   perm: 'page.work-orders' },
     { href: `/${locale}/users`,           label: t('navigation.users'),          icon: 'UserCog',         perm: '__admin__' },
     { href: `/${locale}/performance`,     label: t('navigation.performance'),    icon: 'TrendingUp',      perm: 'page.performance' },
+    { href: `/${locale}/payments`,         label: t('navigation.payments'),       icon: 'CreditCard',      perm: 'page.payments' },
     { href: `/${locale}/accounts`,        label: 'Accounts',                     icon: 'Wallet',          perm: 'page.accounts' },
   ] as (NavItem & { perm: string | null })[];
 

@@ -17,6 +17,7 @@ export const PAGE_PERMISSIONS = [
   { name: 'page.accounts',        label: 'Accounts',        icon: 'Wallet' },
   { name: 'page.performance',     label: 'Performance',     icon: 'TrendingUp' },
   { name: 'page.work-orders',     label: 'Work Orders',     icon: 'ClipboardList' },
+  { name: 'page.payments',        label: 'Payments',        icon: 'CreditCard' },
 ] as const;
 
 export type PagePermissionName = typeof PAGE_PERMISSIONS[number]['name'];
@@ -44,6 +45,7 @@ export const PERMISSION_GROUPS = [
       { name: 'page.reports',         labelEn: 'Reports',          labelAr: 'التقارير' },
       { name: 'page.accounts',        labelEn: 'Accounts',         labelAr: 'الحسابات' },
       { name: 'page.performance',     labelEn: 'Performance',      labelAr: 'الأداء' },
+      { name: 'page.payments',        labelEn: 'Payments',         labelAr: 'المدفوعات' },
     ],
   },
   {
