@@ -233,11 +233,6 @@ export default function TaxInvoiceDetailPage() {
             <Button variant="outline" size="sm" onClick={() => window.open(`/${locale}/tax-invoices/${id}/print`, '_blank')}>
               <Printer className="size-4 me-1" />{t('common.export')}
             </Button>
-            {(invoice.deliveryNotes?.length ?? 0) === 0 && derivedStatus !== 'CANCELLED' && (
-              <Button size="sm" className="btn-premium" onClick={() => router.push(`/${locale}/delivery-notes/new?taxInvoiceId=${invoice.id}`)}>
-                <Package2 className="size-4 me-1" />{t('taxInvoices.createDN')}
-              </Button>
-            )}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" disabled={deleting}>
