@@ -7,17 +7,16 @@ import { createQuotationSchema } from '@/lib/validations/quotation';
 import { withUniqueRetry } from '@/lib/db-utils';
 import { z } from 'zod';
 
-// Helper: generate simple running quotation number starting from 136
+// Helper: generate quotation number SC-LBS-{N}-{YY}
 async function generateQuotationNumber(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0]): Promise<string> {
   const yy = new Date().getFullYear().toString().slice(-2);
   const all = await tx.quotation.findMany({ select: { quotationNumber: true } });
-  let max = 135;
+  let max = 132;
   for (const q of all) {
-    // match SC-136-26 style or plain numbers
-    const m = q.quotationNumber.match(/^SC-(\d+)-\d+$/) || q.quotationNumber.match(/^(\d+)$/);
+    const m = q.quotationNumber.match(/^SC-[A-Z]+-(\d+)-\d+$/);
     if (m) { const n = parseInt(m[1]); if (n > max) max = n; }
   }
-  return `SC-${max + 1}-${yy}`;
+  return `SC-LBS-${max + 1}-${yy}`;
 }
 
 // GET /api/quotations

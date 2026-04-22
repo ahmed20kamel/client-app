@@ -10,8 +10,12 @@ import { PageHeader } from '@/components/PageHeader';
 import { toast } from 'sonner';
 import {
   ClipboardList, ArrowLeft, Loader2, Package, Calendar,
-  User, Phone, Building2, FileText, CheckCircle2, PlayCircle, Printer,
+  User, Phone, Building2, FileText, CheckCircle2, PlayCircle, Printer, Trash2,
 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface WorkOrder {
   id: string;
@@ -79,6 +83,19 @@ export default function WorkOrderDetailPage() {
     }
   };
 
+  const handleDelete = async () => {
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/work-orders/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      toast.success(t('common.delete'));
+      router.push(`/${locale}/work-orders`);
+    } catch {
+      toast.error(t('common.error'));
+      setActionLoading(false);
+    }
+  };
+
   const statusLabel = (s: string) => ({
     PENDING: t('workOrders.PENDING'),
     IN_PROGRESS: t('workOrders.IN_PROGRESS'),
@@ -110,6 +127,25 @@ export default function WorkOrderDetailPage() {
               <Button variant="outline" size="sm" onClick={() => window.open(`/${locale}/work-orders/${id}/print`, '_blank')}>
                 <Printer className="size-3.5 me-1.5" />{t('common.export')}
               </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" disabled={actionLoading}>
+                    <Trash2 className="size-3.5 me-1.5" />{t('common.delete')}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t('common.deleteConfirm')}</AlertDialogTitle>
+                    <AlertDialogDescription>{t('common.deleteConfirmDesc')}</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      {t('common.delete')}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               <Button variant="ghost" size="sm" onClick={() => router.back()}>
                 <ArrowLeft className="size-4 me-1 rtl:-scale-x-100" />{t('common.back')}
               </Button>
