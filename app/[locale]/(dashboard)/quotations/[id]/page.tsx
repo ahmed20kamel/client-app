@@ -250,7 +250,7 @@ export default function QuotationDetailsPage() {
 
   const fmt = (n: number) => fmtAmount(n, locale);
 
-  const cleanDesc = (desc: string, size: string | null) => {
+  const cleanDescription = (desc: string, size: string | null) => {
     if (!size) return desc;
     const suffix = ` ${size}`;
     const base = desc.endsWith(suffix) ? desc.slice(0, -suffix.length) : desc;
@@ -638,7 +638,7 @@ export default function QuotationDetailsPage() {
                   <tbody className="divide-y divide-border/30">
                     {quotation.items.map((item, i) => (
                       <tr key={item.id} className={i % 2 === 1 ? 'bg-muted/5' : ''}>
-                        <td className="ps-4 pe-3 py-2.5 font-medium">{cleanDesc(item.description, item.size)}</td>
+                        <td className="ps-4 pe-3 py-2.5 font-medium">{cleanDescription(item.description, item.size)}</td>
                         <td className="px-3 py-2.5 text-center text-muted-foreground">
                           {item.unit === 'LM' && item.length != null ? item.length.toFixed(2) : (item.size || '—')}
                         </td>

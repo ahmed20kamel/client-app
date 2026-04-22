@@ -52,7 +52,7 @@ export default async function DashboardLayout({
     { href: `/${locale}/users`,           label: t('navigation.users'),          icon: 'UserCog',         perm: '__admin__' },
     { href: `/${locale}/performance`,     label: t('navigation.performance'),    icon: 'TrendingUp',      perm: 'page.performance' },
     { href: `/${locale}/payments`,         label: t('navigation.payments'),       icon: 'CreditCard',      perm: 'page.payments' },
-    { href: `/${locale}/accounts`,        label: 'Accounts',                     icon: 'Wallet',          perm: 'page.accounts' },
+    { href: `/${locale}/accounts`,        label: t('navigation.accounts'),       icon: 'Wallet',          perm: 'page.accounts' },
   ] as (NavItem & { perm: string | null })[];
 
   const navItems: NavItem[] = allNavItems.filter((i) => {
