@@ -309,15 +309,6 @@ export default function TaxInvoicePrintPage() {
                   <div style={{ fontSize: 11, color: '#475569', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{invoice.notes}</div>
                 </div>
               )}
-              {invoice.terms && (
-                <div>
-                  <div className="bilabel" style={{ marginBottom: 5 }}>
-                    <span className="bilabel-en">TERMS & CONDITIONS</span>
-                    <span className="bilabel-ar">الشروط والأحكام</span>
-                  </div>
-                  <div style={{ fontSize: 10, color: '#475569', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{invoice.terms}</div>
-                </div>
-              )}
             </td>
             {/* Totals */}
             <td style={{ width: '48%', verticalAlign: 'top' }}>
