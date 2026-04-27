@@ -7,6 +7,13 @@ import { COMPANY } from '@/lib/company';
 const BRAND       = '#1e40af';
 const BRAND_LIGHT = '#dbeafe';
 
+const BANK = {
+  accountName: 'Stride International Construction & Transport-Sole Proprietorship LLC',
+  bank:        'ADCB',
+  accountNo:   '10550903820001',
+  iban:        'AE370030010550903820001',
+};
+
 interface TaxInvoiceItem {
   id: string;
   description: string;
@@ -28,7 +35,6 @@ interface TaxInvoice {
   projectName: string | null;
   customerTrn: string | null;
   ourVatReg: string | null;
-  dnNumber: string | null;
   lpoNumber: string | null;
   paymentTerms: string | null;
   subtotal: number;
@@ -36,17 +42,17 @@ interface TaxInvoice {
   taxAmount: number;
   deliveryCharges: number;
   total: number;
-  paidAmount: number;
   notes: string | null;
   terms: string | null;
   createdAt: string;
   customer: { id: string; fullName: string } | null;
-  client: { id: string; companyName: string; trn: string | null; address?: string | null } | null;
+  client: { id: string; companyName: string; trn: string | null; address: string | null; phone: string | null } | null;
+  engineer: { id: string; name: string; mobile: string | null } | null;
   quotation: { id: string; quotationNumber: string } | null;
-  deliveryNotes: { id: string; dnNumber: string }[];
   items: TaxInvoiceItem[];
 }
 
+/* Strip trailing size label that was appended to the description on creation */
 function cleanDescription(description: string, size: string | null): string {
   if (!size) return description;
   const suffix = ` ${size}`;
@@ -79,11 +85,12 @@ export default function TaxInvoicePrintPage() {
     </div>
   );
 
-  const billTo    = invoice.client?.companyName || invoice.customer?.fullName || '—';
-  const clientTrn = invoice.client?.trn || invoice.customerTrn;
-  const balance   = invoice.total - (invoice.paidAmount ?? 0);
+  const billTo      = invoice.client?.companyName || invoice.customer?.fullName || '—';
+  const attn        = invoice.engineer?.name || invoice.engineerName;
+  const tel         = invoice.engineer?.mobile || invoice.mobileNumber;
   const totalPieces = invoice.items.reduce((s, it) => s + it.quantity, 0);
   const totalLM     = invoice.items.reduce((s, it) => s + (it.linearMeters ?? 0), 0);
+  const vatReg      = invoice.ourVatReg || COMPANY.vat;
 
   return (
     <>
@@ -123,8 +130,9 @@ export default function TaxInvoicePrintPage() {
             <td style={{ verticalAlign: 'top', width: '28%' }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: '#111', lineHeight: 1.3 }}>{COMPANY.name}</div>
               <div style={{ fontSize: 9, color: '#64748b', marginTop: 2 }}>{COMPANY.address}</div>
-              {(invoice.ourVatReg || COMPANY.vat) && <div style={{ fontSize: 9, color: '#64748b' }}>VAT Reg: {invoice.ourVatReg || COMPANY.vat}</div>}
+              {vatReg    && <div style={{ fontSize: 9, color: '#64748b' }}>VAT Reg: {vatReg}</div>}
               {COMPANY.phone && <div style={{ fontSize: 9, color: '#64748b' }}>Tel: {COMPANY.phone}</div>}
+              {COMPANY.email && <div style={{ fontSize: 9, color: '#64748b' }}>{COMPANY.email}</div>}
             </td>
 
             {/* Center — Logo */}
@@ -144,40 +152,34 @@ export default function TaxInvoicePrintPage() {
               <div style={{
                 background: BRAND, color: '#fff', borderRadius: 6,
                 padding: '5px 10px', marginBottom: 8, display: 'inline-block',
-                fontSize: 11, fontWeight: 700, letterSpacing: '0.03em', whiteSpace: 'nowrap',
+                fontSize: 11, fontWeight: 700, letterSpacing: '0.03em',
+                whiteSpace: 'nowrap', maxWidth: '100%', overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}>
                 {invoice.invoiceNumber}
               </div>
 
-              {/* Dates / refs */}
+              {/* Date */}
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
                 <tbody>
                   <tr>
-                    <td style={{ paddingBottom: 4 }}>
+                    <td style={{ paddingBottom: 5 }}>
                       <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Date / التاريخ</div>
                       <div style={{ fontWeight: 700, color: '#111', fontSize: 11 }}>{fmtDate(invoice.createdAt)}</div>
                     </td>
                   </tr>
                   {invoice.lpoNumber && (
                     <tr>
-                      <td style={{ paddingBottom: 4 }}>
-                        <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>LPO No / رقم أمر الشراء</div>
+                      <td style={{ paddingBottom: 5 }}>
+                        <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>LPO / أمر الشراء</div>
                         <div style={{ fontWeight: 700, color: '#111', fontSize: 11 }}>{invoice.lpoNumber}</div>
-                      </td>
-                    </tr>
-                  )}
-                  {invoice.deliveryNotes?.length > 0 && (
-                    <tr>
-                      <td style={{ paddingBottom: 4 }}>
-                        <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>DN No / إشعار التسليم</div>
-                        <div style={{ fontWeight: 700, color: '#111', fontSize: 11 }}>{invoice.deliveryNotes.map(d => d.dnNumber).join(', ')}</div>
                       </td>
                     </tr>
                   )}
                   {invoice.quotation && (
                     <tr>
                       <td>
-                        <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Quotation / عرض السعر</div>
+                        <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Quotation Ref / رقم عرض السعر</div>
                         <div style={{ fontWeight: 700, color: '#111', fontSize: 11 }}>{invoice.quotation.quotationNumber}</div>
                       </td>
                     </tr>
@@ -202,10 +204,11 @@ export default function TaxInvoicePrintPage() {
                   <span className="bilabel-ar">فاتورة إلى</span>
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 3 }}>{billTo}</div>
-                {clientTrn            && <div style={{ fontSize: 10, color: '#475569' }}>TRN: {clientTrn}</div>}
+                {invoice.client?.trn     && <div style={{ fontSize: 10, color: '#475569' }}>TRN: {invoice.client.trn}</div>}
+                {invoice.customerTrn && !invoice.client?.trn && <div style={{ fontSize: 10, color: '#475569' }}>TRN: {invoice.customerTrn}</div>}
                 {invoice.client?.address && <div style={{ fontSize: 10, color: '#475569' }}>{invoice.client.address}</div>}
-                {invoice.engineerName && <div style={{ fontSize: 11, color: '#475569', marginTop: 3 }}>Attn: {invoice.engineerName}</div>}
-                {invoice.mobileNumber && <div style={{ fontSize: 11, color: '#475569' }}>Tel: {invoice.mobileNumber}</div>}
+                {attn && <div style={{ fontSize: 11, color: '#475569', marginTop: 3 }}>Attn: {attn}</div>}
+                {tel  && <div style={{ fontSize: 11, color: '#475569' }}>Tel: {tel}</div>}
               </div>
             </td>
             <td style={{ width: '50%', verticalAlign: 'top' }}>
@@ -214,9 +217,8 @@ export default function TaxInvoicePrintPage() {
                   <span className="bilabel-en">PROJECT DETAILS</span>
                   <span className="bilabel-ar">تفاصيل المشروع</span>
                 </div>
-                {invoice.projectName  && <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 3 }}>{invoice.projectName}</div>}
-                {invoice.lpoNumber    && <div style={{ fontSize: 11, color: '#475569' }}>LPO: {invoice.lpoNumber}</div>}
-                {invoice.paymentTerms && <div style={{ fontSize: 11, color: '#475569' }}>Payment: {invoice.paymentTerms}</div>}
+                {invoice.projectName   && <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 3 }}>{invoice.projectName}</div>}
+                {invoice.paymentTerms  && <div style={{ fontSize: 11, color: '#475569' }}>Payment: {invoice.paymentTerms}</div>}
               </div>
             </td>
           </tr></tbody>
@@ -239,7 +241,9 @@ export default function TaxInvoicePrintPage() {
                 <th key={en} style={{
                   padding: '7px 7px',
                   textAlign: i === 0 || i === 1 ? 'left' : i >= 6 ? 'right' : 'center',
-                  fontWeight: 700, fontSize: 9, whiteSpace: 'nowrap',
+                  fontWeight: 700,
+                  fontSize: 9,
+                  whiteSpace: 'nowrap',
                 }}>
                   <div>{en}</div>
                   <div className="ar" style={{ fontSize: 8, fontWeight: 400, opacity: 0.85, marginTop: 1 }}>{ar}</div>
@@ -251,7 +255,9 @@ export default function TaxInvoicePrintPage() {
             {invoice.items.map((item, i) => (
               <tr key={item.id} style={{ background: i % 2 === 0 ? '#fff' : '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                 <td style={{ padding: '8px 7px', color: '#64748b' }}>{i + 1}</td>
-                <td style={{ padding: '8px 7px', fontWeight: 500 }}>{cleanDescription(item.description, item.size)}</td>
+                <td style={{ padding: '8px 7px', fontWeight: 500 }}>
+                  {cleanDescription(item.description, item.size)}
+                </td>
                 <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>
                   {item.unit === 'LM' && item.length != null ? item.length.toFixed(2) : (item.size || '—')}
                 </td>
@@ -289,12 +295,13 @@ export default function TaxInvoicePrintPage() {
           </tfoot>
         </table>
 
-        {/* ── NOTES + TOTALS BOX ── */}
-        <table style={{ width: '100%', marginBottom: 20, marginTop: 12 }}>
+        {/* ── TOTALS + NOTES ── */}
+        <table style={{ width: '100%', marginBottom: 16, marginTop: 12 }}>
           <tbody><tr>
+            {/* Notes */}
             <td style={{ width: '52%', verticalAlign: 'top', paddingRight: 12 }}>
               {invoice.notes && (
-                <div>
+                <div style={{ marginBottom: 10 }}>
                   <div className="bilabel" style={{ marginBottom: 5 }}>
                     <span className="bilabel-en">NOTES</span>
                     <span className="bilabel-ar">ملاحظات</span>
@@ -302,63 +309,110 @@ export default function TaxInvoicePrintPage() {
                   <div style={{ fontSize: 11, color: '#475569', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{invoice.notes}</div>
                 </div>
               )}
+              {invoice.terms && (
+                <div>
+                  <div className="bilabel" style={{ marginBottom: 5 }}>
+                    <span className="bilabel-en">TERMS & CONDITIONS</span>
+                    <span className="bilabel-ar">الشروط والأحكام</span>
+                  </div>
+                  <div style={{ fontSize: 10, color: '#475569', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{invoice.terms}</div>
+                </div>
+              )}
             </td>
+            {/* Totals */}
             <td style={{ width: '48%', verticalAlign: 'top' }}>
               <div style={{ border: '1px solid #e2e8f0', borderRadius: 7, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
-                  <span style={{ color: '#64748b' }}>Subtotal / المجموع</span>
+                {/* Subtotal */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
+                  <div>
+                    <div style={{ color: '#64748b' }}>Subtotal</div>
+                    <div className="ar" style={{ fontSize: 9, color: '#94a3b8' }}>المجموع الفرعي</div>
+                  </div>
                   <span style={{ fontWeight: 600 }}>{fmt(invoice.subtotal)} AED</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
-                  <span style={{ color: '#64748b' }}>VAT ({invoice.taxPercent}%) / ضريبة</span>
-                  <span style={{ fontWeight: 600, color: '#dc2626' }}>+{fmt(invoice.taxAmount)} AED</span>
-                </div>
+                {/* Delivery */}
                 {invoice.deliveryCharges > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
-                    <span style={{ color: '#64748b' }}>Delivery / الشحن</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
+                    <div>
+                      <div style={{ color: '#64748b' }}>Delivery Charges</div>
+                      <div className="ar" style={{ fontSize: 9, color: '#94a3b8' }}>رسوم التوصيل</div>
+                    </div>
                     <span style={{ fontWeight: 600 }}>+{fmt(invoice.deliveryCharges)} AED</span>
                   </div>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 11px', background: BRAND, fontSize: 13 }}>
+                {/* VAT */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
                   <div>
-                    <div style={{ fontWeight: 700, color: '#fff' }}>TOTAL</div>
-                    <div className="ar" style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', marginTop: 1 }}>الإجمالي</div>
+                    <div style={{ color: '#64748b' }}>VAT ({invoice.taxPercent}%){invoice.deliveryCharges > 0 ? ' incl. delivery' : ''}</div>
+                    <div className="ar" style={{ fontSize: 9, color: '#94a3b8' }}>ضريبة القيمة المضافة{invoice.deliveryCharges > 0 ? ' (شاملة الشحن)' : ''}</div>
                   </div>
-                  <span style={{ fontWeight: 800, color: '#fff', fontSize: 15 }}>{fmt(invoice.total)} AED</span>
+                  <span style={{ fontWeight: 600 }}>+{fmt(invoice.taxAmount)} AED</span>
                 </div>
-                {(invoice.paidAmount ?? 0) > 0 && (
-                  <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 11px', borderTop: '1px solid #e2e8f0', fontSize: 11 }}>
-                      <span style={{ color: '#64748b' }}>Amount Paid / المدفوع</span>
-                      <span style={{ fontWeight: 600, color: '#059669' }}>{fmt(invoice.paidAmount)} AED</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 11px', fontSize: 11 }}>
-                      <span style={{ color: '#64748b' }}>Balance Due / المتبقي</span>
-                      <span style={{ fontWeight: 700, color: balance > 0.01 ? '#dc2626' : '#059669' }}>{fmt(balance)} AED</span>
-                    </div>
-                  </>
-                )}
+                {/* Total */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 11px', background: BRAND }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#fff', fontSize: 13 }}>TOTAL</div>
+                    <div className="ar" style={{ fontSize: 10, color: '#bfdbfe' }}>الإجمالي</div>
+                  </div>
+                  <span style={{ fontWeight: 700, color: '#fff', fontSize: 13 }}>{fmt(invoice.total)} AED</span>
+                </div>
               </div>
             </td>
           </tr></tbody>
         </table>
 
-        {/* ── TERMS ── */}
-        {invoice.terms && (
-          <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 10, marginBottom: 16 }}>
-            <div className="bilabel" style={{ marginBottom: 5 }}>
-              <span className="bilabel-en">TERMS & CONDITIONS</span>
-              <span className="bilabel-ar">الشروط والأحكام</span>
-            </div>
-            <div style={{ fontSize: 10, color: '#475569', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{invoice.terms}</div>
+        {/* ── BANK ACCOUNT DETAILS ── */}
+        <div style={{ border: `1px solid ${BRAND}`, borderRadius: 7, padding: '10px 14px', marginBottom: 18, background: '#f0f7ff' }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 7 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: BRAND, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Bank Account Details</div>
+            <div className="ar" style={{ fontSize: 9, color: '#3b82f6' }}>بيانات الحساب البنكي</div>
           </div>
-        )}
+          <table style={{ width: '100%', fontSize: 11 }}>
+            <tbody>
+              <tr>
+                <td style={{ color: '#64748b', paddingRight: 12, paddingBottom: 3, whiteSpace: 'nowrap', width: '30%' }}>Account Name / اسم الحساب</td>
+                <td style={{ fontWeight: 600, color: '#111', paddingBottom: 3 }}>{BANK.accountName}</td>
+              </tr>
+              <tr>
+                <td style={{ color: '#64748b', paddingRight: 12, paddingBottom: 3, whiteSpace: 'nowrap' }}>Bank / البنك</td>
+                <td style={{ fontWeight: 600, color: '#111', paddingBottom: 3 }}>{BANK.bank}</td>
+              </tr>
+              <tr>
+                <td style={{ color: '#64748b', paddingRight: 12, paddingBottom: 3, whiteSpace: 'nowrap' }}>Account No / رقم الحساب</td>
+                <td style={{ fontWeight: 600, color: '#111', paddingBottom: 3 }}>{BANK.accountNo}</td>
+              </tr>
+              <tr>
+                <td style={{ color: '#64748b', paddingRight: 12, whiteSpace: 'nowrap' }}>IBAN No / رقم الآيبان</td>
+                <td style={{ fontWeight: 700, color: BRAND, letterSpacing: '0.05em' }}>{BANK.iban}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* ── ACCEPTANCE BLOCK ── */}
+        <table style={{ width: '100%', marginBottom: 20 }}>
+          <tbody><tr>
+            <td style={{ width: '45%', verticalAlign: 'bottom', paddingRight: 16 }}>
+              <div style={{ borderTop: '1.5px solid #cbd5e1', paddingTop: 6 }}>
+                <div style={{ fontSize: 10, color: '#64748b' }}>Authorized Signature / التوقيع المعتمد</div>
+                <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 14 }}>Name / Title / Date — الاسم / المسمى / التاريخ</div>
+              </div>
+            </td>
+            <td style={{ width: '10%' }} />
+            <td style={{ width: '45%', verticalAlign: 'bottom' }}>
+              <div style={{ borderTop: '1.5px solid #cbd5e1', paddingTop: 6 }}>
+                <div style={{ fontSize: 10, color: '#64748b' }}>Client Acceptance / موافقة العميل</div>
+                <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 18 }}>Name / Signature / Date — الاسم / التوقيع / التاريخ</div>
+              </div>
+            </td>
+          </tr></tbody>
+        </table>
 
         {/* ── FOOTER ── */}
-        <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#94a3b8' }}>
+        <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 9, color: '#94a3b8' }}>
           <span>{COMPANY.name} — {COMPANY.address}</span>
           <span>{invoice.invoiceNumber}</span>
-          <span>This is a computer-generated document</span>
+          <span>This is a computer-generated document / وثيقة معتمدة من الحاسب الآلي</span>
         </div>
 
       </div>

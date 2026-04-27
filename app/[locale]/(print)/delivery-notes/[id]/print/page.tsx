@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { COMPANY } from '@/lib/company';
 
-const BRAND       = '#1e40af';
-const BRAND_LIGHT = '#dbeafe';
+const BRAND = '#1e40af';
 
 interface DNItem {
   id: string;
@@ -15,8 +14,6 @@ interface DNItem {
   linearMeters: number | null;
   size: string | null;
   unit: string | null;
-  unitPrice: number;
-  total: number;
 }
 
 interface DeliveryNote {
@@ -33,17 +30,10 @@ interface DeliveryNote {
   deliveredAt: string | null;
   createdAt: string;
   customer: { id: string; fullName: string } | null;
-  client: { id: string; companyName: string; trn?: string | null; address?: string | null; phone?: string | null } | null;
+  client: { id: string; companyName: string } | null;
   taxInvoice: { id: string; invoiceNumber: string; lpoNumber: string | null; paymentTerms: string | null } | null;
   quotation: { id: string; quotationNumber: string } | null;
   items: DNItem[];
-}
-
-function cleanDescription(description: string, size: string | null): string {
-  if (!size) return description;
-  const suffix = ` ${size}`;
-  const base = description.endsWith(suffix) ? description.slice(0, -suffix.length) : description;
-  return `${base} ${size}`;
 }
 
 export default function DeliveryNotePrintPage() {
@@ -62,7 +52,6 @@ export default function DeliveryNotePrintPage() {
     if (!loading && dn) setTimeout(() => window.print(), 500);
   }, [loading, dn]);
 
-  const fmt     = (n: number) => n.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtDate = (s: string) => new Date(s).toLocaleDateString('en-GB');
 
   if (loading || !dn) return (
@@ -71,10 +60,9 @@ export default function DeliveryNotePrintPage() {
     </div>
   );
 
-  const deliverTo   = dn.client?.companyName || dn.customer?.fullName || '—';
-  const totalPieces = dn.items.reduce((s, it) => s + it.quantity, 0);
-  const totalLM     = dn.items.reduce((s, it) => s + (it.linearMeters ?? 0), 0);
-  const grandTotal  = dn.items.reduce((s, it) => s + it.total, 0);
+  const deliverTo = dn.client?.companyName || dn.customer?.fullName || '—';
+  const totalPcs  = dn.items.reduce((s, i) => s + i.quantity, 0);
+  const totalLM   = dn.items.reduce((s, i) => s + (i.linearMeters ?? 0), 0);
 
   return (
     <>
@@ -87,261 +75,179 @@ export default function DeliveryNotePrintPage() {
         body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #111; margin: 0; padding: 0; font-size: 12px; }
         .doc-page { max-width: 210mm; margin: 0 auto; padding: 14px 18px; background: #fff; }
         table { border-collapse: collapse; }
-        th, td { padding: 0; }
-        .ar { font-family: 'Arial', sans-serif; direction: rtl; }
-        .bilabel { display: flex; flex-direction: column; gap: 1px; }
-        .bilabel-en { font-size: 9px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .06em; }
-        .bilabel-ar { font-size: 8px; color: #b0bec5; direction: rtl; }
       `}</style>
 
-      {/* Toolbar */}
-      <div className="no-print" style={{ position: 'fixed', top: 16, right: 16, display: 'flex', gap: 8, zIndex: 50 }}>
-        <button onClick={() => window.print()} style={{ background: BRAND, color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-          Print / Save PDF
+      {/* Print / Close toolbar */}
+      <div className="no-print" style={{ position: 'fixed', top: 16, right: 16, zIndex: 999, display: 'flex', gap: 8 }}>
+        <button
+          onClick={() => window.print()}
+          style={{ background: BRAND, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}
+        >
+          🖨 Print / Save PDF
         </button>
-        <button onClick={() => window.close()} style={{ background: '#e5e7eb', color: '#374151', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}>
-          Close
+        <button
+          onClick={() => window.close()}
+          style={{ background: '#6b7280', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}
+        >
+          ✕ Close
         </button>
       </div>
 
       <div className="doc-page">
 
-        {/* ── HEADER ─────────────────────────────────────────────────────── */}
-        <table style={{ width: '100%', marginBottom: 14 }}>
-          <tbody><tr>
+        {/* ── Header ─────────────────────────────────────────────────────── */}
+        <table style={{ width: '100%', marginBottom: 16 }}>
+          <tbody>
+            <tr>
+              {/* Left: company info */}
+              <td style={{ width: '33%', verticalAlign: 'top' }}>
+                <p style={{ fontWeight: 700, fontSize: 13, marginBottom: 3 }}>{COMPANY.name}</p>
+                <p style={{ color: '#4b5563', fontSize: 10.5, lineHeight: 1.6, margin: 0 }}>
+                  {COMPANY.address}<br />
+                  Tel: {COMPANY.phone}<br />
+                  {COMPANY.email}
+                </p>
+              </td>
 
-            {/* Left — Company info */}
-            <td style={{ verticalAlign: 'top', width: '28%' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#111', lineHeight: 1.3 }}>{COMPANY.name}</div>
-              <div style={{ fontSize: 9, color: '#64748b', marginTop: 2 }}>{COMPANY.address}</div>
-              {COMPANY.vat   && <div style={{ fontSize: 9, color: '#64748b' }}>VAT Reg: {COMPANY.vat}</div>}
-              {COMPANY.phone && <div style={{ fontSize: 9, color: '#64748b' }}>Tel: {COMPANY.phone}</div>}
-            </td>
+              {/* Center: logo */}
+              <td style={{ width: '34%', textAlign: 'center', verticalAlign: 'middle', padding: '0 8px' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo.svg" alt="Logo" style={{ width: 115, height: 'auto', display: 'inline-block' }} />
+              </td>
 
-            {/* Center — Logo */}
-            <td style={{ width: '37%', textAlign: 'center', verticalAlign: 'middle', padding: '0 8px' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.svg" alt="Logo" style={{ width: 115, height: 'auto', display: 'inline-block' }} />
-            </td>
-
-            {/* Right — Doc title + meta */}
-            <td style={{ textAlign: 'right', verticalAlign: 'top', width: '35%' }}>
-              <div style={{ lineHeight: 1, marginBottom: 10 }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: BRAND, letterSpacing: '-0.5px' }}>DELIVERY NOTE</div>
-                <div className="ar" style={{ fontSize: 13, fontWeight: 700, color: '#3b82f6', marginTop: 2, letterSpacing: '0.02em' }}>إشعار التسليم</div>
-              </div>
-
-              {/* DN number badge */}
-              <div style={{
-                background: BRAND, color: '#fff', borderRadius: 6,
-                padding: '5px 10px', marginBottom: 8, display: 'inline-block',
-                fontSize: 11, fontWeight: 700, letterSpacing: '0.03em',
-                whiteSpace: 'nowrap',
-              }}>
-                {dn.dnNumber}
-              </div>
-
-              {/* Dates / refs */}
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
-                <tbody>
-                  <tr>
-                    <td style={{ paddingBottom: 4 }}>
-                      <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Date / التاريخ</div>
-                      <div style={{ fontWeight: 700, color: '#111', fontSize: 11 }}>{fmtDate(dn.createdAt)}</div>
-                    </td>
-                  </tr>
-                  {dn.deliveredAt && (
+              {/* Right: DN badge + meta */}
+              <td style={{ width: '33%', textAlign: 'right', verticalAlign: 'top' }}>
+                <div style={{
+                  display: 'inline-block', background: BRAND, color: '#fff',
+                  borderRadius: 8, padding: '6px 14px', marginBottom: 6,
+                }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, margin: 0, opacity: 0.85, letterSpacing: 1 }}>DELIVERY NOTE / مذكرة تسليم</p>
+                  <p style={{ fontSize: 18, fontWeight: 900, margin: 0, letterSpacing: 1, whiteSpace: 'nowrap' }}>#{dn.dnNumber}</p>
+                </div>
+                <table style={{ width: '100%', fontSize: 10.5, color: '#374151' }}>
+                  <tbody>
                     <tr>
-                      <td style={{ paddingBottom: 4 }}>
-                        <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Delivered / تاريخ التسليم</div>
-                        <div style={{ fontWeight: 700, color: '#111', fontSize: 11 }}>{fmtDate(dn.deliveredAt)}</div>
-                      </td>
+                      <td style={{ color: '#6b7280', paddingRight: 6 }}>Date / التاريخ</td>
+                      <td style={{ fontWeight: 600 }}>{fmtDate(dn.createdAt)}</td>
                     </tr>
-                  )}
-                  {dn.taxInvoice && (
-                    <tr>
-                      <td style={{ paddingBottom: 4 }}>
-                        <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Invoice / الفاتورة</div>
-                        <div style={{ fontWeight: 700, color: '#111', fontSize: 11 }}>{dn.taxInvoice.invoiceNumber}</div>
-                      </td>
-                    </tr>
-                  )}
-                  {dn.quotation && (
-                    <tr>
-                      <td>
-                        <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Quotation / عرض السعر</div>
-                        <div style={{ fontWeight: 700, color: '#111', fontSize: 11 }}>{dn.quotation.quotationNumber}</div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </td>
-
-          </tr></tbody>
+                    {dn.deliveredAt && (
+                      <tr>
+                        <td style={{ color: '#6b7280', paddingRight: 6 }}>Delivered / تاريخ التسليم</td>
+                        <td style={{ fontWeight: 600 }}>{fmtDate(dn.deliveredAt)}</td>
+                      </tr>
+                    )}
+                    {dn.taxInvoice && (
+                      <tr>
+                        <td style={{ color: '#6b7280', paddingRight: 6 }}>Invoice / الفاتورة</td>
+                        <td style={{ fontWeight: 600 }}>{dn.taxInvoice.invoiceNumber}</td>
+                      </tr>
+                    )}
+                    {dn.quotation && !dn.taxInvoice && (
+                      <tr>
+                        <td style={{ color: '#6b7280', paddingRight: 6 }}>Quotation / عرض سعر</td>
+                        <td style={{ fontWeight: 600 }}>{dn.quotation.quotationNumber}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          </tbody>
         </table>
 
-        {/* ── DIVIDER ── */}
-        <div style={{ height: 3, background: `linear-gradient(90deg, ${BRAND}, #3b82f6)`, borderRadius: 2, marginBottom: 14 }} />
+        {/* ── Divider ──────────────────────────────────────────────────────── */}
+        <div style={{ height: 3, background: BRAND, borderRadius: 2, marginBottom: 14 }} />
 
-        {/* ── DELIVER TO / PROJECT ── */}
-        <table style={{ width: '100%', marginBottom: 14 }}>
-          <tbody><tr>
-            <td style={{ width: '50%', verticalAlign: 'top', paddingRight: 10 }}>
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 7, padding: '10px 12px' }}>
-                <div className="bilabel" style={{ marginBottom: 6 }}>
-                  <span className="bilabel-en">DELIVER TO</span>
-                  <span className="bilabel-ar">تسليم إلى</span>
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 3 }}>{deliverTo}</div>
-                {dn.client?.trn     && <div style={{ fontSize: 10, color: '#475569' }}>TRN: {dn.client.trn}</div>}
-                {dn.engineerName    && <div style={{ fontSize: 11, color: '#475569', marginTop: 3 }}>Attn: {dn.engineerName}</div>}
-                {dn.mobileNumber    && <div style={{ fontSize: 11, color: '#475569' }}>Tel: {dn.mobileNumber}</div>}
-              </div>
-            </td>
-            <td style={{ width: '50%', verticalAlign: 'top' }}>
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 7, padding: '10px 12px' }}>
-                <div className="bilabel" style={{ marginBottom: 6 }}>
-                  <span className="bilabel-en">PROJECT DETAILS</span>
-                  <span className="bilabel-ar">تفاصيل المشروع</span>
-                </div>
-                {dn.projectName               && <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 3 }}>{dn.projectName}</div>}
-                {dn.taxInvoice?.lpoNumber     && <div style={{ fontSize: 11, color: '#475569' }}>LPO: {dn.taxInvoice.lpoNumber}</div>}
-                {dn.taxInvoice?.paymentTerms  && <div style={{ fontSize: 11, color: '#475569' }}>Payment: {dn.taxInvoice.paymentTerms}</div>}
-              </div>
-            </td>
-          </tr></tbody>
+        {/* ── Deliver To / Project Info ────────────────────────────────────── */}
+        <table style={{ width: '100%', marginBottom: 14, fontSize: 11 }}>
+          <tbody>
+            <tr>
+              <td style={{ width: '50%', verticalAlign: 'top' }}>
+                <p style={{ color: '#6b7280', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 4px' }}>Deliver To / تسليم إلى</p>
+                <p style={{ fontWeight: 700, fontSize: 13, margin: '0 0 2px' }}>{deliverTo}</p>
+                {dn.engineerName && <p style={{ margin: '0 0 1px', color: '#374151' }}>Eng: {dn.engineerName}</p>}
+                {dn.mobileNumber && <p style={{ margin: 0, color: '#374151' }}>Tel: {dn.mobileNumber}</p>}
+              </td>
+              <td style={{ width: '50%', verticalAlign: 'top' }}>
+                <p style={{ color: '#6b7280', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 4px' }}>Project / المشروع</p>
+                {dn.projectName && <p style={{ fontWeight: 600, margin: '0 0 2px' }}>{dn.projectName}</p>}
+                {dn.taxInvoice?.lpoNumber    && <p style={{ margin: '0 0 1px', color: '#374151' }}>LPO: {dn.taxInvoice.lpoNumber}</p>}
+                {dn.taxInvoice?.paymentTerms && <p style={{ margin: 0, color: '#374151' }}>Payment: {dn.taxInvoice.paymentTerms}</p>}
+              </td>
+            </tr>
+          </tbody>
         </table>
 
-        {/* ── ITEMS TABLE ── */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 4, fontSize: 11 }}>
+        {/* ── Items Table ──────────────────────────────────────────────────── */}
+        <table style={{ width: '100%', marginBottom: 16 }}>
           <thead>
             <tr style={{ background: BRAND, color: '#fff' }}>
-              {[
-                { en: '#',           ar: '#' },
-                { en: 'DESCRIPTION', ar: 'الوصف' },
-                { en: 'L/PC (cm)',   ar: 'الطول/قطعة' },
-                { en: 'UNIT',        ar: 'الوحدة' },
-                { en: 'QTY',         ar: 'الكمية' },
-                { en: 'LM',          ar: 'م.خ' },
-                { en: 'UNIT PRICE',  ar: 'سعر الوحدة' },
-                { en: 'TOTAL (AED)', ar: 'الإجمالي' },
-              ].map(({ en, ar }, i) => (
-                <th key={en} style={{
-                  padding: '7px 7px',
-                  textAlign: i === 0 || i === 1 ? 'left' : i >= 6 ? 'right' : 'center',
-                  fontWeight: 700, fontSize: 9, whiteSpace: 'nowrap',
-                }}>
-                  <div>{en}</div>
-                  <div className="ar" style={{ fontSize: 8, fontWeight: 400, opacity: 0.85, marginTop: 1 }}>{ar}</div>
-                </th>
-              ))}
+              <th style={{ padding: '7px 10px', textAlign: 'left',   fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>Description / الوصف</th>
+              <th style={{ padding: '7px 10px', textAlign: 'center', fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>L/PC (cm) / الطول</th>
+              <th style={{ padding: '7px 10px', textAlign: 'center', fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>Unit / الوحدة</th>
+              <th style={{ padding: '7px 10px', textAlign: 'center', fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>Qty / الكمية</th>
+              <th style={{ padding: '7px 10px', textAlign: 'center', fontSize: 10, fontWeight: 700, border: '1px solid #1e3a8a' }}>LM / م.خ</th>
             </tr>
           </thead>
           <tbody>
-            {dn.items.map((item, i) => (
-              <tr key={item.id} style={{ background: i % 2 === 0 ? '#fff' : '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '8px 7px', color: '#64748b' }}>{i + 1}</td>
-                <td style={{ padding: '8px 7px', fontWeight: 500 }}>{cleanDescription(item.description, item.size)}</td>
-                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>
-                  {item.unit === 'LM' && item.length != null ? item.length.toFixed(2) : (item.size || '—')}
+            {dn.items.map((item, idx) => (
+              <tr key={item.id} style={{ background: idx % 2 === 0 ? '#fff' : '#f8fafc' }}>
+                <td style={{ padding: '6px 10px', border: '1px solid #e5e7eb', fontSize: 11, fontWeight: 500 }}>{item.description}</td>
+                <td style={{ padding: '6px 10px', border: '1px solid #e5e7eb', fontSize: 11, textAlign: 'center', color: '#374151' }}>
+                  {item.unit === 'LM' && item.length != null ? item.length.toFixed(2) : '—'}
                 </td>
-                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>{item.unit || '—'}</td>
-                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>{item.quantity}</td>
-                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>
-                  {item.unit === 'LM' && item.linearMeters ? item.linearMeters.toFixed(2) : '—'}
+                <td style={{ padding: '6px 10px', border: '1px solid #e5e7eb', fontSize: 11, textAlign: 'center', color: '#374151' }}>{item.unit || '—'}</td>
+                <td style={{ padding: '6px 10px', border: '1px solid #e5e7eb', fontSize: 11, textAlign: 'center', fontWeight: 600 }}>{item.quantity}</td>
+                <td style={{ padding: '6px 10px', border: '1px solid #e5e7eb', fontSize: 11, textAlign: 'center', fontWeight: 600, color: BRAND }}>
+                  {item.unit === 'LM' && item.linearMeters != null ? item.linearMeters.toFixed(2) : '—'}
                 </td>
-                <td style={{ padding: '8px 7px', textAlign: 'right', color: '#64748b' }}>{fmt(item.unitPrice)}</td>
-                <td style={{ padding: '8px 7px', textAlign: 'right', fontWeight: 700 }}>{fmt(item.total)}</td>
               </tr>
             ))}
-          </tbody>
-
-          {/* ── TOTALS SUMMARY ROW ── */}
-          <tfoot>
-            <tr style={{ background: BRAND_LIGHT, borderTop: `2px solid ${BRAND}` }}>
-              <td colSpan={3} style={{ padding: '7px 9px' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: BRAND }}>TOTAL SUMMARY</div>
-                <div className="ar" style={{ fontSize: 9, color: '#3b82f6', marginTop: 1 }}>ملخص الإجمالي</div>
+            {/* Summary row */}
+            <tr style={{ background: '#eff6ff', fontWeight: 700 }}>
+              <td colSpan={2} style={{ padding: '7px 10px', border: '1px solid #e5e7eb', textAlign: 'right', fontSize: 11, color: BRAND }}>
+                Total / الإجمالي
               </td>
-              <td style={{ padding: '7px 7px', textAlign: 'center' }}>
-                <div style={{ fontSize: 9, color: '#64748b' }}>Unit / وحدة</div>
-              </td>
-              <td style={{ padding: '7px 7px', textAlign: 'center' }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: BRAND }}>{totalPieces}</div>
-                <div style={{ fontSize: 8, color: '#64748b' }}>pcs / قطعة</div>
-              </td>
-              <td style={{ padding: '7px 7px', textAlign: 'center' }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: BRAND }}>{totalLM > 0 ? totalLM.toFixed(2) : '—'}</div>
-                <div style={{ fontSize: 8, color: '#64748b' }}>m / متر</div>
-              </td>
-              <td style={{ padding: '7px 9px', textAlign: 'right' }} />
-              <td style={{ padding: '7px 9px', textAlign: 'right' }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: BRAND }}>{fmt(grandTotal)}</div>
-                <div style={{ fontSize: 8, color: '#64748b' }}>AED</div>
+              <td style={{ padding: '7px 10px', border: '1px solid #e5e7eb' }} />
+              <td style={{ padding: '7px 10px', border: '1px solid #e5e7eb', textAlign: 'center', fontSize: 12, color: BRAND }}>{totalPcs}</td>
+              <td style={{ padding: '7px 10px', border: '1px solid #e5e7eb', textAlign: 'center', fontSize: 12, color: BRAND }}>
+                {totalLM > 0 ? `${totalLM.toFixed(2)} LM` : '—'}
               </td>
             </tr>
-          </tfoot>
+          </tbody>
         </table>
 
-        {/* ── NOTES + TOTAL BOX ── */}
-        <table style={{ width: '100%', marginBottom: 20, marginTop: 12 }}>
-          <tbody><tr>
-            <td style={{ width: '52%', verticalAlign: 'top', paddingRight: 12 }}>
-              {dn.notes && (
-                <div>
-                  <div className="bilabel" style={{ marginBottom: 5 }}>
-                    <span className="bilabel-en">NOTES</span>
-                    <span className="bilabel-ar">ملاحظات</span>
-                  </div>
-                  <div style={{ fontSize: 11, color: '#475569', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{dn.notes}</div>
-                </div>
-              )}
-            </td>
-            <td style={{ width: '48%', verticalAlign: 'top' }}>
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: 7, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', borderBottom: '1px solid #e2e8f0' }}>
-                  <span style={{ fontSize: 11, color: '#64748b' }}>Grand Total / الإجمالي الكلي</span>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: BRAND }}>{fmt(grandTotal)} AED</span>
-                </div>
-              </div>
-            </td>
-          </tr></tbody>
-        </table>
-
-        {/* ── ACKNOWLEDGEMENT ── */}
-        <div style={{ marginTop: 28, marginBottom: 20 }}>
-          <div className="bilabel" style={{ marginBottom: 14 }}>
-            <span className="bilabel-en">ACKNOWLEDGEMENT OF RECEIPT</span>
-            <span className="bilabel-ar">إقرار الاستلام</span>
+        {/* ── Notes ───────────────────────────────────────────────────────── */}
+        {dn.notes && (
+          <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 6, padding: '8px 12px', marginBottom: 16 }}>
+            <p style={{ fontSize: 9.5, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', margin: '0 0 3px' }}>Notes / ملاحظات</p>
+            <p style={{ fontSize: 11, color: '#374151', margin: 0, whiteSpace: 'pre-line' }}>{dn.notes}</p>
           </div>
-          <table style={{ width: '100%' }}>
-            <tbody><tr>
-              <td style={{ width: '45%', verticalAlign: 'bottom', paddingRight: 16 }}>
-                <div style={{ borderTop: '1.5px solid #cbd5e1', paddingTop: 6 }}>
-                  <div style={{ fontSize: 10, color: '#64748b', marginBottom: 3 }}>Delivered by (Salesman) / المندوب</div>
-                  {dn.salesmanSign && <div style={{ fontSize: 12, fontWeight: 700 }}>{dn.salesmanSign}</div>}
-                  <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 14 }}>Signature / Name — التوقيع / الاسم</div>
-                </div>
-              </td>
-              <td style={{ width: '10%' }} />
-              <td style={{ width: '45%', verticalAlign: 'bottom' }}>
-                <div style={{ borderTop: '1.5px solid #cbd5e1', paddingTop: 6 }}>
-                  <div style={{ fontSize: 10, color: '#64748b', marginBottom: 3 }}>Received by / المستلم</div>
-                  {dn.receiverName && <div style={{ fontSize: 12, fontWeight: 700 }}>{dn.receiverName}</div>}
-                  {dn.receiverSign && <div style={{ fontSize: 11, color: '#475569' }}>{dn.receiverSign}</div>}
-                  <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 14 }}>Name / Signature / Date — الاسم / التوقيع / التاريخ</div>
-                </div>
-              </td>
-            </tr></tbody>
-          </table>
-        </div>
+        )}
 
-        {/* ── FOOTER ── */}
-        <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#94a3b8' }}>
-          <span>{COMPANY.name} — {COMPANY.address}</span>
-          <span>{dn.dnNumber}</span>
-          <span>This is a computer-generated document</span>
+        {/* ── Signatures ──────────────────────────────────────────────────── */}
+        <table style={{ width: '100%', marginTop: 24 }}>
+          <tbody>
+            <tr>
+              <td style={{ width: '33%', textAlign: 'center', paddingTop: 32, borderTop: '1.5px solid #9ca3af', paddingRight: 12 }}>
+                <p style={{ fontSize: 10, color: '#6b7280', margin: 0 }}>Salesman / مندوب المبيعات</p>
+                <p style={{ fontSize: 11, fontWeight: 600, marginTop: 4 }}>{dn.salesmanSign || <>&nbsp;</>}</p>
+              </td>
+              <td style={{ width: '33%', textAlign: 'center', paddingTop: 32, borderTop: '1.5px solid #9ca3af', padding: '32px 12px 0' }}>
+                <p style={{ fontSize: 10, color: '#6b7280', margin: 0 }}>Receiver Name / اسم المستلم</p>
+                <p style={{ fontSize: 11, fontWeight: 600, marginTop: 4 }}>{dn.receiverName || <>&nbsp;</>}</p>
+              </td>
+              <td style={{ width: '33%', textAlign: 'center', paddingTop: 32, borderTop: '1.5px solid #9ca3af', paddingLeft: 12 }}>
+                <p style={{ fontSize: 10, color: '#6b7280', margin: 0 }}>Receiver Signature / توقيع المستلم</p>
+                <p style={{ fontSize: 11, fontWeight: 600, marginTop: 4 }}>{dn.receiverSign || <>&nbsp;</>}</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* ── Footer ──────────────────────────────────────────────────────── */}
+        <div style={{ marginTop: 20, textAlign: 'center', fontSize: 9, color: '#9ca3af', borderTop: '1px solid #e5e7eb', paddingTop: 8 }}>
+          {COMPANY.name} · {COMPANY.address} · {COMPANY.phone}
         </div>
 
       </div>
