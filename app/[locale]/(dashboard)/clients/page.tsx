@@ -14,16 +14,19 @@ import {
 import { PageHeader } from '@/components/PageHeader';
 import { PhoneInput } from '@/components/PhoneInput';
 import { DualLanguageName } from '@/components/DualLanguageName';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { EMIRATES, EMIRATE_LABEL, EMIRATE_CITIES, type Emirate } from '@/lib/locations';
 
 interface Engineer { id: string; name: string; nameAr: string | null; mobile: string | null; email: string | null; }
 interface Client {
   id: string; companyName: string; companyNameAr: string | null; trn: string | null;
-  phone: string | null; email: string | null; address: string | null; notes: string | null;
+  phone: string | null; email: string | null; address: string | null;
+  emirate: string | null; city: string | null; notes: string | null;
   engineers: Engineer[];
   _count: { quotations: number; taxInvoices: number; };
 }
 
-const emptyClient = { companyName: '', companyNameAr: '', trn: '', phone: '', email: '', address: '', notes: '' };
+const emptyClient = { companyName: '', companyNameAr: '', trn: '', phone: '', email: '', address: '', emirate: '', city: '', notes: '' };
 const emptyEngineer = { name: '', nameAr: '', mobile: '', email: '' };
 
 export default function ClientsPage() {
@@ -72,7 +75,7 @@ export default function ClientsPage() {
   }, [search]);
 
   const openCreate = () => setClientModal({ open: true, mode: 'create', data: { ...emptyClient } });
-  const openEdit = (c: Client) => setClientModal({ open: true, mode: 'edit', id: c.id, data: { companyName: c.companyName, companyNameAr: c.companyNameAr || '', trn: c.trn || '', phone: c.phone || '', email: c.email || '', address: c.address || '', notes: c.notes || '' } });
+  const openEdit = (c: Client) => setClientModal({ open: true, mode: 'edit', id: c.id, data: { companyName: c.companyName, companyNameAr: c.companyNameAr || '', trn: c.trn || '', phone: c.phone || '', email: c.email || '', address: c.address || '', emirate: c.emirate || '', city: c.city || '', notes: c.notes || '' } });
 
   const saveClient = async () => {
     if (!clientModal.data.companyName.trim()) { toast.error(t('clients.companyName') + ' is required'); return; }
@@ -329,11 +332,43 @@ export default function ClientsPage() {
                   placeholder="info@..." type="email" />
               </div>
             </div>
+            {/* Emirate + City */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium block mb-1.5">Emirate / الإمارة</label>
+                <Select
+                  value={clientModal.data.emirate || ''}
+                  onValueChange={v => setClientModal(p => ({ ...p, data: { ...p.data, emirate: v, city: '' } }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select emirate..." /></SelectTrigger>
+                  <SelectContent>
+                    {EMIRATES.map(em => (
+                      <SelectItem key={em} value={em}>{EMIRATE_LABEL[em]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1.5">City / المدينة</label>
+                <Select
+                  value={clientModal.data.city || ''}
+                  onValueChange={v => setClientModal(p => ({ ...p, data: { ...p.data, city: v } }))}
+                  disabled={!clientModal.data.emirate}
+                >
+                  <SelectTrigger><SelectValue placeholder={clientModal.data.emirate ? 'Select city...' : 'Select emirate first'} /></SelectTrigger>
+                  <SelectContent>
+                    {clientModal.data.emirate && EMIRATE_CITIES[clientModal.data.emirate as Emirate]?.map(city => (
+                      <SelectItem key={city} value={city}>{city}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div>
               <label className="text-sm font-medium block mb-1.5">{t('clients.address')}</label>
               <Input value={clientModal.data.address}
                 onChange={e => setClientModal(p => ({ ...p, data: { ...p.data, address: e.target.value } }))}
-                placeholder="Dubai, UAE" />
+                placeholder="Street / Building / Area details" />
             </div>
             <div>
               <label className="text-sm font-medium block mb-1.5">{t('clients.notes')}</label>

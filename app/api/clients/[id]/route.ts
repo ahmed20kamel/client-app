@@ -8,6 +8,8 @@ const updateClientSchema = z.object({
   companyNameAr: z.string().optional().nullable(),
   trn: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
+  emirate: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
   email: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),

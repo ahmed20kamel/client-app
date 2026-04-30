@@ -450,6 +450,8 @@ model Client {
   companyNameAr  String?
   trn            String?    // Tax Registration Number
   address     String?
+  emirate     String?
+  city        String?
   phone       String?
   email       String?
   notes       String?
