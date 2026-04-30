@@ -14,13 +14,13 @@ async function generateDNNumber(tx: Parameters<Parameters<typeof prisma.$transac
     orderBy: { createdAt: 'desc' },
     select: { dnNumber: true },
   });
-  let seq = 1260; // starting number
+  let seq = 1261; // starting number
   if (lastRecord?.dnNumber) {
     const parts = lastRecord.dnNumber.split('-');
     if (parts.length >= 2) {
       const seqPart = parts[1]?.split('/')[0];
       const lastSeq = parseInt(seqPart || '0');
-      if (!isNaN(lastSeq) && lastSeq >= 1260) seq = lastSeq + 1;
+      if (!isNaN(lastSeq) && lastSeq >= 1262) seq = lastSeq + 1;
     }
   }
   return `DN-${seq}/${year}`;
