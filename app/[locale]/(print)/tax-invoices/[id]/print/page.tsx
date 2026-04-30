@@ -384,9 +384,15 @@ export default function TaxInvoicePrintPage() {
         <table style={{ width: '100%', marginBottom: 20 }}>
           <tbody><tr>
             <td style={{ width: '45%', verticalAlign: 'bottom', paddingRight: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, marginBottom: 4 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/sign.png" alt="Authorized Signature" style={{ height: 60, width: 'auto', objectFit: 'contain' }} />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/stamp.png" alt="Company Stamp" style={{ height: 60, width: 'auto', objectFit: 'contain' }} />
+              </div>
               <div style={{ borderTop: '1.5px solid #cbd5e1', paddingTop: 6 }}>
                 <div style={{ fontSize: 10, color: '#64748b' }}>Authorized Signature / التوقيع المعتمد</div>
-                <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 14 }}>Name / Title / Date — الاسم / المسمى / التاريخ</div>
+                <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 4 }}>Name / Title / Date — الاسم / المسمى / التاريخ</div>
               </div>
             </td>
             <td style={{ width: '10%' }} />
