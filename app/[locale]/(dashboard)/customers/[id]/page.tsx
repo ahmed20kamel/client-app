@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { CITY_TRANSLATION_KEY, areaTranslationKey, type City } from '@/lib/locations';
+import { EMIRATE_LABEL, type Emirate } from '@/lib/locations';
 import {
   User,
   Building2,
@@ -442,9 +442,9 @@ export default function CustomerDetailsPage() {
                   <InfoItem icon={Mail} label={t('common.email')} value={customer.email} />
                   <InfoItem icon={Building2} label={t('customers.company')} value={customer.company} />
                   <InfoItem icon={Hash} label={t('customers.nationalId')} value={customer.nationalId} />
-                  <InfoItem icon={MapPin} label={t('customers.emirate')} value={customer.emirate ? (EMIRATE_TRANSLATION_MAP[customer.emirate] ? t(`customers.${EMIRATE_TRANSLATION_MAP[customer.emirate]}`) : customer.emirate) : null} />
-                  <InfoItem icon={MapPin} label={t('customers.city')} value={customer.city ? (CITY_TRANSLATION_KEY[customer.city as City] && t.has(`customers.cities.${CITY_TRANSLATION_KEY[customer.city as City]}`) ? t(`customers.cities.${CITY_TRANSLATION_KEY[customer.city as City]}`) : customer.city) : null} />
-                  <InfoItem icon={MapPin} label={t('customers.area')} value={customer.area ? (t.has(`customers.areas.${areaTranslationKey(customer.area)}`) ? t(`customers.areas.${areaTranslationKey(customer.area)}`) : customer.area) : null} />
+                  <InfoItem icon={MapPin} label={t('customers.emirate')} value={customer.emirate ? (EMIRATE_LABEL[customer.emirate as Emirate] || customer.emirate) : null} />
+                  <InfoItem icon={MapPin} label={t('customers.city')} value={customer.city} />
+                  <InfoItem icon={MapPin} label={t('customers.area')} value={customer.area} />
                   <InfoItem icon={MapPin} label={t('customers.basin')} value={customer.basin} />
                   <InfoItem icon={User} label={t('customers.customerType')} value={customer.customerType === 'NEW' ? t('customers.typeNew') : customer.customerType === 'EXISTING' ? t('customers.typeExisting') : customer.customerType} />
                   <InfoItem icon={UserCheck} label={t('customers.owner')} value={customer.owner.fullName} />

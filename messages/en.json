@@ -207,6 +207,7 @@
     "projectType": "Project Type",
     "productType": "Product Type",
     "selectProductType": "Select Project Type",
+    "selectEmirateFirst": "Select emirate first",
     "selectProductTypeDesc": "Choose the product type this customer is interested in before creating the record.",
     "leadSource": "Lead Source",
     "estimatedValue": "Estimated Value (AED)",

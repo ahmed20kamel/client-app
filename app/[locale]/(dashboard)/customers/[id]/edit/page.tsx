@@ -6,7 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { updateCustomerSchema, UpdateCustomerInput, STATUS_PROBABILITY_MAP, LeadStatus } from '@/lib/validations/customer';
-import { CITIES, CITY_AREAS, CITY_TRANSLATION_KEY, areaTranslationKey, type City } from '@/lib/locations';
+import { EMIRATES, EMIRATE_LABEL, EMIRATE_CITIES, type Emirate } from '@/lib/locations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -91,12 +91,8 @@ export default function EditCustomerPage() {
 
   const watchEstimatedValue = form.watch('estimatedValue');
   const watchProbability = form.watch('probability');
-  const watchedCity = form.watch('city') as City | '';
-  const [customCities, setCustomCities] = useState<string[]>([]);
-  const [customAreas, setCustomAreas] = useState<string[]>([]);
-  const allCities = [...CITIES, ...customCities.filter(c => !(CITIES as readonly string[]).includes(c))];
-  const baseAreas = watchedCity && CITY_AREAS[watchedCity as City] ? CITY_AREAS[watchedCity as City] : [];
-  const availableAreas = [...baseAreas, ...customAreas.filter(a => !baseAreas.includes(a))];
+  const watchedEmirate = form.watch('emirate') as Emirate | '';
+  const availableCities = watchedEmirate && EMIRATE_CITIES[watchedEmirate] ? EMIRATE_CITIES[watchedEmirate] : [];
 
   const weightedValue = (watchEstimatedValue || 0) * (watchProbability || 0) / 100;
 
@@ -445,18 +441,12 @@ export default function EditCustomerPage() {
                           <FormLabel>{t('customers.emirate')}</FormLabel>
                           <FormControl>
                             <SearchableSelect
-                              options={[
-                                { value: 'ABU_DHABI', label: t('customers.emirates.abuDhabi') },
-                                { value: 'DUBAI', label: t('customers.emirates.dubai') },
-                                { value: 'SHARJAH', label: t('customers.emirates.sharjah') },
-                                { value: 'AJMAN', label: t('customers.emirates.ajman') },
-                                { value: 'UMM_AL_QUWAIN', label: t('customers.emirates.ummAlQuwain') },
-                                { value: 'RAS_AL_KHAIMAH', label: t('customers.emirates.rasAlKhaimah') },
-                                { value: 'FUJAIRAH', label: t('customers.emirates.fujairah') },
-                                { value: 'AL_AIN', label: t('customers.emirates.alAin') },
-                              ]}
+                              options={EMIRATES.map(em => ({ value: em, label: EMIRATE_LABEL[em] }))}
                               value={field.value || ''}
-                              onValueChange={field.onChange}
+                              onValueChange={(val) => {
+                                field.onChange(val);
+                                form.setValue('city', '');
+                              }}
                               placeholder={t('common.select')}
                               searchPlaceholder={t('common.search')}
                               disabled={isLoading}
@@ -468,7 +458,7 @@ export default function EditCustomerPage() {
                       )}
                     />
 
-                    {/* City */}
+                    {/* City — cascades from emirate */}
                     <FormField
                       control={form.control}
                       name="city"
@@ -477,27 +467,13 @@ export default function EditCustomerPage() {
                           <FormLabel>{t('customers.city')}</FormLabel>
                           <FormControl>
                             <SearchableSelect
-                              options={allCities.map((city) => {
-                                const key = CITY_TRANSLATION_KEY[city as City];
-                                const translationKey = key ? `customers.cities.${key}` : '';
-                                return {
-                                  value: city,
-                                  label: translationKey && t.has(translationKey) ? t(translationKey) : city,
-                                };
-                              })}
+                              options={availableCities.map(city => ({ value: city, label: city }))}
                               value={field.value || ''}
-                              onValueChange={(val) => {
-                                field.onChange(val);
-                                form.setValue('area', '');
-                                setCustomAreas([]);
-                              }}
-                              placeholder={t('common.select')}
+                              onValueChange={field.onChange}
+                              placeholder={watchedEmirate ? t('common.select') : t('customers.selectEmirateFirst')}
                               searchPlaceholder={t('common.search')}
-                              disabled={isLoading}
+                              disabled={isLoading || !watchedEmirate}
                               icon={<MapPin className="size-4 text-muted-foreground" />}
-                              allowCreate
-                              onCreateOption={(val) => setCustomCities((prev) => [...prev, val])}
-                              createLabel={t('common.add')}
                             />
                           </FormControl>
                           <FormMessage />
@@ -505,7 +481,7 @@ export default function EditCustomerPage() {
                       )}
                     />
 
-                    {/* Area */}
+                    {/* Area — free text */}
                     <FormField
                       control={form.control}
                       name="area"
@@ -513,24 +489,16 @@ export default function EditCustomerPage() {
                         <FormItem>
                           <FormLabel>{t('customers.area')}</FormLabel>
                           <FormControl>
-                            <SearchableSelect
-                              options={availableAreas.map((area) => {
-                                const key = `customers.areas.${areaTranslationKey(area)}`;
-                                return {
-                                  value: area,
-                                  label: t.has(key) ? t(key) : area,
-                                };
-                              })}
-                              value={field.value || ''}
-                              onValueChange={field.onChange}
-                              placeholder={t('common.select')}
-                              searchPlaceholder={t('common.search')}
-                              disabled={isLoading || !watchedCity}
-                              icon={<MapPin className="size-4 text-muted-foreground" />}
-                              allowCreate
-                              onCreateOption={(val) => setCustomAreas((prev) => [...prev, val])}
-                              createLabel={t('common.add')}
-                            />
+                            <div className="relative">
+                              <MapPin className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                              <Input
+                                {...field}
+                                value={field.value || ''}
+                                disabled={isLoading}
+                                className="ps-10"
+                                placeholder={t('customers.area')}
+                              />
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>

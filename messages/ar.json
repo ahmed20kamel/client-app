@@ -206,6 +206,7 @@
     "projectType": "نوع المشروع",
     "productType": "نوع المنتج",
     "selectProductType": "اختر نوع المشروع",
+    "selectEmirateFirst": "اختر الإمارة أولاً",
     "selectProductTypeDesc": "اختر نوع المنتج الذي يهتم به العميل قبل إنشاء السجل.",
     "leadSource": "مصدر العميل",
     "estimatedValue": "القيمة الإجمالية للعقود (درهم)",
