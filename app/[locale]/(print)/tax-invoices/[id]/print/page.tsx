@@ -96,12 +96,12 @@ export default function TaxInvoicePrintPage() {
     <>
       <style>{`
         @media print {
-          @page { size: A4; margin: 10mm; }
+          @page { size: A4; margin: 6mm 8mm; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
           .no-print { display: none !important; }
         }
-        body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #111; margin: 0; padding: 0; font-size: 12px; }
-        .doc-page { max-width: 210mm; margin: 0 auto; padding: 14px 18px; background: #fff; }
+        body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #111; margin: 0; padding: 0; font-size: 11px; }
+        .doc-page { max-width: 210mm; margin: 0 auto; padding: 6px 12px; background: #fff; }
         table { border-collapse: collapse; }
         th, td { padding: 0; }
         .ar { font-family: 'Arial', sans-serif; direction: rtl; }
@@ -123,7 +123,7 @@ export default function TaxInvoicePrintPage() {
       <div className="doc-page">
 
         {/* ── HEADER ─────────────────────────────────────────────────────── */}
-        <table style={{ width: '100%', marginBottom: 14 }}>
+        <table style={{ width: '100%', marginBottom: 8 }}>
           <tbody><tr>
 
             {/* Left — Company info */}
@@ -192,10 +192,10 @@ export default function TaxInvoicePrintPage() {
         </table>
 
         {/* ── DIVIDER ── */}
-        <div style={{ height: 3, background: `linear-gradient(90deg, ${BRAND}, #3b82f6)`, borderRadius: 2, marginBottom: 14 }} />
+        <div style={{ height: 3, background: `linear-gradient(90deg, ${BRAND}, #3b82f6)`, borderRadius: 2, marginBottom: 8 }} />
 
         {/* ── BILL TO / PROJECT ── */}
-        <table style={{ width: '100%', marginBottom: 14 }}>
+        <table style={{ width: '100%', marginBottom: 8 }}>
           <tbody><tr>
             <td style={{ width: '50%', verticalAlign: 'top', paddingRight: 10 }}>
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 7, padding: '10px 12px' }}>
@@ -254,20 +254,20 @@ export default function TaxInvoicePrintPage() {
           <tbody>
             {invoice.items.map((item, i) => (
               <tr key={item.id} style={{ background: i % 2 === 0 ? '#fff' : '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '8px 7px', color: '#64748b' }}>{i + 1}</td>
-                <td style={{ padding: '8px 7px', fontWeight: 500 }}>
+                <td style={{ padding: '5px 7px', color: '#64748b' }}>{i + 1}</td>
+                <td style={{ padding: '5px 7px', fontWeight: 500 }}>
                   {cleanDescription(item.description, item.size)}
                 </td>
-                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>
+                <td style={{ padding: '5px 7px', textAlign: 'center', color: '#64748b' }}>
                   {item.unit === 'LM' && item.length != null ? item.length.toFixed(2) : (item.size || '—')}
                 </td>
-                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>{item.unit || '—'}</td>
-                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>{item.quantity}</td>
-                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>
+                <td style={{ padding: '5px 7px', textAlign: 'center', color: '#64748b' }}>{item.unit || '—'}</td>
+                <td style={{ padding: '5px 7px', textAlign: 'center', color: '#64748b' }}>{item.quantity}</td>
+                <td style={{ padding: '5px 7px', textAlign: 'center', color: '#64748b' }}>
                   {item.unit === 'LM' && item.linearMeters ? item.linearMeters.toFixed(2) : '—'}
                 </td>
-                <td style={{ padding: '8px 7px', textAlign: 'right', color: '#64748b' }}>{fmt(item.unitPrice)}</td>
-                <td style={{ padding: '8px 7px', textAlign: 'right', fontWeight: 700 }}>{fmt(item.total)}</td>
+                <td style={{ padding: '5px 7px', textAlign: 'right', color: '#64748b' }}>{fmt(item.unitPrice)}</td>
+                <td style={{ padding: '5px 7px', textAlign: 'right', fontWeight: 700 }}>{fmt(item.total)}</td>
               </tr>
             ))}
           </tbody>
@@ -296,7 +296,7 @@ export default function TaxInvoicePrintPage() {
         </table>
 
         {/* ── TOTALS + NOTES ── */}
-        <table style={{ width: '100%', marginBottom: 16, marginTop: 12 }}>
+        <table style={{ width: '100%', marginBottom: 8, marginTop: 6 }}>
           <tbody><tr>
             {/* Notes */}
             <td style={{ width: '52%', verticalAlign: 'top', paddingRight: 12 }}>
@@ -353,7 +353,7 @@ export default function TaxInvoicePrintPage() {
         </table>
 
         {/* ── BANK ACCOUNT DETAILS ── */}
-        <div style={{ border: `1px solid ${BRAND}`, borderRadius: 7, padding: '10px 14px', marginBottom: 18, background: '#f0f7ff' }}>
+        <div style={{ border: `1px solid ${BRAND}`, borderRadius: 7, padding: '6px 12px', marginBottom: 10, background: '#f0f7ff' }}>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 7 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: BRAND, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Bank Account Details</div>
             <div className="ar" style={{ fontSize: 9, color: '#3b82f6' }}>بيانات الحساب البنكي</div>
@@ -381,14 +381,14 @@ export default function TaxInvoicePrintPage() {
         </div>
 
         {/* ── ACCEPTANCE BLOCK ── */}
-        <table style={{ width: '100%', marginBottom: 20 }}>
+        <table style={{ width: '100%', marginBottom: 10 }}>
           <tbody><tr>
             <td style={{ width: '45%', verticalAlign: 'bottom', paddingRight: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 4 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/sign.png" alt="Authorized Signature" style={{ height: 60, width: 'auto', objectFit: 'contain' }} />
+                <img src="/sign.png" alt="Authorized Signature" style={{ height: 48, width: 'auto', objectFit: 'contain' }} />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/stamp.png" alt="Company Stamp" style={{ height: 60, width: 'auto', objectFit: 'contain' }} />
+                <img src="/stamp.png" alt="Company Stamp" style={{ height: 48, width: 'auto', objectFit: 'contain' }} />
               </div>
               <div style={{ borderTop: '1.5px solid #cbd5e1', paddingTop: 6 }}>
                 <div style={{ fontSize: 10, color: '#64748b' }}>Authorized Signature / التوقيع المعتمد</div>
@@ -399,7 +399,7 @@ export default function TaxInvoicePrintPage() {
             <td style={{ width: '45%', verticalAlign: 'bottom' }}>
               <div style={{ borderTop: '1.5px solid #cbd5e1', paddingTop: 6 }}>
                 <div style={{ fontSize: 10, color: '#64748b' }}>Client Acceptance / موافقة العميل</div>
-                <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 18 }}>Name / Signature / Date — الاسم / التوقيع / التاريخ</div>
+                <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 10 }}>Name / Signature / Date — الاسم / التوقيع / التاريخ</div>
               </div>
             </td>
           </tr></tbody>
