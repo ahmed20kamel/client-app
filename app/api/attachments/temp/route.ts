@@ -17,7 +17,14 @@ const ALLOWED_TYPES = [
   'application/vnd.dwg', 'application/x-dwg', 'image/vnd.dwg',
   'application/dxf', 'image/vnd.dxf',
   'application/zip', 'application/x-rar-compressed',
+  'application/octet-stream',
 ];
+const ALLOWED_EXTENSIONS = ['jpg','jpeg','png','webp','gif','pdf','doc','docx','xls','xlsx','dwg','dxf','zip','rar'];
+function isAllowed(file: File): boolean {
+  if (ALLOWED_TYPES.includes(file.type)) return true;
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+  return ALLOWED_EXTENSIONS.includes(ext);
+}
 
 // POST /api/attachments/temp - Upload file with a temp sessionId (no customer yet)
 export async function POST(request: NextRequest) {
@@ -45,7 +52,7 @@ export async function POST(request: NextRequest) {
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 });
     }
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (!isAllowed(file)) {
       return NextResponse.json({ error: 'File type not allowed' }, { status: 400 });
     }
 
