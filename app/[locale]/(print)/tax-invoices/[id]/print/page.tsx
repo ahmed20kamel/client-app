@@ -162,45 +162,22 @@ export default function TaxInvoicePrintPage() {
                 {invoice.invoiceNumber}
               </div>
 
-              {/* Date */}
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
-                <tbody>
-                  <tr>
-                    <td style={{ paddingBottom: 5 }}>
-                      <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Date / التاريخ</div>
-                      <div style={{ fontWeight: 700, color: '#111', fontSize: 11 }}>{fmtDate(invoice.createdAt)}</div>
-                    </td>
-                  </tr>
-                  {invoice.lpoNumber && (
-                    <tr>
-                      <td style={{ paddingBottom: 5 }}>
-                        <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>LPO / أمر الشراء</div>
-                        <div style={{ fontWeight: 700, color: '#111', fontSize: 11 }}>{invoice.lpoNumber}</div>
-                      </td>
-                    </tr>
-                  )}
-                  {(invoice.dnNumber || invoice.deliveryNotes?.length > 0) && (
-                    <tr>
-                      <td style={{ paddingBottom: 5 }}>
-                        <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Delivery Note / مذكرة التسليم</div>
-                        <div style={{ fontWeight: 700, color: '#111', fontSize: 11 }}>
-                          {invoice.deliveryNotes?.length > 0
-                            ? invoice.deliveryNotes.map(dn => dn.dnNumber).join(', ')
-                            : invoice.dnNumber}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                  {invoice.quotation && (
-                    <tr>
-                      <td>
-                        <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Quotation Ref / رقم عرض السعر</div>
-                        <div style={{ fontWeight: 700, color: '#111', fontSize: 11 }}>{invoice.quotation.quotationNumber}</div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+              {/* Date + meta — compact rows */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, textAlign: 'right' }}>
+                {[
+                  { label: 'Date / التاريخ', value: fmtDate(invoice.createdAt) },
+                  invoice.lpoNumber ? { label: 'LPO / أمر الشراء', value: invoice.lpoNumber } : null,
+                  (invoice.deliveryNotes?.length > 0 || invoice.dnNumber)
+                    ? { label: 'Delivery Note / مذكرة التسليم', value: invoice.deliveryNotes?.length > 0 ? invoice.deliveryNotes.map(d => d.dnNumber).join(', ') : invoice.dnNumber! }
+                    : null,
+                  invoice.quotation ? { label: 'Quotation Ref / رقم عرض السعر', value: invoice.quotation.quotationNumber } : null,
+                ].filter(Boolean).map(row => (
+                  <div key={row!.label} style={{ lineHeight: 1.2 }}>
+                    <div style={{ color: '#94a3b8', fontSize: 7.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{row!.label}</div>
+                    <div style={{ fontWeight: 700, color: '#111', fontSize: 10.5 }}>{row!.value}</div>
+                  </div>
+                ))}
+              </div>
             </td>
 
           </tr></tbody>
