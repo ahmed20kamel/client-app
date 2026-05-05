@@ -51,6 +51,7 @@ interface TaxInvoice {
   client: { id: string; companyName: string; trn: string | null; address: string | null; phone: string | null } | null;
   engineer: { id: string; name: string; mobile: string | null } | null;
   quotation: { id: string; quotationNumber: string } | null;
+  deliveryNotes: { id: string; dnNumber: string }[];
   items: TaxInvoiceItem[];
 }
 
@@ -178,11 +179,15 @@ export default function TaxInvoicePrintPage() {
                       </td>
                     </tr>
                   )}
-                  {invoice.dnNumber && (
+                  {(invoice.dnNumber || invoice.deliveryNotes?.length > 0) && (
                     <tr>
                       <td style={{ paddingBottom: 5 }}>
                         <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Delivery Note / مذكرة التسليم</div>
-                        <div style={{ fontWeight: 700, color: '#111', fontSize: 11 }}>{invoice.dnNumber}</div>
+                        <div style={{ fontWeight: 700, color: '#111', fontSize: 11 }}>
+                          {invoice.deliveryNotes?.length > 0
+                            ? invoice.deliveryNotes.map(dn => dn.dnNumber).join(', ')
+                            : invoice.dnNumber}
+                        </div>
                       </td>
                     </tr>
                   )}
