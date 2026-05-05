@@ -104,9 +104,11 @@ export async function POST(request: NextRequest) {
 
     const subtotal = itemsData.reduce((sum, item) => sum + item.total, 0);
     const taxPercent = validatedData.taxPercent ?? 5;
-    const taxAmount = subtotal * taxPercent / 100;
+    const discount = validatedData.discount ?? 0;
     const deliveryCharges = validatedData.deliveryCharges ?? 0;
-    const total = subtotal + taxAmount + deliveryCharges;
+    const taxableAmount = subtotal + deliveryCharges - discount;
+    const taxAmount = taxableAmount * taxPercent / 100;
+    const total = taxableAmount + taxAmount;
 
     // Re-fetch quotation with payment info for deposit logic
     const quotationFull = await prisma.quotation.findUnique({
@@ -136,6 +138,7 @@ export async function POST(request: NextRequest) {
           notes: validatedData.notes || null,
           terms: validatedData.terms || null,
           subtotal,
+          discount,
           taxPercent,
           taxAmount,
           deliveryCharges,
@@ -197,6 +200,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: error.issues[0]?.message || 'Validation error' },
         { status: 400 }
+      );
+    }
+    // Catch duplicate invoice number unique constraint
+    if (
+      error instanceof Error &&
+      'code' in error &&
+      (error as { code: string }).code === 'P2002'
+    ) {
+      return NextResponse.json(
+        { error: 'Invoice number already exists. Please use a different invoice number.' },
+        { status: 409 }
       );
     }
     logError('Create tax invoice error:', error);

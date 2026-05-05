@@ -18,12 +18,22 @@ const quotationItemSchema = z.object({
   productId: z.string().uuid().optional().nullable(),
   description: z.string().min(1, 'Description is required'),
   quantity: z.number().min(0.01, 'Quantity must be greater than 0'),
-  length: z.number().min(0).optional().nullable(),         // for LitBeam LM calc
+  length: z.number().min(0.01).optional().nullable(),      // for LitBeam LM calc
   linearMeters: z.number().min(0).optional().nullable(),   // qty * length
   size: z.string().optional().nullable(),
   unit: z.string().optional().nullable(),                  // LM or Nos
   unitPrice: z.number().min(0, 'Unit price must be non-negative'),
-  discount: z.number().min(0).max(100).optional(),
+  // max 99 to prevent zero or negative line totals after discount
+  discount: z.number().min(0).max(99, 'Discount cannot exceed 99%').optional(),
+}).superRefine((item, ctx) => {
+  // LM items must have a length so linear meters can be calculated correctly
+  if (item.unit === 'LM' && !item.linearMeters && !item.length) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Length (cm) is required for LM items',
+      path: ['length'],
+    });
+  }
 });
 
 // ─── Create Quotation ──────────────────────────────────────────────────────────
@@ -101,6 +111,7 @@ export const createTaxInvoiceSchema = z.object({
   notes: z.string().optional().nullable(),
   terms: z.string().optional().nullable(),
   taxPercent: z.number().min(0).optional(),
+  discount: z.number().min(0).optional(),
   deliveryCharges: z.number().min(0).optional(),
   lpoNumber: z.string().optional().nullable(),
   paymentTerms: z.string().optional().nullable(),
@@ -117,6 +128,7 @@ export const updateTaxInvoiceSchema = z.object({
   status: z.enum(['SENT', 'CANCELLED']).optional(),
   lpoNumber: z.string().optional().nullable(),
   paymentTerms: z.string().optional().nullable(),
+  discount: z.number().min(0).optional().nullable(),
 });
 
 // ─── Delivery Note ─────────────────────────────────────────────────────────────

@@ -40,7 +40,7 @@ interface TaxInvoice {
   engineerName: string | null; mobileNumber: string | null; projectName: string | null;
   customerTrn: string | null; ourVatReg: string | null; dnNumber: string | null;
   lpoNumber: string | null; paymentTerms: string | null;
-  subtotal: number; taxPercent: number; taxAmount: number; deliveryCharges: number;
+  subtotal: number; discount: number; taxPercent: number; taxAmount: number; deliveryCharges: number;
   total: number; paidAmount: number;
   notes: string | null; terms: string | null;
   createdAt: string;
@@ -423,16 +423,22 @@ export default function TaxInvoiceDetailPage() {
                   <span className="text-muted-foreground">{t('quotations.subtotal')}</span>
                   <span className="font-medium">{fmt(invoice.subtotal)} AED</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t('quotations.tax')} ({invoice.taxPercent}% VAT)</span>
-                  <span className="font-medium text-orange-600">+{fmt(invoice.taxAmount)} AED</span>
-                </div>
                 {invoice.deliveryCharges > 0 && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{t('quotations.deliveryCharges')}</span>
                     <span className="font-medium">+{fmt(invoice.deliveryCharges)} AED</span>
                   </div>
                 )}
+                {invoice.discount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-emerald-600 font-medium">{t('quotations.discount')}</span>
+                    <span className="font-medium text-emerald-600">−{fmt(invoice.discount)} AED</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t('quotations.tax')} ({invoice.taxPercent}% VAT)</span>
+                  <span className="font-medium text-orange-600">+{fmt(invoice.taxAmount)} AED</span>
+                </div>
                 <div className="flex justify-between text-base font-extrabold border-t pt-3">
                   <span>{t('quotations.total')}</span>
                   <span>{fmt(invoice.total)} AED</span>

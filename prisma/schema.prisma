@@ -685,6 +685,8 @@ model Quotation {
   @@index([status])
   @@index([createdAt])
   @@index([quotationNumber])
+  @@index([projectName])
+  @@index([engineerName])
 }
 
 model QuotationItem {
@@ -729,6 +731,7 @@ model TaxInvoice {
   notes           String?
   terms           String?
   subtotal        Float            @default(0)
+  discount        Float            @default(0)
   taxPercent      Float            @default(5)
   taxAmount       Float            @default(0)
   deliveryCharges Float            @default(0)

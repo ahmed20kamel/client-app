@@ -35,9 +35,11 @@ interface TaxInvoice {
   projectName: string | null;
   customerTrn: string | null;
   ourVatReg: string | null;
+  dnNumber: string | null;
   lpoNumber: string | null;
   paymentTerms: string | null;
   subtotal: number;
+  discount: number;
   taxPercent: number;
   taxAmount: number;
   deliveryCharges: number;
@@ -173,6 +175,14 @@ export default function TaxInvoicePrintPage() {
                       <td style={{ paddingBottom: 5 }}>
                         <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>LPO / أمر الشراء</div>
                         <div style={{ fontWeight: 700, color: '#111', fontSize: 11 }}>{invoice.lpoNumber}</div>
+                      </td>
+                    </tr>
+                  )}
+                  {invoice.dnNumber && (
+                    <tr>
+                      <td style={{ paddingBottom: 5 }}>
+                        <div style={{ color: '#94a3b8', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Delivery Note / مذكرة التسليم</div>
+                        <div style={{ fontWeight: 700, color: '#111', fontSize: 11 }}>{invoice.dnNumber}</div>
                       </td>
                     </tr>
                   )}
@@ -331,11 +341,21 @@ export default function TaxInvoicePrintPage() {
                     <span style={{ fontWeight: 600 }}>+{fmt(invoice.deliveryCharges)} AED</span>
                   </div>
                 )}
+                {/* Discount */}
+                {invoice.discount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
+                    <div>
+                      <div style={{ color: '#16a34a' }}>Discount</div>
+                      <div className="ar" style={{ fontSize: 9, color: '#86efac' }}>خصم</div>
+                    </div>
+                    <span style={{ fontWeight: 600, color: '#16a34a' }}>−{fmt(invoice.discount)} AED</span>
+                  </div>
+                )}
                 {/* VAT */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
                   <div>
-                    <div style={{ color: '#64748b' }}>VAT ({invoice.taxPercent}%){invoice.deliveryCharges > 0 ? ' incl. delivery' : ''}</div>
-                    <div className="ar" style={{ fontSize: 9, color: '#94a3b8' }}>ضريبة القيمة المضافة{invoice.deliveryCharges > 0 ? ' (شاملة الشحن)' : ''}</div>
+                    <div style={{ color: '#64748b' }}>VAT ({invoice.taxPercent}%)</div>
+                    <div className="ar" style={{ fontSize: 9, color: '#94a3b8' }}>ضريبة القيمة المضافة</div>
                   </div>
                   <span style={{ fontWeight: 600 }}>+{fmt(invoice.taxAmount)} AED</span>
                 </div>

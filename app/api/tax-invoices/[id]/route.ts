@@ -95,6 +95,16 @@ export async function PATCH(
       );
     }
 
+    // Recalculate totals if discount is being updated
+    let financialUpdate: Record<string, number> = {};
+    if (validatedData.discount !== undefined && validatedData.discount !== null) {
+      const discount = validatedData.discount;
+      const taxableAmount = existing.subtotal + existing.deliveryCharges - discount;
+      const taxAmount = taxableAmount * existing.taxPercent / 100;
+      const total = taxableAmount + taxAmount;
+      financialUpdate = { discount, taxAmount, total };
+    }
+
     const updated = await prisma.taxInvoice.update({
       where: { id },
       data: {
@@ -107,6 +117,7 @@ export async function PATCH(
         lpoNumber: validatedData.lpoNumber,
         paymentTerms: validatedData.paymentTerms,
         sentAt: validatedData.status === 'SENT' ? new Date() : undefined,
+        ...financialUpdate,
       },
       include: {
         customer: { select: { id: true, fullName: true } },
