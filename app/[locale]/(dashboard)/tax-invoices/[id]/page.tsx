@@ -88,6 +88,27 @@ export default function TaxInvoiceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
 
+  // Discount edit state
+  const [editingDiscount, setEditingDiscount] = useState(false);
+  const [discountInput, setDiscountInput] = useState('');
+  const [savingDiscount, setSavingDiscount] = useState(false);
+
+  const handleSaveDiscount = async () => {
+    const discount = parseFloat(discountInput) || 0;
+    setSavingDiscount(true);
+    try {
+      const res = await fetch(`/api/tax-invoices/${id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discount }),
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
+      setEditingDiscount(false);
+      fetchInvoice();
+      toast.success('Discount updated');
+    } catch (e) { toast.error(e instanceof Error ? e.message : t('common.error')); }
+    finally { setSavingDiscount(false); }
+  };
+
   // Payment modal state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -429,10 +450,40 @@ export default function TaxInvoiceDetailPage() {
                     <span className="font-medium">+{fmt(invoice.deliveryCharges)} AED</span>
                   </div>
                 )}
-                {invoice.discount > 0 && (
-                  <div className="flex justify-between">
+                {/* Discount — editable inline */}
+                {editingDiscount ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-600 font-medium text-sm flex-1">{t('quotations.discount')}</span>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={discountInput}
+                      onChange={e => setDiscountInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleSaveDiscount(); if (e.key === 'Escape') setEditingDiscount(false); }}
+                      autoFocus
+                      className="w-24 border border-emerald-400 rounded px-2 py-1 text-sm text-end focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                      placeholder="0.00"
+                    />
+                    <button onClick={handleSaveDiscount} disabled={savingDiscount}
+                      className="text-xs px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50">
+                      {savingDiscount ? '...' : '✓'}
+                    </button>
+                    <button onClick={() => setEditingDiscount(false)}
+                      className="text-xs px-2 py-1 bg-muted text-muted-foreground rounded hover:bg-muted/80">✕</button>
+                  </div>
+                ) : (
+                  <div className="flex justify-between items-center group">
                     <span className="text-emerald-600 font-medium">{t('quotations.discount')}</span>
-                    <span className="font-medium text-emerald-600">−{fmt(invoice.discount)} AED</span>
+                    <div className="flex items-center gap-2">
+                      {invoice.discount > 0 && (
+                        <span className="font-medium text-emerald-600">−{fmt(invoice.discount)} AED</span>
+                      )}
+                      <button
+                        onClick={() => { setDiscountInput(invoice.discount > 0 ? String(invoice.discount) : ''); setEditingDiscount(true); }}
+                        className="text-xs text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded border border-transparent hover:border-border"
+                      >
+                        {invoice.discount > 0 ? 'Edit' : '+ Add'}
+                      </button>
+                    </div>
                   </div>
                 )}
                 <div className="flex justify-between">
