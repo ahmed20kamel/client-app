@@ -53,7 +53,23 @@ export async function GET(
       return NextResponse.json({ error: 'Tax invoice not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ data: invoice });
+    // Also fetch delivery notes linked to the same quotation (not directly to this invoice)
+    const quotationDeliveryNotes = invoice.quotationId
+      ? await prisma.deliveryNote.findMany({
+          where: {
+            quotationId: invoice.quotationId,
+            taxInvoiceId: null,
+          },
+          select: { id: true, dnNumber: true, status: true, createdAt: true },
+        })
+      : [];
+
+    const allDeliveryNotes = [
+      ...invoice.deliveryNotes,
+      ...quotationDeliveryNotes,
+    ];
+
+    return NextResponse.json({ data: { ...invoice, deliveryNotes: allDeliveryNotes } });
   } catch (error) {
     logError('Get tax invoice error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
