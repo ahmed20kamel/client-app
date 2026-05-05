@@ -88,6 +88,26 @@ export default function TaxInvoiceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
 
+  // DN Number edit state
+  const [editingDn, setEditingDn] = useState(false);
+  const [dnInput, setDnInput] = useState('');
+  const [savingDn, setSavingDn] = useState(false);
+
+  const handleSaveDn = async () => {
+    setSavingDn(true);
+    try {
+      const res = await fetch(`/api/tax-invoices/${id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dnNumber: dnInput.trim() || null }),
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
+      setEditingDn(false);
+      fetchInvoice();
+      toast.success('Delivery Note Number updated');
+    } catch (e) { toast.error(e instanceof Error ? e.message : t('common.error')); }
+    finally { setSavingDn(false); }
+  };
+
   // Discount edit state
   const [editingDiscount, setEditingDiscount] = useState(false);
   const [discountInput, setDiscountInput] = useState('');
@@ -387,7 +407,40 @@ export default function TaxInvoiceDetailPage() {
                 <InfoRow icon={Hash} label={t('taxInvoices.ourVatReg')} value={invoice.ourVatReg} />
                 <InfoRow icon={FileText} label={t('quotations.lpoNumber')} value={invoice.lpoNumber} />
                 <InfoRow icon={FileText} label={t('quotations.paymentTerms')} value={invoice.paymentTerms} />
-                <InfoRow icon={FileText} label={t('taxInvoices.dnNumber')} value={invoice.dnNumber} />
+                {/* DN Number — editable inline */}
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-muted/50 mt-0.5 shrink-0"><FileText className="size-4 text-muted-foreground" /></div>
+                  <div className="flex-1">
+                    <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide mb-1">{t('taxInvoices.dnNumber')}</p>
+                    {editingDn ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={dnInput}
+                          onChange={e => setDnInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') handleSaveDn(); if (e.key === 'Escape') setEditingDn(false); }}
+                          autoFocus
+                          placeholder="e.g. DN-001-26"
+                          className="border border-primary/40 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 w-40"
+                        />
+                        <button onClick={handleSaveDn} disabled={savingDn}
+                          className="text-xs px-2 py-1 bg-primary text-white rounded hover:bg-primary/90 disabled:opacity-50">
+                          {savingDn ? '...' : '✓'}
+                        </button>
+                        <button onClick={() => setEditingDn(false)}
+                          className="text-xs px-2 py-1 bg-muted text-muted-foreground rounded hover:bg-muted/80">✕</button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 group">
+                        <span className="text-sm font-bold">{invoice.dnNumber || <span className="text-muted-foreground font-normal italic">—</span>}</span>
+                        <button
+                          onClick={() => { setDnInput(invoice.dnNumber || ''); setEditingDn(true); }}
+                          className="text-xs text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded border border-transparent hover:border-border"
+                        >{invoice.dnNumber ? 'Edit' : '+ Add'}</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
                 <InfoRow icon={Calendar} label={t('common.date')} value={formatDate(invoice.createdAt, locale)} />
                 {invoice.quotation && (
                   <div className="flex items-start gap-3">
