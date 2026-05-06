@@ -57,25 +57,21 @@ interface TaxInvoice {
   payments: Payment[];
 }
 
-// Derive the correct status automatically from payment data
-// Payments take priority over DRAFT — if money was received, show real status
+// Status is purely derived from payment amounts
 function deriveStatus(invoice: TaxInvoice): string {
   const paid = invoice.paidAmount || 0;
   if (invoice.status === 'CANCELLED') return 'CANCELLED';
   if (paid >= invoice.total - 0.01 && invoice.total > 0) return 'PAID';
   if (paid > 0) return 'PARTIAL';
-  if (invoice.status === 'DRAFT') return 'DRAFT';
-  return invoice.status === 'SENT' ? 'SENT' : 'UNPAID';
+  return 'UNPAID';
 }
 
 const STATUS_ICON: Record<string, React.ElementType> = {
-  DRAFT: Clock, SENT: TrendingUp, UNPAID: AlertTriangle,
-  PARTIAL: Clock, PAID: CheckCircle2, CANCELLED: XCircle,
+  UNPAID: AlertTriangle, PARTIAL: Clock, PAID: CheckCircle2, CANCELLED: XCircle,
 };
 
 const STATUS_LABEL: Record<string, string> = {
-  DRAFT: 'Draft', SENT: 'Sent', UNPAID: 'Unpaid',
-  PARTIAL: 'Partially Paid', PAID: 'Paid', CANCELLED: 'Cancelled',
+  UNPAID: 'Unpaid', PARTIAL: 'Partially Paid', PAID: 'Paid', CANCELLED: 'Cancelled',
 };
 
 export default function TaxInvoiceDetailPage() {

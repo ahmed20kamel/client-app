@@ -96,13 +96,6 @@ export async function PATCH(
     const body = await request.json();
     const validatedData = updateTaxInvoiceSchema.parse(body);
 
-    // Guard: PAID/PARTIAL/UNPAID are derived automatically — cannot be set manually
-    if (validatedData.status && !['SENT', 'CANCELLED'].includes(validatedData.status)) {
-      return NextResponse.json(
-        { error: 'Status PAID/PARTIAL/UNPAID is derived automatically from payments and cannot be set manually.' },
-        { status: 400 }
-      );
-    }
     // Guard: cannot un-cancel a cancelled invoice
     if (existing.status === 'CANCELLED' && validatedData.status && validatedData.status !== 'CANCELLED') {
       return NextResponse.json(
@@ -132,7 +125,7 @@ export async function PATCH(
         status: validatedData.status,
         lpoNumber: validatedData.lpoNumber,
         paymentTerms: validatedData.paymentTerms,
-        sentAt: validatedData.status === 'SENT' ? new Date() : undefined,
+        sentAt: undefined,
         ...financialUpdate,
       },
       include: {

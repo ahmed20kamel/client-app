@@ -124,8 +124,8 @@ export const updateTaxInvoiceSchema = z.object({
   dnNumber: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   terms: z.string().optional().nullable(),
-  // Only SENT and CANCELLED are allowed manually — UNPAID/PARTIAL/PAID are derived from paidAmount
-  status: z.enum(['SENT', 'CANCELLED']).optional(),
+  // Only CANCELLED is allowed manually — UNPAID/PARTIAL/PAID are derived from paidAmount
+  status: z.enum(['CANCELLED']).optional(),
   lpoNumber: z.string().optional().nullable(),
   paymentTerms: z.string().optional().nullable(),
   discount: z.number().min(0).optional().nullable(),

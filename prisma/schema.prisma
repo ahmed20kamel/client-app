@@ -737,7 +737,7 @@ model TaxInvoice {
   deliveryCharges Float            @default(0)
   total           Float            @default(0)
   paidAmount      Float            @default(0)       // sum of confirmed payments
-  status          String           @default("DRAFT") // DRAFT, SENT, UNPAID, PARTIAL, PAID, CANCELLED
+  status          String           @default("UNPAID") // UNPAID, PARTIAL, PAID, CANCELLED
   sentAt          DateTime?
   lpoNumber       String?
   paymentTerms    String?
