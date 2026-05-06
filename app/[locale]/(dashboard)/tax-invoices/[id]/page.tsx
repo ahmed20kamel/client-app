@@ -126,27 +126,6 @@ export default function TaxInvoiceDetailPage() {
     finally { setSavingDiscount(false); }
   };
 
-  // Write-off state
-  const [writingOff, setWritingOff] = useState(false);
-
-  const handleWriteOff = async () => {
-    if (!invoice) return;
-    const remaining = invoice.total - (invoice.paidAmount || 0);
-    if (remaining <= 0) return;
-    const newDiscount = (invoice.discount || 0) + remaining;
-    setWritingOff(true);
-    try {
-      const res = await fetch(`/api/tax-invoices/${id}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ discount: newDiscount }),
-      });
-      if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
-      fetchInvoice();
-      toast.success(`Written off ${remaining.toFixed(2)} AED — invoice closed`);
-    } catch (e) { toast.error(e instanceof Error ? e.message : t('common.error')); }
-    finally { setWritingOff(false); }
-  };
-
   // Payment modal state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -292,30 +271,6 @@ export default function TaxInvoiceDetailPage() {
             <Button variant="outline" size="sm" onClick={() => window.open(`/${locale}/tax-invoices/${id}/print`, '_blank')}>
               <Printer className="size-4 me-1" />{t('common.export')}
             </Button>
-            {/* Write Off & Close — only show if there's a remaining balance */}
-            {(() => { const remaining = invoice.total - (invoice.paidAmount || 0); return remaining > 0.01 ? (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="text-emerald-600 border-emerald-300 hover:bg-emerald-50" disabled={writingOff}>
-                    <CheckCircle2 className="size-4 me-1" />Write Off & Close ({remaining.toFixed(2)} AED)
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Write Off Remaining Balance?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will add <strong>{remaining.toFixed(2)} AED</strong> as a discount and mark the invoice as fully paid.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleWriteOff} className="bg-emerald-600 text-white hover:bg-emerald-700">
-                      Confirm Write Off
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            ) : null; })()}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" disabled={deleting}>
