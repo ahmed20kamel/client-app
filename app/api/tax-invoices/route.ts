@@ -106,9 +106,9 @@ export async function POST(request: NextRequest) {
     const taxPercent = validatedData.taxPercent ?? 5;
     const discount = validatedData.discount ?? 0;
     const deliveryCharges = validatedData.deliveryCharges ?? 0;
-    const taxableAmount = subtotal + deliveryCharges - discount;
-    const taxAmount = taxableAmount * taxPercent / 100;
-    const total = taxableAmount + taxAmount;
+    // VAT applies on subtotal minus discount only — delivery is added on top
+    const taxAmount = (subtotal - discount) * taxPercent / 100;
+    const total = subtotal - discount + taxAmount + deliveryCharges;
 
     // Re-fetch quotation with payment info for deposit logic
     const quotationFull = await prisma.quotation.findUnique({
