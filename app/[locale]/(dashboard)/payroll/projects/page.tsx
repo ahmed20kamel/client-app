@@ -235,19 +235,25 @@ export default function ProjectsPage() {
         </Link>
       </div>
 
-      {/* ── KPI cards ── */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground font-medium">Ongoing</p>
-          <p className="text-2xl font-semibold mt-0.5">{ongoing}</p>
+      {/* ── Stats strip ── */}
+      <div className="flex items-stretch divide-x divide-border border border-border rounded-xl bg-card overflow-hidden">
+        <div className="flex-1 px-5 py-4 min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Ongoing</p>
+          <p className="text-2xl font-semibold tabular-nums mt-1">{ongoing}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground font-medium">Work Done</p>
-          <p className="text-2xl font-semibold mt-0.5">{workDone}</p>
+        <div className="flex-1 px-5 py-4 min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Work Done</p>
+          <p className="text-2xl font-semibold tabular-nums mt-1">{workDone}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground font-medium">Total Contract Value</p>
-          <p className="text-lg font-semibold mt-0.5 tabular-nums">{fmt(total)} AED</p>
+        <div className="flex-1 px-5 py-4 min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Total Projects</p>
+          <p className="text-2xl font-semibold tabular-nums mt-1">{projects.length}</p>
+        </div>
+        <div className="flex-1 px-5 py-4 min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Total Contract Value</p>
+          <p className="text-2xl font-semibold tabular-nums mt-1">
+            {fmt(total)} <span className="text-sm font-normal text-muted-foreground">AED</span>
+          </p>
         </div>
       </div>
 

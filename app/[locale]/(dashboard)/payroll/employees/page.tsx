@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
   Plus, Search, Pencil, Trash2, Loader2,
-  UserCheck, UserX, CreditCard, Banknote,
   ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown,
   X, Trash,
 } from 'lucide-react';
@@ -214,24 +213,28 @@ export default function EmployeesPage() {
         </Link>
       </div>
 
-      {/* ── KPI cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { icon: UserCheck, label: 'Active',           value: active,        cls: 'bg-emerald-50 text-emerald-600' },
-          { icon: UserX,     label: 'Hold / Vacation',  value: inactive,      cls: 'bg-amber-50 text-amber-600' },
-          { icon: CreditCard,label: 'WPS Total',        value: fmt(wpsTotal), cls: 'bg-primary/10 text-primary' },
-          { icon: Banknote,  label: 'Cash Total',       value: fmt(cashTotal),cls: 'bg-orange-50 text-orange-600' },
-        ].map(({ icon: Icon, label, value, cls }) => (
-          <div key={label} className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${cls}`}>
-              <Icon className="size-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground font-medium truncate">{label}</p>
-              <p className="text-lg font-semibold leading-tight tabular-nums">{value}</p>
-            </div>
-          </div>
-        ))}
+      {/* ── Stats strip ── */}
+      <div className="flex items-stretch divide-x divide-border border border-border rounded-xl bg-card overflow-hidden">
+        <div className="flex-1 px-5 py-4 min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Active</p>
+          <p className="text-2xl font-semibold tabular-nums mt-1">{active}</p>
+        </div>
+        <div className="flex-1 px-5 py-4 min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Hold / Vacation</p>
+          <p className="text-2xl font-semibold tabular-nums mt-1">{inactive}</p>
+        </div>
+        <div className="flex-1 px-5 py-4 min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">WPS Total</p>
+          <p className="text-2xl font-semibold tabular-nums mt-1">
+            {fmt(wpsTotal)} <span className="text-sm font-normal text-muted-foreground">AED</span>
+          </p>
+        </div>
+        <div className="flex-1 px-5 py-4 min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Cash Total</p>
+          <p className="text-2xl font-semibold tabular-nums mt-1">
+            {fmt(cashTotal)} <span className="text-sm font-normal text-muted-foreground">AED</span>
+          </p>
+        </div>
       </div>
 
       {/* ── Table card ── */}
