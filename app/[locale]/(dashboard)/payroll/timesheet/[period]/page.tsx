@@ -166,31 +166,30 @@ export default function TimesheetGridPage() {
   const isLocked = tsStatus === 'LOCKED';
 
   return (
-    <div className="p-2 space-y-3">
+    <div className="space-y-3">
       {/* Header */}
-      <div className="bg-card rounded-2xl border border-border shadow-sm">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border flex-wrap gap-3">
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border flex-wrap gap-3 bg-muted/40">
           <div className="flex items-center gap-3">
-            <Clock className="size-5 text-primary" />
             <div>
-              <h1 className="text-xl font-bold">{MONTHS[month]} {year} Timesheet</h1>
-              <p className="text-xs text-muted-foreground">{employees.length} employees · {daysInMonth} days</p>
+              <h1 className="text-[15px] font-semibold tracking-tight">{MONTHS[month]} {year} — Timesheet</h1>
+              <p className="text-[12px] text-muted-foreground mt-0.5">{employees.length} employees · {daysInMonth} days</p>
             </div>
             {isLocked && (
-              <span className="flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-semibold">
+              <span className="flex items-center gap-1 text-[11px] bg-amber-100 text-amber-700 px-2 py-1 rounded-md font-semibold ring-1 ring-amber-200">
                 <Lock className="size-3" /> Locked
               </span>
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <button onClick={prevPeriod} className="p-2 rounded-lg border border-border hover:bg-muted transition-colors">
+            <button onClick={prevPeriod} className="p-1.5 rounded-lg border border-border hover:bg-muted transition-colors">
               <ChevronLeft className="size-4" />
             </button>
-            <button onClick={nextPeriod} className="p-2 rounded-lg border border-border hover:bg-muted transition-colors">
+            <button onClick={nextPeriod} className="p-1.5 rounded-lg border border-border hover:bg-muted transition-colors">
               <ChevronRight className="size-4" />
             </button>
             <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)}
-              className="border border-border rounded-lg px-3 py-2 text-xs bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 max-w-44">
+              className="h-8 border border-border rounded-lg px-3 text-[12px] bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 max-w-44">
               <option value="">Default Project</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.projectCode}</option>)}
             </select>
@@ -198,19 +197,36 @@ export default function TimesheetGridPage() {
               <Button variant="outline" size="sm">View Payroll</Button>
             </Link>
             {!isLocked && (
-              <Button onClick={handleSave} disabled={saving} size="sm">
-                {saving ? <><Loader2 className="size-4 me-1 animate-spin" />Saving…</> : <><Save className="size-4 me-1" />Save</>}
+              <Button onClick={handleSave} disabled={saving} size="sm" className="gap-1.5">
+                {saving ? <><Loader2 className="size-3.5 animate-spin" />Saving…</> : <><Save className="size-3.5" />Save</>}
               </Button>
             )}
           </div>
         </div>
 
         {/* Legend */}
-        <div className="px-5 py-2 border-b border-border bg-muted/20 flex gap-3 flex-wrap text-xs">
-          {STATUS_OPTS.map(s => (
-            <span key={s} className={`px-2 py-0.5 rounded font-semibold ${STATUS_COLOR[s]}`}>{s}</span>
+        <div className="px-5 py-3 border-b border-border bg-muted/10 flex flex-wrap items-center gap-x-6 gap-y-2">
+          {[
+            { code: 'P',    en: 'Present',       ar: 'حاضر',          cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
+            { code: 'A',    en: 'Absent',        ar: 'غايب — خصم يوم', cls: 'bg-red-100 text-red-700 ring-red-200' },
+            { code: 'SICK', en: 'Sick Leave',    ar: 'إجازة مرضية',    cls: 'bg-amber-100 text-amber-700 ring-amber-200' },
+            { code: 'OFF',  en: 'Day Off',       ar: 'إجازة / جمعة',   cls: 'bg-slate-100 text-slate-500 ring-slate-200' },
+            { code: 'H',    en: 'Public Holiday',ar: 'عطلة رسمية',     cls: 'bg-blue-50 text-blue-600 ring-blue-200' },
+          ].map(s => (
+            <div key={s.code} className="flex items-center gap-2">
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold ring-1 ${s.cls}`}>
+                {s.code}
+              </span>
+              <div className="leading-tight">
+                <span className="text-[12px] font-medium">{s.en}</span>
+                <span className="text-[11px] text-muted-foreground ms-1.5">— {s.ar}</span>
+              </div>
+            </div>
           ))}
-          <span className="text-muted-foreground">· Click cell status to cycle · Click employee name to auto-fill row</span>
+          <div className="h-4 w-px bg-border mx-1 hidden sm:block" />
+          <p className="text-[11px] text-muted-foreground">
+            💡 Click <strong>employee name</strong> to fill entire row · Click <strong>day number</strong> to fill entire column
+          </p>
         </div>
       </div>
 
@@ -219,10 +235,10 @@ export default function TimesheetGridPage() {
       ) : (
         <div className="space-y-4">
           {Object.entries(grouped).map(([cc, emps]) => (
-            <div key={cc} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
-              <div className="px-4 py-2.5 bg-primary/10 border-b border-border flex items-center justify-between">
-                <span className="text-xs font-bold text-primary uppercase tracking-wider">{cc}</span>
-                <span className="text-xs text-muted-foreground">{emps.length} employees</span>
+            <div key={cc} className="bg-card rounded-xl border border-border overflow-hidden">
+              <div className="px-4 py-2.5 bg-muted/40 border-b border-border flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-foreground uppercase tracking-[0.12em]">{cc}</span>
+                <span className="text-[11px] text-muted-foreground">{emps.length} employee{emps.length !== 1 ? 's' : ''}</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs border-collapse" style={{ minWidth: `${daysInMonth * 42 + 260}px` }}>
