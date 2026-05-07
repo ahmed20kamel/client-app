@@ -225,7 +225,7 @@ export default function ProjectsPage() {
     <div className="rounded-xl border border-border bg-card overflow-hidden">
 
       {/* ── Header row ── */}
-      <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-4">
+      <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-4 bg-muted/40">
         <div>
           <h1 className="text-[15px] font-semibold tracking-tight">Projects</h1>
           <p className="text-[12px] text-muted-foreground mt-0.5">{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
@@ -236,7 +236,7 @@ export default function ProjectsPage() {
       </div>
 
       {/* ── Stats strip ── */}
-      <div className="flex items-stretch divide-x divide-border border-b border-border">
+      <div className="flex items-stretch divide-x divide-border border-b-2 border-border bg-card">
         <div className="flex-1 px-5 py-3.5 min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Ongoing</p>
           <p className="text-xl font-semibold tabular-nums mt-0.5">{ongoing}</p>
