@@ -1,102 +1,12 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-import { useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-
-const MONTHS = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December',
-];
-
-export default function TimesheetIndexPage() {
-  const router = useRouter();
-  const { locale } = useParams() as { locale: string };
+export default async function TimesheetIndexPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
   const now = new Date();
-  const [month, setMonth] = useState(String(now.getMonth() + 1).padStart(2, '0'));
-  const [year,  setYear]  = useState(String(now.getFullYear()));
-
-  const go = () => router.push(`/${locale}/payroll/timesheet/${year}-${month}`);
-
-  const years = Array.from({ length: 5 }, (_, i) => String(now.getFullYear() - 2 + i));
-
-  const recent = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    return {
-      label: `${MONTHS[d.getMonth()]} ${d.getFullYear()}`,
-      period: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-    };
-  });
-
-  const inp = "w-full h-9 border border-input rounded-lg px-3 text-[13px] bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-shadow appearance-none";
-
-  return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
-
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-border bg-muted/40 flex items-center justify-between">
-        <div>
-          <h1 className="text-[15px] font-semibold tracking-tight">Timesheet</h1>
-          <p className="text-[12px] text-muted-foreground mt-0.5">
-            Enter monthly attendance — days worked, absences, overtime
-          </p>
-        </div>
-      </div>
-
-      {/* Two-column body */}
-      <div className="flex divide-x divide-border min-h-64">
-
-        {/* Left — Period selector */}
-        <div className="w-72 shrink-0 p-5 space-y-4 bg-muted/10">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Select period</p>
-
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Month</label>
-              <select value={month} onChange={e => setMonth(e.target.value)} className={inp}>
-                {MONTHS.map((m, i) => (
-                  <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Year</label>
-              <select value={year} onChange={e => setYear(e.target.value)} className={inp}>
-                {years.map(y => <option key={y}>{y}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <Button onClick={go} size="sm" className="w-full gap-1.5">
-            Open {MONTHS[parseInt(month) - 1]} {year}
-            <ArrowRight className="size-3.5" />
-          </Button>
-        </div>
-
-        {/* Right — Recent periods */}
-        <div className="flex-1 flex flex-col">
-          <div className="px-5 py-3 border-b border-border/60 bg-muted/5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Recent periods</p>
-          </div>
-          <div className="flex-1 divide-y divide-border/50">
-            {recent.map((r, i) => (
-              <button
-                key={r.period}
-                onClick={() => router.push(`/${locale}/payroll/timesheet/${r.period}`)}
-                className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-muted/30 transition-colors group text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-[11px] tabular-nums text-muted-foreground/50 w-4">{i + 1}</span>
-                  <span className="text-[13px] font-medium">{r.label}</span>
-                </div>
-                <ArrowRight className="size-3.5 text-muted-foreground/30 group-hover:text-primary transition-colors" />
-              </button>
-            ))}
-          </div>
-        </div>
-
-      </div>
-    </div>
-  );
+  const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  redirect(`/${locale}/payroll/timesheet/${period}`);
 }
