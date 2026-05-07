@@ -32,48 +32,91 @@ export default async function DashboardLayout({
   const isAdmin = session.user?.role === 'Admin';
   const pagePerms = new Set(session.user?.pagePermissions ?? []);
 
-  type NavItem = { href: string; label: string; icon: string };
+  type NavItem  = { href: string; label: string; icon: string };
+  type NavGroup = { label: string; items: NavItem[] };
 
-  const allNavItems: NavItem[] = [
-    { href: `/${locale}/dashboard`,       label: t('navigation.dashboard'),      icon: 'LayoutDashboard', perm: 'page.dashboard' },
-    { href: `/${locale}/customers`,       label: t('navigation.customers'),      icon: 'Users',           perm: 'page.customers' },
-    { href: `/${locale}/tasks`,           label: t('navigation.tasks'),          icon: 'CheckSquare',     perm: 'page.tasks' },
-    { href: `/${locale}/internal-tasks`,  label: t('navigation.internalTasks'),  icon: 'ClipboardList',   perm: null },
-    { href: `/${locale}/approvals`,       label: t('navigation.approvals'),      icon: 'CheckCircle2',    perm: 'page.approvals' },
-    { href: `/${locale}/reports`,         label: t('navigation.reports'),        icon: 'BarChart3',       perm: 'page.reports' },
-    { href: `/${locale}/reports/sales-bonus`, label: 'Sales Bonus',              icon: 'TrendingUp',      perm: 'page.reports' },
-    { href: `/${locale}/clients`,         label: t('navigation.clients'),        icon: 'Building2',       perm: 'page.clients' },
-    { href: `/${locale}/quotations`,      label: t('navigation.quotations'),     icon: 'FileText',        perm: 'page.quotations' },
-    { href: `/${locale}/tax-invoices`,    label: t('navigation.taxInvoices'),    icon: 'Receipt',         perm: 'page.tax-invoices' },
-    { href: `/${locale}/delivery-notes`,  label: t('navigation.deliveryNotes'),  icon: 'Package2',        perm: 'page.delivery-notes' },
-    { href: `/${locale}/inventory`,       label: t('navigation.inventory'),      icon: 'Package',         perm: 'page.inventory' },
-    { href: `/${locale}/suppliers`,       label: t('navigation.suppliers'),      icon: 'Truck',           perm: 'page.suppliers' },
-    { href: `/${locale}/purchase-orders`, label: t('navigation.purchaseOrders'), icon: 'ShoppingCart',    perm: 'page.purchase-orders' },
-    { href: `/${locale}/work-orders`,     label: t('navigation.workOrders'),     icon: 'ClipboardList',   perm: 'page.work-orders' },
-    { href: `/${locale}/users`,           label: t('navigation.users'),          icon: 'UserCog',         perm: '__admin__' },
-    { href: `/${locale}/performance`,     label: t('navigation.performance'),    icon: 'TrendingUp',      perm: 'page.performance' },
-    { href: `/${locale}/payments`,              label: t('navigation.payments'),       icon: 'CreditCard',      perm: 'page.payments' },
-    { href: `/${locale}/accounts`,             label: t('navigation.accounts'),       icon: 'Wallet',          perm: 'page.accounts' },
-    { href: `/${locale}/payroll/employees`,    label: 'HR · Employees',               icon: 'UserCheck',       perm: '__admin__' },
-    { href: `/${locale}/payroll/projects`,     label: 'HR · Projects',                icon: 'Briefcase',       perm: '__admin__' },
-    { href: `/${locale}/payroll/timesheet`,    label: 'HR · Timesheet',               icon: 'CalendarClock',   perm: '__admin__' },
-    { href: `/${locale}/payroll/monthly`,      label: 'HR · Payroll',                 icon: 'Banknote',        perm: '__admin__' },
-  ] as (NavItem & { perm: string | null })[];
-
-  const navItems: NavItem[] = allNavItems.filter((i) => {
-    const perm = (i as any).perm;
+  type RawItem = NavItem & { perm: string | null };
+  const filterItem = (perm: string | null) => {
     if (perm === '__admin__') return isAdmin;
-    if (perm === null) return true;          // no permission required (e.g. internal-tasks)
-    if (isAdmin) return true;                // admin always sees everything
-    return pagePerms.has(perm);             // non-admin: check their page permissions
-  });
+    if (perm === null) return true;
+    if (isAdmin) return true;
+    return pagePerms.has(perm);
+  };
+  const pick = (items: RawItem[]): NavItem[] =>
+    items.filter(i => filterItem(i.perm)).map(({ perm: _p, ...rest }) => rest);
+
+  const allGroups: { label: string; items: RawItem[] }[] = [
+    {
+      label: 'CRM',
+      items: [
+        { href: `/${locale}/dashboard`,  label: t('navigation.dashboard'), icon: 'LayoutDashboard', perm: 'page.dashboard' },
+        { href: `/${locale}/customers`,  label: t('navigation.customers'), icon: 'Users',           perm: 'page.customers' },
+        { href: `/${locale}/tasks`,      label: t('navigation.tasks'),     icon: 'CheckSquare',     perm: 'page.tasks' },
+      ],
+    },
+    {
+      label: 'Operations',
+      items: [
+        { href: `/${locale}/internal-tasks`, label: t('navigation.internalTasks'), icon: 'ClipboardList', perm: null },
+        { href: `/${locale}/approvals`,      label: t('navigation.approvals'),     icon: 'CheckCircle2',  perm: 'page.approvals' },
+      ],
+    },
+    {
+      label: 'Sales',
+      items: [
+        { href: `/${locale}/clients`,         label: t('navigation.clients'),        icon: 'Building2',   perm: 'page.clients' },
+        { href: `/${locale}/quotations`,      label: t('navigation.quotations'),     icon: 'FileText',    perm: 'page.quotations' },
+        { href: `/${locale}/tax-invoices`,    label: t('navigation.taxInvoices'),    icon: 'Receipt',     perm: 'page.tax-invoices' },
+        { href: `/${locale}/delivery-notes`,  label: t('navigation.deliveryNotes'),  icon: 'Package2',    perm: 'page.delivery-notes' },
+        { href: `/${locale}/work-orders`,     label: t('navigation.workOrders'),     icon: 'ClipboardList', perm: 'page.work-orders' },
+      ],
+    },
+    {
+      label: 'Inventory',
+      items: [
+        { href: `/${locale}/inventory`,       label: t('navigation.inventory'),      icon: 'Package',     perm: 'page.inventory' },
+        { href: `/${locale}/suppliers`,       label: t('navigation.suppliers'),      icon: 'Truck',       perm: 'page.suppliers' },
+        { href: `/${locale}/purchase-orders`, label: t('navigation.purchaseOrders'), icon: 'ShoppingCart', perm: 'page.purchase-orders' },
+      ],
+    },
+    {
+      label: 'Finance',
+      items: [
+        { href: `/${locale}/payments`, label: t('navigation.payments'), icon: 'CreditCard', perm: 'page.payments' },
+        { href: `/${locale}/accounts`, label: t('navigation.accounts'), icon: 'Wallet',     perm: 'page.accounts' },
+      ],
+    },
+    {
+      label: 'HR',
+      items: [
+        { href: `/${locale}/payroll/employees`, label: 'Employees',        icon: 'UserCheck',   perm: '__admin__' },
+        { href: `/${locale}/payroll/projects`,  label: 'Projects',         icon: 'Briefcase',   perm: '__admin__' },
+        { href: `/${locale}/payroll/timesheet`, label: 'Timesheet',        icon: 'CalendarClock', perm: '__admin__' },
+        { href: `/${locale}/payroll/monthly`,   label: 'Monthly Payroll',  icon: 'Banknote',    perm: '__admin__' },
+      ],
+    },
+    {
+      label: 'Reports',
+      items: [
+        { href: `/${locale}/reports`,            label: t('navigation.reports'), icon: 'BarChart3',  perm: 'page.reports' },
+        { href: `/${locale}/reports/sales-bonus`, label: 'Sales Bonus',          icon: 'TrendingUp', perm: 'page.reports' },
+        { href: `/${locale}/performance`,        label: t('navigation.performance'), icon: 'TrendingUp', perm: 'page.performance' },
+      ],
+    },
+  ];
+
+  const navGroups: NavGroup[] = allGroups
+    .map(g => ({ label: g.label, items: pick(g.items) }))
+    .filter(g => g.items.length > 0);
+
+  // Keep flat list for backwards-compat with any remaining usages
+  const navItems: NavItem[] = navGroups.flatMap(g => g.items);
 
   const adminItems: NavItem[] = isAdmin
     ? [{ href: `/${locale}/departments`, label: t('navigation.departments'), icon: 'Building2' }]
     : [];
 
-  // Nav items already use string icon names, pass directly to mobile sidebar
-  const mobileNavItems = navItems;
+  const mobileNavGroups = navGroups;
   const mobileAdminItems = adminItems;
 
   // Get user initials for avatar
@@ -101,9 +144,16 @@ export default async function DashboardLayout({
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-            {navItems.map((item) => (
-              <SidebarLink key={item.href} href={item.href} label={item.label} icon={item.icon} />
+          <nav className="flex-1 p-3 overflow-y-auto space-y-0.5">
+            {navGroups.map((group, gi) => (
+              <div key={group.label}>
+                <div className={`px-3 ${gi === 0 ? 'pt-2' : 'pt-4'} pb-1`}>
+                  <p className="text-[9px] font-bold text-sidebar-foreground/30 uppercase tracking-[0.15em]">{group.label}</p>
+                </div>
+                {group.items.map(item => (
+                  <SidebarLink key={item.href} href={item.href} label={item.label} icon={item.icon} />
+                ))}
+              </div>
             ))}
 
             {/* Settings Section (Admin) */}
@@ -162,7 +212,7 @@ export default async function DashboardLayout({
           <div className="flex items-center gap-3 lg:hidden">
             <MobileSidebar
               locale={locale}
-              navItems={mobileNavItems}
+              navGroups={mobileNavGroups}
               adminItems={mobileAdminItems}
               settingsLabel={t('navigation.settings')}
               userName={session.user?.name || ''}

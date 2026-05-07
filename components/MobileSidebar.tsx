@@ -17,9 +17,14 @@ interface NavItem {
   icon: string;
 }
 
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
 interface MobileSidebarProps {
   locale: string;
-  navItems: NavItem[];
+  navGroups: NavGroup[];
   adminItems: NavItem[];
   settingsLabel: string;
   userName: string;
@@ -27,7 +32,6 @@ interface MobileSidebarProps {
   initials: string;
 }
 
-// Map icon names to components - we pass icon name as string from server component
 import {
   LayoutDashboard,
   Users,
@@ -76,9 +80,30 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Banknote,
 };
 
+function NavLink({ item, onClick }: { item: NavItem; onClick: () => void }) {
+  const pathname = usePathname();
+  const Icon = iconMap[item.icon] || LayoutDashboard;
+  const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+  return (
+    <Link
+      href={item.href}
+      onClick={onClick}
+      className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
+        isActive
+          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+          : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
+      }`}
+    >
+      <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-sidebar-primary' : 'text-sidebar-foreground/50 group-hover:text-sidebar-primary'} transition-colors`} />
+      <span className="truncate">{item.label}</span>
+      <ChevronRight className="w-4 h-4 ms-auto shrink-0 opacity-0 rtl:rotate-180 group-hover:opacity-60 transition-all" />
+    </Link>
+  );
+}
+
 export function MobileSidebar({
   locale,
-  navItems,
+  navGroups,
   adminItems,
   settingsLabel,
   userName,
@@ -86,12 +111,11 @@ export function MobileSidebar({
   initials,
 }: MobileSidebarProps) {
   const [open, setOpen] = useState(false);
-  const pathname = usePathname();
   const isRtl = locale === 'ar';
+  const close = () => setOpen(false);
 
   return (
     <>
-      {/* Hamburger Button */}
       <button
         onClick={() => setOpen(true)}
         className="lg:hidden p-2 rounded-xl hover:bg-secondary/80 text-foreground transition-colors"
@@ -100,21 +124,21 @@ export function MobileSidebar({
         <Menu className="size-5" />
       </button>
 
-      {/* Mobile Sidebar Sheet */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side={isRtl ? 'right' : 'left'}
           showCloseButton={false}
-          className="w-60 p-0 bg-sidebar text-sidebar-foreground border-none"
+          className="w-60 p-0 bg-sidebar text-sidebar-foreground border-none flex flex-col"
         >
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-sidebar-border">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-sidebar-border shrink-0">
             <div className="flex items-center justify-center flex-1">
               <Image src="/logo.svg" alt="Stride ERP" width={56} height={56} loading="eager" className="brightness-0 invert object-contain" style={{ height: 'auto' }} />
             </div>
             <button
-              onClick={() => setOpen(false)}
+              onClick={close}
               className="p-1.5 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground/60 transition-colors shrink-0"
             >
               <X className="size-4" />
@@ -122,63 +146,42 @@ export function MobileSidebar({
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-            {navItems.map((item) => {
-              const Icon = iconMap[item.icon] || LayoutDashboard;
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
-                    isActive
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
-                  }`}
-                >
-                  <Icon className={`w-5 h-5 ${isActive ? 'text-sidebar-primary' : 'text-sidebar-foreground/50 group-hover:text-sidebar-primary'} transition-colors`} />
-                  <span>{item.label}</span>
-                  <ChevronRight className="w-4 h-4 ms-auto opacity-0 rtl:rotate-180 group-hover:opacity-60 transition-all" />
-                </Link>
-              );
-            })}
+          <nav className="flex-1 px-3 py-2 overflow-y-auto">
+            {navGroups.map((group, gi) => (
+              <div key={group.label}>
+                <div className={`px-3 ${gi === 0 ? 'pt-2' : 'pt-4'} pb-1`}>
+                  <p className="text-[9px] font-bold text-sidebar-foreground/30 uppercase tracking-[0.15em]">
+                    {group.label}
+                  </p>
+                </div>
+                <div className="space-y-0.5">
+                  {group.items.map(item => (
+                    <NavLink key={item.href} item={item} onClick={close} />
+                  ))}
+                </div>
+              </div>
+            ))}
 
-            {/* Admin Section */}
+            {/* Admin / Settings */}
             {adminItems.length > 0 && (
-              <>
-                <div className="pt-3 pb-1.5 px-3.5">
-                  <p className="text-[11px] font-semibold text-sidebar-foreground/35 uppercase tracking-wider flex items-center gap-1.5">
+              <div>
+                <div className="px-3 pt-4 pb-1">
+                  <p className="text-[9px] font-bold text-sidebar-foreground/30 uppercase tracking-[0.15em] flex items-center gap-1.5">
                     <Settings className="w-3 h-3" />
                     {settingsLabel}
                   </p>
                 </div>
-                {adminItems.map((item) => {
-                  const Icon = iconMap[item.icon] || Building2;
-                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setOpen(false)}
-                      className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
-                        isActive
-                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                          : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
-                      }`}
-                    >
-                      <Icon className={`w-5 h-5 ${isActive ? 'text-sidebar-primary' : 'text-sidebar-foreground/50 group-hover:text-sidebar-primary'} transition-colors`} />
-                      <span>{item.label}</span>
-                      <ChevronRight className="w-4 h-4 ms-auto opacity-0 rtl:rotate-180 group-hover:opacity-60 transition-all" />
-                    </Link>
-                  );
-                })}
-              </>
+                <div className="space-y-0.5">
+                  {adminItems.map(item => (
+                    <NavLink key={item.href} item={item} onClick={close} />
+                  ))}
+                </div>
+              </div>
             )}
           </nav>
 
-          {/* User Section at Bottom */}
-          <div className="p-3 border-t border-sidebar-border mt-auto">
+          {/* User */}
+          <div className="p-3 border-t border-sidebar-border shrink-0">
             <div className="flex items-center gap-3 p-3 rounded-xl bg-sidebar-accent/40">
               <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-xs font-semibold text-primary shrink-0">
                 {initials}
