@@ -10,15 +10,15 @@ function parsePeriod(period: string) {
 
 // Calculate payroll from timesheet entries for a given month
 function calcEntry(emp: any, entries: any[]) {
-  const hpd   = emp.hoursPerDay || 9;
-  const days  = 30; // standard month days
+  const hpd      = 8;   // standard 8 working hours/day
+  const workDays = 26;  // standard UAE working days/month (Friday off)
 
   // Count from timesheet entries
   const absentDays = entries.filter(e => e.dayStatus === 'A').length;
-  const sickDays   = entries.filter(e => e.dayStatus === 'SICK').length;
-  const workDays   = entries.filter(e => e.dayStatus === 'P' || e.dayStatus === 'H').length;
+  const presentDays = entries.filter(e => e.dayStatus === 'P' || e.dayStatus === 'H').length;
+  const netWorkDays = presentDays || Math.max(0, workDays - absentDays);
 
-  // OT hours = sum of (hours - hoursPerDay) where hours > hoursPerDay
+  // OT hours = sum of (hours - 8) where hours > 8
   let otHours = 0;
   for (const e of entries) {
     if ((e.dayStatus === 'P' || e.dayStatus === 'H') && e.hours && e.hours > hpd) {
@@ -26,13 +26,13 @@ function calcEntry(emp: any, entries: any[]) {
     }
   }
 
-  // Absent deduction: (totalSalary / 30) * absentDays
-  const dailyRate      = emp.totalSalary / days;
+  // Absent deduction: (totalSalary / 26) × absentDays
+  const dailyRate       = emp.totalSalary / workDays;
   const absentDeduction = dailyRate * absentDays;
 
-  // OT rate: (basicSalary / 30 / hoursPerDay) * 1.25 (overtime multiplier)
-  const otRate   = (emp.basicSalary / days / hpd) * 1.25;
-  const otAmount = otRate * otHours;
+  // OT rate: (basicSalary / 26 / 8) × 1.25  — UAE standard overtime multiplier
+  const otHourlyRate = (emp.basicSalary / workDays / hpd) * 1.25;
+  const otAmount     = otHourlyRate * otHours;
 
   const grossSalary = emp.totalSalary + emp.otherAllowance - absentDeduction + otAmount;
 
@@ -53,7 +53,7 @@ function calcEntry(emp: any, entries: any[]) {
     allowances:      emp.allowances,
     otherAllowance:  emp.otherAllowance,
     totalSalary:     emp.totalSalary,
-    workDays,
+    workDays:        netWorkDays,
     absentDays,
     otHours:         Math.round(otHours * 100) / 100,
     otAmount:        Math.round(otAmount * 100) / 100,
