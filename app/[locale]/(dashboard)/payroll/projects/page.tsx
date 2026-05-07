@@ -64,7 +64,6 @@ export default function ProjectsPage() {
             <FolderOpen className="size-5 text-primary" />
             <div>
               <h1 className="text-xl font-bold">Projects</h1>
-              <p className="text-sm text-muted-foreground">قائمة المشاريع الجارية</p>
             </div>
           </div>
           <Link href={`/${locale}/payroll/projects/new`}>

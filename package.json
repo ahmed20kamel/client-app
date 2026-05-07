@@ -13,6 +13,7 @@
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed-roles": "tsx prisma/seed-roles.ts",
+    "db:seed-payroll": "tsx prisma/seed-payroll.ts",
     "db:studio": "prisma studio"
   },
   "prisma": {
@@ -54,6 +55,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "ws": "^8.20.0",
+    "xlsx": "^0.18.5",
     "zod": "^4.3.6"
   },
   "devDependencies": {
