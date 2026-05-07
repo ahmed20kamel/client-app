@@ -8,13 +8,24 @@ function parsePeriod(period: string) {
   return { year, month };
 }
 
+// Count working days in a month (Mon–Thu + Sat, i.e. Friday = day off)
+function getWorkingDays(year: number, month: number): number {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  let count = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dow = new Date(year, month - 1, d).getDay();
+    if (dow !== 5) count++; // 5 = Friday
+  }
+  return count;
+}
+
 // Calculate payroll from timesheet entries for a given month
-function calcEntry(emp: any, entries: any[]) {
-  const hpd      = 8;   // standard 8 working hours/day
-  const workDays = 26;  // standard UAE working days/month (Friday off)
+function calcEntry(emp: any, entries: any[], year: number, month: number) {
+  const hpd      = 8;
+  const workDays = getWorkingDays(year, month);
 
   // Count from timesheet entries
-  const absentDays = entries.filter(e => e.dayStatus === 'A').length;
+  const absentDays  = entries.filter(e => e.dayStatus === 'A').length;
   const presentDays = entries.filter(e => e.dayStatus === 'P' || e.dayStatus === 'H').length;
   const netWorkDays = presentDays || Math.max(0, workDays - absentDays);
 
@@ -26,11 +37,11 @@ function calcEntry(emp: any, entries: any[]) {
     }
   }
 
-  // Absent deduction: (totalSalary / 26) × absentDays
+  // Absent deduction: (totalSalary / workDays) × absentDays
   const dailyRate       = emp.totalSalary / workDays;
   const absentDeduction = dailyRate * absentDays;
 
-  // OT rate: (basicSalary / 26 / 8) × 1.25  — UAE standard overtime multiplier
+  // OT rate: basicSalary / workDays / 8 × 1.25  (UAE Labour Law overtime multiplier)
   const otHourlyRate = (emp.basicSalary / workDays / hpd) * 1.25;
   const otAmount     = otHourlyRate * otHours;
 
@@ -110,7 +121,7 @@ export async function GET(
     }
 
     const computed = employees.map(emp => ({
-      ...calcEntry(emp, entryMap[emp.id] || []),
+      ...calcEntry(emp, entryMap[emp.id] || [], year, month),
       employee: emp,
     }));
 

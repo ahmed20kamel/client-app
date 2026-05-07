@@ -5,8 +5,16 @@ import { useParams } from 'next/navigation';
 import { Printer, Loader2 } from 'lucide-react';
 
 const MONTHS = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
-const WORK_DAYS = 26;
 const HOURS_PER_DAY = 8;
+
+function getWorkingDays(year: number, month: number): number {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  let count = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    if (new Date(year, month - 1, d).getDay() !== 5) count++;
+  }
+  return count;
+}
 
 interface PayrollRow {
   employeeId: string;
@@ -24,9 +32,10 @@ const fmt = (n: number) => (n || 0).toLocaleString('en-AE', { minimumFractionDig
 const sum = (arr: PayrollRow[], f: keyof PayrollRow) => arr.reduce((s, r) => s + ((r[f] as number) || 0), 0);
 
 function PaySlip({ row, month, year }: { row: PayrollRow; month: number; year: number }) {
-  const daily    = row.totalSalary / WORK_DAYS;
-  const otHrRate = (row.basicSalary / WORK_DAYS / HOURS_PER_DAY) * 1.25;
-  const netDays  = row.workDays || (WORK_DAYS - row.absentDays);
+  const stdDays  = getWorkingDays(year, month);
+  const daily    = row.totalSalary / stdDays;
+  const otHrRate = (row.basicSalary / stdDays / HOURS_PER_DAY) * 1.25;
+  const netDays  = row.workDays || (stdDays - row.absentDays);
 
   return (
     <div className="pay-slip">
@@ -63,7 +72,7 @@ function PaySlip({ row, month, year }: { row: PayrollRow; month: number; year: n
           <div className="att-lbl">OT Hours</div>
         </div>
         <div className="att-cell gray">
-          <div className="att-val">{WORK_DAYS - netDays - (row.absentDays || 0) < 0 ? 0 : WORK_DAYS - netDays - (row.absentDays || 0)}</div>
+          <div className="att-val">{Math.max(0, stdDays - netDays - (row.absentDays || 0))}</div>
           <div className="att-lbl">Days Off</div>
         </div>
       </div>
@@ -174,7 +183,7 @@ function DeptReport({ cc, rows, month, year }: { cc: string; rows: PayrollRow[];
               <td className="num">{fmt(r.basicSalary)}</td>
               <td className="num">{fmt(r.allowances)}</td>
               <td className="num bold">{fmt(r.totalSalary)}</td>
-              <td className="num center">{r.workDays || WORK_DAYS - r.absentDays}</td>
+              <td className="num center">{r.workDays || (getWorkingDays(year, month) - r.absentDays)}</td>
               <td className="num center red-t">{r.absentDays || '—'}</td>
               <td className="num center">{r.otHours || '—'}</td>
               <td className="num">{r.otAmount ? fmt(r.otAmount) : '—'}</td>
