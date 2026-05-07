@@ -16,13 +16,24 @@ interface Employee {
 }
 interface Project { id: string; projectCode: string; projectName: string; }
 interface RowData  { absent: number; sick: number; otHours: number; notes: string; }
-interface Alloc    { projectId: string; days: number; }
+interface Alloc    { projectId: string; days: number; fromDay: number; toDay: number; }
 
 function workingDaysInMonth(year: number, month: number) {
   const total = new Date(year, month, 0).getDate();
   let c = 0;
   for (let d = 1; d <= total; d++) if (new Date(year, month - 1, d).getDay() !== 5) c++;
   return c;
+}
+function countWorkDays(year: number, month: number, from: number, to: number) {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const f = Math.max(1, from), t = Math.min(daysInMonth, to);
+  let c = 0;
+  for (let d = f; d <= t; d++) if (new Date(year, month - 1, d).getDay() !== 5) c++;
+  return c;
+}
+function dayLabel(year: number, month: number, day: number) {
+  if (!day) return '';
+  return new Date(year, month - 1, day).toLocaleDateString('en-AE', { day: 'numeric', month: 'short' });
 }
 const prevPeriod = (y: number, m: number) => { const d = new Date(y, m - 2, 1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; };
 const nextPeriod = (y: number, m: number) => { const d = new Date(y, m,     1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; };
@@ -63,7 +74,12 @@ export default function TimesheetPage() {
         if (e.day >= 200) {
           // Project allocation record
           if (!initAlloc[e.employeeId]) initAlloc[e.employeeId] = [];
-          if (e.projectId) initAlloc[e.employeeId].push({ projectId: e.projectId, days: e.hours || 0 });
+          if (e.projectId) {
+            const [fd, td] = (e.notes || '').split('-').map(Number);
+            const fromDay = fd > 0 ? fd : 1;
+            const toDay   = td > 0 ? td : workDays;
+            initAlloc[e.employeeId].push({ projectId: e.projectId, days: e.hours || 0, fromDay, toDay });
+          }
         } else {
           // Attendance
           if (!initRows[e.employeeId]) initRows[e.employeeId] = { absent: 0, sick: 0, otHours: 0, notes: '' };
@@ -86,8 +102,18 @@ export default function TimesheetPage() {
 
   const setRow   = (id: string, p: Partial<RowData>) => setRows(r => ({ ...r, [id]: { ...r[id], ...p } }));
   const setAlloc = (empId: string, idx: number, p: Partial<Alloc>) =>
-    setAllocs(a => ({ ...a, [empId]: a[empId].map((x, i) => i === idx ? { ...x, ...p } : x) }));
-  const addAlloc    = (empId: string) => setAllocs(a => ({ ...a, [empId]: [...(a[empId]||[]), { projectId: '', days: 0 }] }));
+    setAllocs(a => ({
+      ...a,
+      [empId]: a[empId].map((x, i) => {
+        if (i !== idx) return x;
+        const n = { ...x, ...p };
+        if (('fromDay' in p || 'toDay' in p) && n.fromDay > 0 && n.toDay >= n.fromDay)
+          n.days = countWorkDays(year, month, n.fromDay, n.toDay);
+        return n;
+      }),
+    }));
+  const addAlloc = (empId: string) =>
+    setAllocs(a => ({ ...a, [empId]: [...(a[empId]||[]), { projectId: '', days: 0, fromDay: 1, toDay: workDays }] }));
   const removeAlloc = (empId: string, idx: number) => setAllocs(a => ({ ...a, [empId]: a[empId].filter((_, i) => i !== idx) }));
 
   const handleSave = async () => {
@@ -106,7 +132,8 @@ export default function TimesheetPage() {
       const empAllocs = allocs[emp.id] || [];
       empAllocs.forEach((a, idx) => {
         if (a.projectId && a.days > 0) {
-          entries.push({ employeeId: emp.id, day: 200 + idx, hours: a.days, dayStatus: 'PROJECT', projectId: a.projectId, notes: null });
+          const rangeNotes = a.fromDay && a.toDay ? `${a.fromDay}-${a.toDay}` : null;
+          entries.push({ employeeId: emp.id, day: 200 + idx, hours: a.days, dayStatus: 'PROJECT', projectId: a.projectId, notes: rangeNotes });
         }
       });
     }
@@ -134,7 +161,7 @@ export default function TimesheetPage() {
 
   // Project cost summary
   const projectCosts = useMemo(() => {
-    const map: Record<string, { project: Project; totalDays: number; totalCost: number; employees: {emp: Employee; days: number; cost: number}[] }> = {};
+    const map: Record<string, { project: Project; totalDays: number; totalCost: number; employees: {emp: Employee; days: number; cost: number; fromDay: number; toDay: number}[] }> = {};
     for (const emp of employees) {
       const empAllocs = allocs[emp.id] || [];
       const dailyRate = (emp.totalSalary || (emp.basicSalary + emp.allowances)) / workDays;
@@ -146,7 +173,7 @@ export default function TimesheetPage() {
         const cost = dailyRate * a.days;
         map[a.projectId].totalDays += a.days;
         map[a.projectId].totalCost += cost;
-        map[a.projectId].employees.push({ emp, days: a.days, cost });
+        map[a.projectId].employees.push({ emp, days: a.days, cost, fromDay: a.fromDay, toDay: a.toDay });
       }
     }
     return Object.values(map).sort((a, b) => b.totalCost - a.totalCost);
@@ -331,29 +358,63 @@ export default function TimesheetPage() {
                           <p className="text-[12px] text-muted-foreground italic">No projects assigned yet</p>
                         )}
                         {empAllocs.map((a, idx) => {
-                          const proj = projects.find(p => p.id === a.projectId);
+                          const proj      = projects.find(p => p.id === a.projectId);
+                          const daysInMon = new Date(year, month, 0).getDate();
+                          const cost      = a.days > 0 ? ((emp.totalSalary || emp.basicSalary + emp.allowances) / workDays) * a.days : 0;
                           return (
-                            <div key={idx} className="flex items-center gap-2">
+                            <div key={idx} className="flex items-center gap-2 flex-wrap">
                               <select
                                 value={a.projectId}
                                 onChange={e => setAlloc(emp.id, idx, { projectId: e.target.value })}
-                                className="h-8 flex-1 max-w-xs border border-border rounded-md px-2 text-[12px] bg-background focus:outline-none focus:ring-2 focus:ring-primary/20">
+                                className="h-8 flex-1 max-w-[220px] border border-border rounded-md px-2 text-[12px] bg-background focus:outline-none focus:ring-2 focus:ring-primary/20">
                                 <option value="">— Select project —</option>
                                 {projects.map(p => <option key={p.id} value={p.id}>{p.projectCode} — {p.projectName}</option>)}
                               </select>
-                              <input
-                                type="number" min="0" max={net} step="1"
-                                value={a.days || ''}
-                                placeholder="days"
-                                onChange={e => setAlloc(emp.id, idx, { days: parseInt(e.target.value)||0 })}
-                                className="w-16 h-8 text-center text-[12px] border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 tabular-nums"
-                              />
-                              <span className="text-[11px] text-muted-foreground">days</span>
-                              {proj && a.days > 0 && (
-                                <span className="text-[11px] text-muted-foreground">
-                                  = {fmt((((emp.totalSalary || emp.basicSalary + emp.allowances) / workDays) * a.days))} AED
+
+                              {/* Day range */}
+                              <div className="flex items-center gap-1.5 bg-muted/30 border border-border/60 rounded-lg px-2.5 py-1">
+                                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Day</span>
+                                <input
+                                  type="number" min="1" max={daysInMon} step="1"
+                                  value={a.fromDay || ''}
+                                  placeholder="1"
+                                  onChange={e => setAlloc(emp.id, idx, { fromDay: Math.max(1, parseInt(e.target.value)||1) })}
+                                  className="w-10 h-6 text-center text-[12px] border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-primary/30 tabular-nums"
+                                />
+                                <span className="text-[11px] text-muted-foreground">→</span>
+                                <input
+                                  type="number" min="1" max={daysInMon} step="1"
+                                  value={a.toDay || ''}
+                                  placeholder={String(workDays)}
+                                  onChange={e => setAlloc(emp.id, idx, { toDay: Math.min(daysInMon, parseInt(e.target.value)||workDays) })}
+                                  className="w-10 h-6 text-center text-[12px] border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-primary/30 tabular-nums"
+                                />
+                              </div>
+
+                              {/* Computed days badge */}
+                              {a.fromDay > 0 && a.toDay >= a.fromDay ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-semibold tabular-nums">
+                                  {a.days} days
+                                  {a.fromDay && a.toDay && (
+                                    <span className="text-[10px] text-primary/60 font-normal">
+                                      ({dayLabel(year, month, a.fromDay)} – {dayLabel(year, month, a.toDay)})
+                                    </span>
+                                  )}
                                 </span>
+                              ) : (
+                                <input
+                                  type="number" min="0" max={net} step="1"
+                                  value={a.days || ''}
+                                  placeholder="days"
+                                  onChange={e => setAlloc(emp.id, idx, { days: parseInt(e.target.value)||0 })}
+                                  className="w-14 h-8 text-center text-[12px] border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 tabular-nums"
+                                />
                               )}
+
+                              {proj && cost > 0 && (
+                                <span className="text-[11px] text-muted-foreground">= {fmt(cost)} AED</span>
+                              )}
+
                               <button onClick={() => removeAlloc(emp.id, idx)}
                                 className="p-1 rounded-md hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors">
                                 <X className="size-3.5" />
@@ -399,15 +460,33 @@ export default function TimesheetPage() {
                 </thead>
                 <tbody className="divide-y divide-border/40">
                   {projectCosts.map(({ project, totalDays, totalCost, employees: empList }) => (
-                    <tr key={project.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="px-4 py-2.5">
-                        <div className="font-mono text-[12px] font-semibold text-primary">{project.projectCode}</div>
-                        <div className="text-[11px] text-muted-foreground">{project.projectName}</div>
-                      </td>
-                      <td className="px-4 py-2.5 text-center text-[12px]">{empList.length}</td>
-                      <td className="px-4 py-2.5 text-center text-[12px] font-semibold tabular-nums">{totalDays}</td>
-                      <td className="px-4 py-2.5 text-right text-[13px] font-semibold tabular-nums text-primary">{fmt(totalCost)}</td>
-                    </tr>
+                    <>
+                      <tr key={project.id} className="bg-muted/10">
+                        <td className="px-4 py-2.5" colSpan={2}>
+                          <div className="font-mono text-[12px] font-semibold text-primary">{project.projectCode}</div>
+                          <div className="text-[11px] text-muted-foreground">{project.projectName}</div>
+                        </td>
+                        <td className="px-4 py-2.5 text-center text-[12px] font-bold tabular-nums">{totalDays} days</td>
+                        <td className="px-4 py-2.5 text-right text-[13px] font-bold tabular-nums text-primary">{fmt(totalCost)} AED</td>
+                      </tr>
+                      {empList.map(({ emp, days, cost, fromDay, toDay }) => (
+                        <tr key={emp.id} className="hover:bg-muted/20 transition-colors">
+                          <td className="pl-8 pr-4 py-2 border-l-2 border-primary/20">
+                            <span className="font-mono text-[11px] text-primary/70 mr-2">{emp.empCode}</span>
+                            <span className="text-[12px]">{emp.name}</span>
+                          </td>
+                          <td className="px-4 py-2 text-center">
+                            {fromDay > 0 && toDay > 0 ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                                {dayLabel(year, month, fromDay)} → {dayLabel(year, month, toDay)}
+                              </span>
+                            ) : <span className="text-[11px] text-muted-foreground">—</span>}
+                          </td>
+                          <td className="px-4 py-2 text-center text-[11px] tabular-nums text-muted-foreground">{days} days</td>
+                          <td className="px-4 py-2 text-right text-[12px] tabular-nums text-muted-foreground">{fmt(cost)}</td>
+                        </tr>
+                      ))}
+                    </>
                   ))}
                 </tbody>
                 <tfoot>
