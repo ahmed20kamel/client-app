@@ -46,6 +46,10 @@ import {
   CreditCard,
   ShoppingCart,
   Wallet,
+  UserCheck,
+  Briefcase,
+  CalendarClock,
+  Banknote,
 } from 'lucide-react';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -66,6 +70,10 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   CreditCard,
   ShoppingCart,
   Wallet,
+  UserCheck,
+  Briefcase,
+  CalendarClock,
+  Banknote,
 };
 
 export function MobileSidebar({
@@ -103,7 +111,7 @@ export function MobileSidebar({
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-sidebar-border">
             <div className="flex items-center justify-center flex-1">
-              <Image src="/logo.svg" alt="SCoRD Logo" width={56} height={56} loading="eager" className="brightness-0 invert object-contain" style={{ height: 'auto' }} />
+              <Image src="/logo.svg" alt="Stride ERP" width={56} height={56} loading="eager" className="brightness-0 invert object-contain" style={{ height: 'auto' }} />
             </div>
             <button
               onClick={() => setOpen(false)}

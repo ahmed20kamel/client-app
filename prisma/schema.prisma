@@ -1028,3 +1028,127 @@ model Notification {
   @@index([isRead])
   @@index([createdAt])
 }
+
+// ==========================================
+// Payroll & HR Module
+// ==========================================
+
+model PayrollEmployee {
+  id              String   @id @default(uuid())
+  empCode         String   @unique               // SC47, NF26, MAISAN05, NW-55
+  name            String
+  visaType        String                          // SC-MAIN, NF, ALUM, MAISAN, Outside, NW
+  costCenter      String                          // Stride Office, Stride Main, National Factory, Maisan Carpentry, Outside Visa
+  wpsEntity       String                          // SC, SC-RAK, Maisan, NF, Cash
+  paymentMethod   String   @default("WPS")        // WPS, Cash
+  basicSalary     Float    @default(0)
+  allowances      Float    @default(0)
+  totalSalary     Float    @default(0)            // basic + allowances
+  otherAllowance  Float    @default(0)            // Watchman / Other monthly allowance
+  hoursPerDay     Float    @default(9)            // 8 = office, 9 = field
+  status          String   @default("ACTIVE")     // ACTIVE, HOLD, VACATION, TERMINATED
+  remarks         String?
+  startDate       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  timesheetEntries PayrollTimesheetEntry[]
+  payrollEntries   PayrollEntry[]
+
+  @@index([costCenter])
+  @@index([visaType])
+  @@index([status])
+  @@index([empCode])
+}
+
+model PayrollProject {
+  id              String   @id @default(uuid())
+  projectCode     String   @unique               // SC-P50, SC-P86
+  projectName     String
+  location        String?
+  completionPct   Float?   @default(0)
+  contractValue   Float?
+  consultant      String?
+  status          String   @default("ONGOING")   // ONGOING, WORK_DONE, MOBILIZING, HOLD, CANCELLED
+  revenue         Float?
+  retention       Float?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  timesheetEntries PayrollTimesheetEntry[]
+
+  @@index([status])
+  @@index([projectCode])
+}
+
+model PayrollTimesheet {
+  id        String   @id @default(uuid())
+  month     Int                               // 1-12
+  year      Int                               // 2026
+  status    String   @default("OPEN")         // OPEN, LOCKED
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entries   PayrollTimesheetEntry[]
+
+  @@unique([month, year])
+  @@index([year])
+  @@index([status])
+}
+
+model PayrollTimesheetEntry {
+  id           String   @id @default(uuid())
+  timesheetId  String
+  employeeId   String
+  day          Int                             // 1-31
+  hours        Float?                          // 8, 9, 10 — null if absent/off
+  dayStatus    String   @default("P")          // P=present, A=absent, SICK, OFF, H=holiday
+  projectId    String?                         // which project worked on that day
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  timesheet    PayrollTimesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  employee     PayrollEmployee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  project      PayrollProject?  @relation(fields: [projectId], references: [id])
+
+  @@unique([timesheetId, employeeId, day])
+  @@index([timesheetId])
+  @@index([employeeId])
+  @@index([projectId])
+}
+
+model PayrollEntry {
+  id               String   @id @default(uuid())
+  month            Int
+  year             Int
+  employeeId       String
+  basicSalary      Float    @default(0)
+  allowances       Float    @default(0)
+  otherAllowance   Float    @default(0)       // Watchman / Other
+  totalSalary      Float    @default(0)       // basic + allowances
+  workDays         Int      @default(0)       // net days worked
+  absentDays       Int      @default(0)
+  otHours          Float    @default(0)
+  otAmount         Float    @default(0)       // OT pay
+  absentDeduction  Float    @default(0)       // deduction for absent days
+  allowanceAdj     Float    @default(0)       // extra allowances this month
+  deduction        Float    @default(0)       // other deductions
+  adjustment       Float    @default(0)       // +/- manual adjustment
+  grossSalary      Float    @default(0)       // GT / Salaries and Wages
+  wpsAmount        Float    @default(0)       // paid via WPS bank transfer
+  cashAmount       Float    @default(0)       // paid in cash
+  otPayment        Float    @default(0)       // OT paid separately
+  totalPayment     Float    @default(0)       // final total
+  remarks          String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  employee         PayrollEmployee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([month, year, employeeId])
+  @@index([month, year])
+  @@index([employeeId])
+}

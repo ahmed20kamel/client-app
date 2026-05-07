@@ -52,8 +52,12 @@ export default async function DashboardLayout({
     { href: `/${locale}/work-orders`,     label: t('navigation.workOrders'),     icon: 'ClipboardList',   perm: 'page.work-orders' },
     { href: `/${locale}/users`,           label: t('navigation.users'),          icon: 'UserCog',         perm: '__admin__' },
     { href: `/${locale}/performance`,     label: t('navigation.performance'),    icon: 'TrendingUp',      perm: 'page.performance' },
-    { href: `/${locale}/payments`,         label: t('navigation.payments'),       icon: 'CreditCard',      perm: 'page.payments' },
-    { href: `/${locale}/accounts`,        label: t('navigation.accounts'),       icon: 'Wallet',          perm: 'page.accounts' },
+    { href: `/${locale}/payments`,              label: t('navigation.payments'),       icon: 'CreditCard',      perm: 'page.payments' },
+    { href: `/${locale}/accounts`,             label: t('navigation.accounts'),       icon: 'Wallet',          perm: 'page.accounts' },
+    { href: `/${locale}/payroll/employees`,    label: 'HR · Employees',               icon: 'UserCheck',       perm: '__admin__' },
+    { href: `/${locale}/payroll/projects`,     label: 'HR · Projects',                icon: 'Briefcase',       perm: '__admin__' },
+    { href: `/${locale}/payroll/timesheet`,    label: 'HR · Timesheet',               icon: 'CalendarClock',   perm: '__admin__' },
+    { href: `/${locale}/payroll/monthly`,      label: 'HR · Payroll',                 icon: 'Banknote',        perm: '__admin__' },
   ] as (NavItem & { perm: string | null })[];
 
   const navItems: NavItem[] = allNavItems.filter((i) => {
