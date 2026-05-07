@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Users, Plus, Search, Pencil, Trash2, Loader2, UserCheck, UserX, CreditCard, Banknote } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Loader2, UserCheck, UserX, CreditCard, Banknote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -11,19 +11,33 @@ interface Employee {
   id: string; empCode: string; name: string; visaType: string;
   costCenter: string; wpsEntity: string; paymentMethod: string;
   basicSalary: number; allowances: number; totalSalary: number;
-  otherAllowance: number; hoursPerDay: number; status: string; remarks?: string;
+  status: string;
 }
 
-const COST_CENTERS = ['All', 'Stride Office', 'Stride Main', 'National Factory', 'Maisan Carpentry', 'Outside Visa'];
+const CENTERS = ['All', 'Stride Office', 'Stride Main', 'National Factory', 'Maisan Carpentry', 'Outside Visa'];
 
-const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
-  ACTIVE:     { label: 'Active',     cls: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' },
-  HOLD:       { label: 'On Hold',    cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
-  VACATION:   { label: 'Vacation',   cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
-  TERMINATED: { label: 'Terminated', cls: 'bg-red-50 text-red-700 ring-1 ring-red-200' },
+const STATUS: Record<string, { label: string; cls: string }> = {
+  ACTIVE:     { label: 'Active',     cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
+  HOLD:       { label: 'On Hold',    cls: 'bg-amber-50 text-amber-700 ring-amber-200' },
+  VACATION:   { label: 'Vacation',   cls: 'bg-sky-50 text-sky-700 ring-sky-200' },
+  TERMINATED: { label: 'Terminated', cls: 'bg-red-50 text-red-600 ring-red-200' },
 };
 
 const fmt = (n: number) => n.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function StatCard({ icon: Icon, label, value, iconCls }: { icon: any; label: string; value: string | number; iconCls: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${iconCls}`}>
+        <Icon className="size-4" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground font-medium truncate">{label}</p>
+        <p className="text-lg font-semibold leading-tight">{value}</p>
+      </div>
+    </div>
+  );
+}
 
 export default function EmployeesPage() {
   const { locale } = useParams() as { locale: string };
@@ -46,225 +60,169 @@ export default function EmployeesPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Remove ${name}? This cannot be undone.`)) return;
+  const remove = async (id: string, name: string) => {
+    if (!confirm(`Remove ${name}?`)) return;
     setDeleting(id);
     const res = await fetch(`/api/payroll/employees/${id}`, { method: 'DELETE' });
-    if (res.ok) { toast.success('Employee removed'); load(); }
-    else        { toast.error('Failed to remove employee'); }
+    if (res.ok) { toast.success('Removed'); load(); } else toast.error('Failed');
     setDeleting(null);
   };
 
-  // Stats
-  const active     = employees.filter(e => e.status === 'ACTIVE').length;
-  const onHold     = employees.filter(e => e.status === 'HOLD' || e.status === 'VACATION').length;
-  const wpsTotal   = employees.filter(e => e.paymentMethod === 'WPS').reduce((s, e) => s + e.totalSalary, 0);
-  const cashTotal  = employees.filter(e => e.paymentMethod === 'Cash').reduce((s, e) => s + e.totalSalary, 0);
+  const active   = employees.filter(e => e.status === 'ACTIVE').length;
+  const inactive = employees.filter(e => e.status !== 'ACTIVE' && e.status !== 'TERMINATED').length;
+  const wpsTotal = employees.filter(e => e.paymentMethod === 'WPS').reduce((s, e) => s + e.totalSalary, 0);
+  const cashTotal = employees.filter(e => e.paymentMethod === 'Cash').reduce((s, e) => s + e.totalSalary, 0);
 
-  // Group by cost center
   const grouped: Record<string, Employee[]> = {};
   for (const e of employees) {
-    if (!grouped[e.costCenter]) grouped[e.costCenter] = [];
-    grouped[e.costCenter].push(e);
+    (grouped[e.costCenter] ??= []).push(e);
   }
 
   return (
     <div className="space-y-5">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
+
+      {/* ── Page header ── */}
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Employees</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{employees.length} employees across all cost centers</p>
+          <h1 className="text-xl font-semibold tracking-tight">Employees</h1>
+          <p className="text-[13px] text-muted-foreground mt-0.5">
+            {employees.length} employees across all cost centers
+          </p>
         </div>
         <Link href={`/${locale}/payroll/employees/new`}>
-          <Button size="sm" className="gap-2">
-            <Plus className="size-4" /> Add Employee
-          </Button>
+          <Button size="sm" className="gap-1.5"><Plus className="size-3.5" />Add Employee</Button>
         </Link>
       </div>
 
-      {/* KPI Cards */}
+      {/* ── KPI cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-card rounded-xl border border-border p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center">
-              <UserCheck className="size-4 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-medium">Active</p>
-              <p className="text-xl font-bold">{active}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-card rounded-xl border border-border p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center">
-              <UserX className="size-4 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-medium">On Hold / Vacation</p>
-              <p className="text-xl font-bold">{onHold}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-card rounded-xl border border-border p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <CreditCard className="size-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-medium">WPS Total</p>
-              <p className="text-lg font-bold">{fmt(wpsTotal)}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-card rounded-xl border border-border p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center">
-              <Banknote className="size-4 text-orange-600" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-medium">Cash Total</p>
-              <p className="text-lg font-bold">{fmt(cashTotal)}</p>
-            </div>
-          </div>
-        </div>
+        <StatCard icon={UserCheck}  label="Active"         value={active}       iconCls="bg-emerald-50 text-emerald-600" />
+        <StatCard icon={UserX}      label="Hold / Vacation" value={inactive}     iconCls="bg-amber-50 text-amber-600" />
+        <StatCard icon={CreditCard} label="WPS Total (AED)" value={fmt(wpsTotal)} iconCls="bg-primary/10 text-primary" />
+        <StatCard icon={Banknote}   label="Cash Total (AED)" value={fmt(cashTotal)} iconCls="bg-orange-50 text-orange-600" />
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-56">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-          <input
-            value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name or code…"
-            className="w-full pl-9 pr-3 h-9 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
-          />
-        </div>
-        <div className="flex items-center gap-1 flex-wrap">
-          {COST_CENTERS.map(c => (
-            <button key={c} onClick={() => setCenter(c)}
-              className={`px-3 h-9 rounded-lg text-xs font-medium transition-colors ${
-                center === c
-                  ? 'bg-primary text-white shadow-sm'
-                  : 'bg-muted/60 text-muted-foreground hover:bg-muted'
-              }`}>
-              {c}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* ── Table card ── */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
 
-      {/* Table */}
-      {loading ? (
-        <div className="flex justify-center py-24">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        {/* Filter bar */}
+        <div className="px-4 py-2.5 border-b border-border flex flex-wrap items-center gap-2.5 bg-muted/20">
+          <div className="relative flex-1 min-w-52">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+            <input
+              value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search name or code…"
+              className="w-full pl-8 pr-3 h-8 text-[13px] border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/25"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {CENTERS.map(c => (
+              <button key={c} onClick={() => setCenter(c)}
+                className={`h-8 px-3 rounded-lg text-xs font-medium transition-colors ${
+                  center === c ? 'bg-primary text-white' : 'bg-background border border-border text-muted-foreground hover:text-foreground hover:border-foreground/20'
+                }`}>
+                {c}
+              </button>
+            ))}
+          </div>
         </div>
-      ) : employees.length === 0 ? (
-        <div className="bg-card rounded-xl border border-border text-center py-20">
-          <Users className="size-10 mx-auto mb-3 text-muted-foreground/30" />
-          <p className="text-muted-foreground font-medium">No employees found</p>
-          <Link href={`/${locale}/payroll/employees/new`} className="mt-4 inline-block">
-            <Button size="sm" variant="outline"><Plus className="size-4 me-1.5" />Add Employee</Button>
-          </Link>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {Object.entries(grouped).map(([cc, emps]) => (
-            <div key={cc} className="bg-card rounded-xl border border-border overflow-hidden">
-              {/* Cost center header */}
-              <div className="flex items-center justify-between px-4 py-2.5 bg-muted/40 border-b border-border">
-                <span className="text-xs font-bold text-foreground uppercase tracking-wider">{cc}</span>
-                <span className="text-xs text-muted-foreground">{emps.length} {emps.length === 1 ? 'employee' : 'employees'}</span>
-              </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Code</th>
-                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Name</th>
-                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Visa</th>
-                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">WPS Entity</th>
-                      <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Basic</th>
-                      <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Allowances</th>
-                      <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Total</th>
-                      <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Payment</th>
-                      <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Status</th>
-                      <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/60">
-                    {emps.map(emp => {
-                      const st = STATUS_CONFIG[emp.status] || { label: emp.status, cls: 'bg-muted text-muted-foreground' };
-                      return (
-                        <tr key={emp.id} className="hover:bg-muted/20 transition-colors">
-                          <td className="px-4 py-3 font-mono text-xs font-semibold text-primary">{emp.empCode}</td>
-                          <td className="px-4 py-3 font-medium text-sm">{emp.name}</td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground">{emp.visaType}</td>
-                          <td className="px-4 py-3 text-xs">{emp.wpsEntity}</td>
-                          <td className="px-4 py-3 text-right tabular-nums">{fmt(emp.basicSalary)}</td>
-                          <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{fmt(emp.allowances)}</td>
-                          <td className="px-4 py-3 text-right tabular-nums font-semibold">{fmt(emp.totalSalary)}</td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium ${
-                              emp.paymentMethod === 'Cash'
-                                ? 'bg-orange-50 text-orange-700 ring-1 ring-orange-200'
-                                : 'bg-blue-50 text-blue-700 ring-1 ring-blue-200'
-                            }`}>
-                              {emp.paymentMethod}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium ${st.cls}`}>
-                              {st.label}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <Link href={`/${locale}/payroll/employees/${emp.id}`}>
-                                <button className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors">
-                                  <Pencil className="size-3.5" />
+        {/* Content */}
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="size-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : employees.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-[13px] text-muted-foreground">No employees found</p>
+            <Link href={`/${locale}/payroll/employees/new`} className="mt-3 inline-block">
+              <Button size="sm" variant="outline"><Plus className="size-3.5 me-1.5" />Add First Employee</Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="divide-y divide-border/50">
+            {Object.entries(grouped).map(([cc, emps]) => (
+              <div key={cc}>
+                {/* Cost center row */}
+                <div className="px-4 py-2 bg-muted/30 flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{cc}</span>
+                  <span className="text-[11px] text-muted-foreground">{emps.length}</span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border/60">
+                        {['Code','Name','Visa','WPS Entity','Basic','Allowances','Total','Payment','Status',''].map(h => (
+                          <th key={h} className={`px-4 h-9 text-xs font-medium text-muted-foreground whitespace-nowrap ${
+                            ['Basic','Allowances','Total'].includes(h) ? 'text-right' : ['Payment','Status',''].includes(h) ? 'text-center' : 'text-left'
+                          }`}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/40">
+                      {emps.map(emp => {
+                        const st = STATUS[emp.status] ?? { label: emp.status, cls: 'bg-muted text-muted-foreground ring-border' };
+                        return (
+                          <tr key={emp.id} className="hover:bg-muted/25 transition-colors">
+                            <td className="px-4 py-2.5 font-mono text-[12px] font-semibold text-primary whitespace-nowrap">{emp.empCode}</td>
+                            <td className="px-4 py-2.5 text-[13px] font-medium whitespace-nowrap">{emp.name}</td>
+                            <td className="px-4 py-2.5 text-[12px] text-muted-foreground">{emp.visaType}</td>
+                            <td className="px-4 py-2.5 text-[12px]">{emp.wpsEntity}</td>
+                            <td className="px-4 py-2.5 text-[13px] text-right tabular-nums">{fmt(emp.basicSalary)}</td>
+                            <td className="px-4 py-2.5 text-[13px] text-right tabular-nums text-muted-foreground">{fmt(emp.allowances)}</td>
+                            <td className="px-4 py-2.5 text-[13px] text-right tabular-nums font-semibold">{fmt(emp.totalSalary)}</td>
+                            <td className="px-4 py-2.5 text-center">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium ring-1 ${
+                                emp.paymentMethod === 'Cash' ? 'bg-orange-50 text-orange-700 ring-orange-200' : 'bg-blue-50 text-blue-700 ring-blue-200'
+                              }`}>{emp.paymentMethod}</span>
+                            </td>
+                            <td className="px-4 py-2.5 text-center">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium ring-1 ${st.cls}`}>
+                                {st.label}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2.5 text-center">
+                              <div className="flex items-center justify-center gap-0.5">
+                                <Link href={`/${locale}/payroll/employees/${emp.id}`}>
+                                  <button className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                                    <Pencil className="size-3.5" />
+                                  </button>
+                                </Link>
+                                <button onClick={() => remove(emp.id, emp.name)} disabled={deleting === emp.id}
+                                  className="p-1.5 rounded-md hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-40">
+                                  {deleting === emp.id ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
                                 </button>
-                              </Link>
-                              <button
-                                onClick={() => handleDelete(emp.id, emp.name)}
-                                disabled={deleting === emp.id}
-                                className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors disabled:opacity-40"
-                              >
-                                {deleting === emp.id
-                                  ? <Loader2 className="size-3.5 animate-spin" />
-                                  : <Trash2 className="size-3.5" />}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 border-border bg-muted/30">
-                      <td colSpan={4} className="px-4 py-2.5 text-xs font-semibold text-muted-foreground">
-                        Subtotal — {emps.length} employees
-                      </td>
-                      <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">
-                        {fmt(emps.reduce((s, e) => s + e.basicSalary, 0))}
-                      </td>
-                      <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums text-muted-foreground">
-                        {fmt(emps.reduce((s, e) => s + e.allowances, 0))}
-                      </td>
-                      <td className="px-4 py-2.5 text-right text-xs font-bold tabular-nums">
-                        {fmt(emps.reduce((s, e) => s + e.totalSalary, 0))}
-                      </td>
-                      <td colSpan={3} />
-                    </tr>
-                  </tfoot>
-                </table>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-border bg-muted/20">
+                        <td colSpan={4} className="px-4 py-2 text-[11px] font-medium text-muted-foreground">
+                          Subtotal · {emps.length} employees
+                        </td>
+                        <td className="px-4 py-2 text-[12px] font-semibold text-right tabular-nums">
+                          {fmt(emps.reduce((s, e) => s + e.basicSalary, 0))}
+                        </td>
+                        <td className="px-4 py-2 text-[12px] font-medium text-right tabular-nums text-muted-foreground">
+                          {fmt(emps.reduce((s, e) => s + e.allowances, 0))}
+                        </td>
+                        <td className="px-4 py-2 text-[13px] font-bold text-right tabular-nums">
+                          {fmt(emps.reduce((s, e) => s + e.totalSalary, 0))}
+                        </td>
+                        <td colSpan={3} />
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
