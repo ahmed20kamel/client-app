@@ -14,8 +14,8 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
-  title: "Management System",
-  description: "Professional Management System",
+  title: "Stride ERP",
+  description: "Stride ERP — Enterprise Resource Planning for Stride International Construction & Transport",
 };
 
 export default async function RootLayout({

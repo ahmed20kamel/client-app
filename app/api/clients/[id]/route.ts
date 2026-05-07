@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { can } from '@/lib/permissions';
 import { z } from 'zod';
 
 const updateClientSchema = z.object({
@@ -78,6 +79,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   try {
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!(await can(session.user.id, 'client.edit.all'))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     const { id } = await params;
 
     const body = await request.json();
@@ -102,6 +106,9 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   try {
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!(await can(session.user.id, 'client.delete.all'))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     const { id } = await params;
 
     await prisma.client.update({ where: { id }, data: { status: 'INACTIVE' } });

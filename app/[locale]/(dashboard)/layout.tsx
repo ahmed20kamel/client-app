@@ -9,6 +9,7 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { LogoutButton } from '@/components/LogoutButton';
 import { MobileSidebar } from '@/components/MobileSidebar';
 import { SidebarLink } from '@/components/SidebarLink';
+import { SidebarNav } from '@/components/SidebarNav';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Topbar } from '@/components/layout/Topbar';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -109,15 +110,9 @@ export default async function DashboardLayout({
     .map(g => ({ label: g.label, items: pick(g.items) }))
     .filter(g => g.items.length > 0);
 
-  // Keep flat list for backwards-compat with any remaining usages
-  const navItems: NavItem[] = navGroups.flatMap(g => g.items);
-
   const adminItems: NavItem[] = isAdmin
     ? [{ href: `/${locale}/departments`, label: t('navigation.departments'), icon: 'Building2' }]
     : [];
-
-  const mobileNavGroups = navGroups;
-  const mobileAdminItems = adminItems;
 
   // Get user initials for avatar
   const initials = session.user?.name
@@ -144,21 +139,12 @@ export default async function DashboardLayout({
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-3 overflow-y-auto space-y-0.5">
-            {navGroups.map((group, gi) => (
-              <div key={group.label}>
-                <div className={`px-3 ${gi === 0 ? 'pt-2' : 'pt-4'} pb-1`}>
-                  <p className="text-[9px] font-bold text-sidebar-foreground/30 uppercase tracking-[0.15em]">{group.label}</p>
-                </div>
-                {group.items.map(item => (
-                  <SidebarLink key={item.href} href={item.href} label={item.label} icon={item.icon} />
-                ))}
-              </div>
-            ))}
+          <nav className="flex-1 p-3 overflow-y-auto">
+            <SidebarNav groups={navGroups} />
 
             {/* Settings Section (Admin) */}
             {adminItems.length > 0 && (
-              <>
+              <div className="mt-2">
                 <div className="pt-4 pb-2 px-3.5">
                   <p className="text-[11px] font-semibold text-sidebar-foreground/35 uppercase tracking-wider flex items-center gap-1.5">
                     <Settings className="w-3 h-3" />
@@ -168,7 +154,7 @@ export default async function DashboardLayout({
                 {adminItems.map((item) => (
                   <SidebarLink key={item.href} href={item.href} label={item.label} icon={item.icon} />
                 ))}
-              </>
+              </div>
             )}
           </nav>
 
@@ -212,8 +198,8 @@ export default async function DashboardLayout({
           <div className="flex items-center gap-3 lg:hidden">
             <MobileSidebar
               locale={locale}
-              navGroups={mobileNavGroups}
-              adminItems={mobileAdminItems}
+              navGroups={navGroups}
+              adminItems={adminItems}
               settingsLabel={t('navigation.settings')}
               userName={session.user?.name || ''}
               userRole={session.user?.role || ''}

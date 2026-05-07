@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { can } from '@/lib/permissions';
 import { updateQuotationSchema, rejectQuotationSchema } from '@/lib/validations/quotation';
+import { sendQuotationStatusEmail } from '@/lib/email';
 import { z } from 'zod';
 
 // ── Shared include for all responses ─────────────────────────────────────────
@@ -114,6 +115,25 @@ export async function PATCH(
         },
         include: QUOTATION_INCLUDE,
       });
+      // Notify quotation creator (fire-and-forget)
+      if (existing.createdById) {
+        prisma.user.findUnique({ where: { id: existing.createdById }, select: { email: true, fullName: true } })
+          .then((creator) => {
+            if (creator?.email) {
+              sendQuotationStatusEmail({
+                to: creator.email,
+                recipientName: creator.fullName,
+                quotationNumber: existing.quotationNumber,
+                projectName: existing.projectName,
+                status: 'CLIENT_APPROVED',
+                lpoNumber: parsed.lpoNumber,
+                clientNotes: parsed.clientNotes ?? null,
+                total: existing.total,
+                quotationUrl: `/en/quotations/${id}`,
+              }).catch(() => {});
+            }
+          }).catch(() => {});
+      }
       return NextResponse.json({ data: updated });
     }
 
@@ -145,6 +165,24 @@ export async function PATCH(
         },
         include: QUOTATION_INCLUDE,
       });
+      // Notify quotation creator (fire-and-forget)
+      if (existing.createdById) {
+        prisma.user.findUnique({ where: { id: existing.createdById }, select: { email: true, fullName: true } })
+          .then((creator) => {
+            if (creator?.email) {
+              sendQuotationStatusEmail({
+                to: creator.email,
+                recipientName: creator.fullName,
+                quotationNumber: existing.quotationNumber,
+                projectName: existing.projectName,
+                status: 'CLIENT_REJECTED',
+                clientNotes: parsed.clientNotes ?? null,
+                total: existing.total,
+                quotationUrl: `/en/quotations/${id}`,
+              }).catch(() => {});
+            }
+          }).catch(() => {});
+      }
       return NextResponse.json({ data: updated });
     }
 
@@ -160,16 +198,11 @@ export async function PATCH(
           { status: 400 }
         );
       }
+      // Preserve all timestamps — they form the audit trail showing the revision history.
+      // Only the status changes; the timeline will still show the previous send/reject events.
       const updated = await prisma.quotation.update({
         where: { id },
-        data: {
-          status: 'DRAFT',
-          clientRejectedAt: null,
-          rejectedAt: null,
-          rejectionReason: null,
-          clientNotes: null,
-          sentAt: null,
-        },
+        data: { status: 'DRAFT' },
         include: QUOTATION_INCLUDE,
       });
       return NextResponse.json({ data: updated });
@@ -212,6 +245,23 @@ export async function PATCH(
         },
         include: QUOTATION_INCLUDE,
       });
+      // Notify quotation creator (fire-and-forget)
+      if (existing.createdById) {
+        prisma.user.findUnique({ where: { id: existing.createdById }, select: { email: true, fullName: true } })
+          .then((creator) => {
+            if (creator?.email) {
+              sendQuotationStatusEmail({
+                to: creator.email,
+                recipientName: creator.fullName,
+                quotationNumber: existing.quotationNumber,
+                projectName: existing.projectName,
+                status: 'CONFIRMED',
+                total: existing.total,
+                quotationUrl: `/en/quotations/${id}`,
+              }).catch(() => {});
+            }
+          }).catch(() => {});
+      }
       return NextResponse.json({ data: updated });
     }
 
@@ -330,14 +380,17 @@ export async function PATCH(
     if (validatedData.items) {
       const itemsData = validatedData.items.map((item, index) => {
         const lineDiscount = item.discount || 0;
-        const lm = item.linearMeters ?? (item.quantity * (item.length ?? 100) / 100);
-        const lineTotal = lm * item.unitPrice * (1 - lineDiscount / 100);
+        const isLM = item.unit === 'LM';
+        const effectiveQty = isLM
+          ? (item.linearMeters ?? (item.quantity * (item.length ?? 0) / 100))
+          : item.quantity;
+        const lineTotal = effectiveQty * item.unitPrice * (1 - lineDiscount / 100);
         return {
           productId: item.productId || null,
           description: item.description,
           quantity: item.quantity,
           length: item.length ?? null,
-          linearMeters: item.unit === 'LM' ? lm : null,
+          linearMeters: isLM ? effectiveQty : null,
           size: item.size ?? null,
           unit: item.unit ?? null,
           unitPrice: item.unitPrice,

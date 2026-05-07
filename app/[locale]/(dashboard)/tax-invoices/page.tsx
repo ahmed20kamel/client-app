@@ -151,28 +151,39 @@ export default function TaxInvoicesPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b bg-muted/30">
-                        {[t('taxInvoices.invoiceNumber'), t('quotations.customer'), t('quotations.projectName'), t('quotations.total'), t('common.status'), t('common.date'), t('common.actions')].map((h, i) => (
+                        {[t('taxInvoices.invoiceNumber'), t('quotations.customer'), t('quotations.projectName'), t('quotations.total'), t('taxInvoices.remaining'), t('common.status'), t('common.date'), t('common.actions')].map((h, i) => (
                           <th key={i} className="px-4 py-3 text-start text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider first:px-6">{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {invoices.map((inv) => (
-                        <tr key={inv.id} className="hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => router.push(`/${locale}/tax-invoices/${inv.id}`)}>
-                          <td className="px-6 py-4 text-start text-sm font-bold text-primary">{inv.invoiceNumber}</td>
-                          <td className="px-4 py-4 text-start text-sm text-muted-foreground">{inv.client?.companyName || inv.customer?.fullName || '—'}</td>
-                          <td className="px-4 py-4 text-start text-sm text-muted-foreground">{inv.projectName ?? '—'}</td>
-                          <td className="px-4 py-4 text-center text-sm font-medium">{fmtAmount(inv.total, locale)} AED</td>
-                          <td className="px-4 py-4 text-center"><StatusBadge status={deriveInvoiceStatus(inv)} label={getStatusLabel(deriveInvoiceStatus(inv))} /></td>
-                          <td className="px-4 py-4 text-center text-sm text-muted-foreground">{formatDate(inv.createdAt, locale)}</td>
-                          <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-center gap-1">
-                              <Link href={`/${locale}/tax-invoices/${inv.id}`}><Button variant="ghost" size="icon" className="size-8"><Eye className="size-3.5" /></Button></Link>
-                              <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteTarget(inv.id)}><Trash2 className="size-3.5" /></Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {invoices.map((inv) => {
+                        const remaining = Math.max(0, inv.total - (inv.paidAmount || 0));
+                        const isPaid = remaining < 0.01;
+                        return (
+                          <tr key={inv.id} className="hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => router.push(`/${locale}/tax-invoices/${inv.id}`)}>
+                            <td className="px-6 py-4 text-start text-sm font-bold text-primary">{inv.invoiceNumber}</td>
+                            <td className="px-4 py-4 text-start text-sm text-muted-foreground">{inv.client?.companyName || inv.customer?.fullName || '—'}</td>
+                            <td className="px-4 py-4 text-start text-sm text-muted-foreground">{inv.projectName ?? '—'}</td>
+                            <td className="px-4 py-4 text-center text-sm font-medium">{fmtAmount(inv.total, locale)} AED</td>
+                            <td className="px-4 py-4 text-center text-sm">
+                              {isPaid ? (
+                                <span className="text-emerald-600 font-semibold">—</span>
+                              ) : (
+                                <span className="font-semibold text-amber-600">{fmtAmount(remaining, locale)} AED</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-4 text-center"><StatusBadge status={deriveInvoiceStatus(inv)} label={getStatusLabel(deriveInvoiceStatus(inv))} /></td>
+                            <td className="px-4 py-4 text-center text-sm text-muted-foreground">{formatDate(inv.createdAt, locale)}</td>
+                            <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-center gap-1">
+                                <Link href={`/${locale}/tax-invoices/${inv.id}`}><Button variant="ghost" size="icon" className="size-8"><Eye className="size-3.5" /></Button></Link>
+                                <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteTarget(inv.id)}><Trash2 className="size-3.5" /></Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Menu, ChevronRight, Settings, X } from 'lucide-react';
+import { Menu, ChevronRight, ChevronDown, Settings, X } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -101,6 +101,10 @@ function NavLink({ item, onClick }: { item: NavItem; onClick: () => void }) {
   );
 }
 
+function groupIsActive(group: NavGroup, pathname: string) {
+  return group.items.some(i => pathname === i.href || pathname.startsWith(i.href + '/'));
+}
+
 export function MobileSidebar({
   locale,
   navGroups,
@@ -110,7 +114,20 @@ export function MobileSidebar({
   userRole,
   initials,
 }: MobileSidebarProps) {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(navGroups.map(g => [g.label, groupIsActive(g, pathname)]))
+  );
+
+  useEffect(() => {
+    const active = navGroups.find(g => groupIsActive(g, pathname));
+    if (active) setGroupOpen(prev => ({ ...prev, [active.label]: true }));
+  }, [pathname, navGroups]);
+
+  const toggleGroup = (label: string) =>
+    setGroupOpen(prev => ({ ...prev, [label]: !prev[label] }));
+
   const isRtl = locale === 'ar';
   const close = () => setOpen(false);
 
@@ -147,20 +164,34 @@ export function MobileSidebar({
 
           {/* Navigation */}
           <nav className="flex-1 px-3 py-2 overflow-y-auto">
-            {navGroups.map((group, gi) => (
-              <div key={group.label}>
-                <div className={`px-3 ${gi === 0 ? 'pt-2' : 'pt-4'} pb-1`}>
-                  <p className="text-[9px] font-bold text-sidebar-foreground/30 uppercase tracking-[0.15em]">
-                    {group.label}
-                  </p>
-                </div>
-                <div className="space-y-0.5">
-                  {group.items.map(item => (
-                    <NavLink key={item.href} item={item} onClick={close} />
-                  ))}
-                </div>
-              </div>
-            ))}
+            <div className="space-y-0.5">
+              {navGroups.map(group => {
+                const isGroupOpen   = !!groupOpen[group.label];
+                const isGroupActive = groupIsActive(group, pathname);
+                return (
+                  <div key={group.label}>
+                    <button
+                      onClick={() => toggleGroup(group.label)}
+                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg transition-colors ${
+                        isGroupActive
+                          ? 'text-sidebar-primary'
+                          : 'text-sidebar-foreground/40 hover:text-sidebar-foreground/70'
+                      }`}
+                    >
+                      <span className="text-[9px] font-bold uppercase tracking-[0.18em]">{group.label}</span>
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isGroupOpen ? 'rotate-0' : '-rotate-90'}`} />
+                    </button>
+                    <div className={`overflow-hidden transition-all duration-200 ${isGroupOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                      <div className="space-y-0.5 pb-1">
+                        {group.items.map(item => (
+                          <NavLink key={item.href} item={item} onClick={close} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
 
             {/* Admin / Settings */}
             {adminItems.length > 0 && (

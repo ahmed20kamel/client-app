@@ -34,6 +34,23 @@ export async function POST(
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 });
+    }
+
+    const allowedDatasheetTypes = new Set([
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ]);
+    const fileExt = path.extname(file.name).toLowerCase();
+    const allowedExts = new Set(['.pdf', '.doc', '.docx', '.xls', '.xlsx']);
+    if (!allowedDatasheetTypes.has(file.type) && !allowedExts.has(fileExt)) {
+      return NextResponse.json({ error: 'Only document files allowed (pdf, doc, docx, xls, xlsx)' }, { status: 400 });
+    }
+
     const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'datasheets');
     await mkdir(uploadDir, { recursive: true });
 

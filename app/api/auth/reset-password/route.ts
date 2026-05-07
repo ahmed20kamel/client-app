@@ -65,17 +65,24 @@ export async function POST(request: NextRequest) {
     // Hash new password
     const passwordHash = await hash(password, 10);
 
-    // Update user password and mark token as used
-    await prisma.$transaction([
-      prisma.user.update({
+    // Atomically mark token as used — updateMany with usedAt: null guard prevents
+    // double-use in a race condition; if count=0 someone else already consumed it.
+    const updated = await prisma.$transaction(async (tx) => {
+      const result = await tx.passwordResetToken.updateMany({
+        where: { id: passwordResetToken.id, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+      if (result.count === 0) return null;
+      await tx.user.update({
         where: { id: passwordResetToken.userId },
         data: { passwordHash },
-      }),
-      prisma.passwordResetToken.update({
-        where: { id: passwordResetToken.id },
-        data: { usedAt: new Date() },
-      }),
-    ]);
+      });
+      return result;
+    });
+
+    if (!updated) {
+      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 400 });
+    }
 
     return NextResponse.json({
       message: 'Password reset successful',

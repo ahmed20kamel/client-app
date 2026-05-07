@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
+      console.warn(`[auth] failed login — unknown email: ${email} | ip: ${ip}`);
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (user.status === 'DISABLED') {
+      console.warn(`[auth] failed login — disabled account: ${email} | ip: ${ip}`);
       return NextResponse.json(
         { error: 'Account is disabled' },
         { status: 403 }
@@ -52,6 +54,7 @@ export async function POST(request: NextRequest) {
 
     // Verify password
     if (!user.passwordHash) {
+      console.warn(`[auth] failed login — no password hash: ${email} | ip: ${ip}`);
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
@@ -60,6 +63,7 @@ export async function POST(request: NextRequest) {
 
     const isValid = await compare(password, user.passwordHash);
     if (!isValid) {
+      console.warn(`[auth] failed login — wrong password: ${email} | ip: ${ip}`);
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }

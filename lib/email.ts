@@ -10,8 +10,12 @@ function getResend(): Resend | null {
   return resendInstance;
 }
 
-const FROM_EMAIL = process.env.EMAIL_FROM || 'CRM Pro <noreply@crmpro.com>';
+const FROM_EMAIL = process.env.EMAIL_FROM || 'Stride ERP <noreply@stride-erp.com>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+function esc(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+}
 
 interface SendEmailParams {
   to: string;
@@ -85,11 +89,11 @@ function wrapInTemplate(content: string, locale: string = 'en') {
     <body>
       <div class="container">
         <div class="card">
-          <div class="logo"><h1>CRM Pro</h1></div>
+          <div class="logo"><h1>Stride ERP</h1></div>
           ${content}
         </div>
         <div class="footer">
-          <p>&copy; ${new Date().getFullYear()} CRM Pro. All rights reserved.</p>
+          <p>&copy; ${new Date().getFullYear()} Stride ERP. All rights reserved.</p>
         </div>
       </div>
     </body>
@@ -142,19 +146,19 @@ export async function sendTaskAssignedEmail(
   const content = isAr
     ? `
       <h2>مهمة جديدة مسندة إليك</h2>
-      <p>تم إسناد مهمة جديدة إليك بواسطة <strong>${assignedBy}</strong></p>
+      <p>تم إسناد مهمة جديدة إليك بواسطة <strong>${esc(assignedBy)}</strong></p>
       <div class="info-box">
-        <p><strong>المهمة:</strong> ${taskTitle}</p>
-        ${dueDate ? `<p><strong>تاريخ الاستحقاق:</strong> ${dueDate}</p>` : ''}
+        <p><strong>المهمة:</strong> ${esc(taskTitle)}</p>
+        ${dueDate ? `<p><strong>تاريخ الاستحقاق:</strong> ${esc(dueDate)}</p>` : ''}
       </div>
       <a href="${fullUrl}" class="button">عرض المهمة</a>
     `
     : `
       <h2>New Task Assigned</h2>
-      <p>A new task has been assigned to you by <strong>${assignedBy}</strong></p>
+      <p>A new task has been assigned to you by <strong>${esc(assignedBy)}</strong></p>
       <div class="info-box">
-        <p><strong>Task:</strong> ${taskTitle}</p>
-        ${dueDate ? `<p><strong>Due Date:</strong> ${dueDate}</p>` : ''}
+        <p><strong>Task:</strong> ${esc(taskTitle)}</p>
+        ${dueDate ? `<p><strong>Due Date:</strong> ${esc(dueDate)}</p>` : ''}
       </div>
       <a href="${fullUrl}" class="button">View Task</a>
     `;
@@ -191,21 +195,21 @@ export async function sendTaskStatusEmail(
   const content = isAr
     ? `
       <h2>تحديث حالة المهمة</h2>
-      <p>تم تغيير حالة المهمة بواسطة <strong>${changedBy}</strong></p>
+      <p>تم تغيير حالة المهمة بواسطة <strong>${esc(changedBy)}</strong></p>
       <div class="info-box">
-        <p><strong>المهمة:</strong> ${taskTitle}</p>
-        <p><strong>الحالة الجديدة:</strong> ${statusLabel}</p>
-        ${reason ? `<p><strong>السبب:</strong> ${reason}</p>` : ''}
+        <p><strong>المهمة:</strong> ${esc(taskTitle)}</p>
+        <p><strong>الحالة الجديدة:</strong> ${esc(statusLabel)}</p>
+        ${reason ? `<p><strong>السبب:</strong> ${esc(reason)}</p>` : ''}
       </div>
       <a href="${fullUrl}" class="button">عرض المهمة</a>
     `
     : `
       <h2>Task Status Update</h2>
-      <p>Task status has been changed by <strong>${changedBy}</strong></p>
+      <p>Task status has been changed by <strong>${esc(changedBy)}</strong></p>
       <div class="info-box">
-        <p><strong>Task:</strong> ${taskTitle}</p>
-        <p><strong>New Status:</strong> ${statusLabel}</p>
-        ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+        <p><strong>Task:</strong> ${esc(taskTitle)}</p>
+        <p><strong>New Status:</strong> ${esc(statusLabel)}</p>
+        ${reason ? `<p><strong>Reason:</strong> ${esc(reason)}</p>` : ''}
       </div>
       <a href="${fullUrl}" class="button">View Task</a>
     `;
@@ -235,13 +239,13 @@ export async function sendQuotationEmail(params: {
   const fmt = (n: number) => n.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const content = `
-    <h2>Quotation ${quotationNumber}</h2>
-    <p>Dear ${clientName},</p>
-    <p>Please find your quotation details below. ${projectName ? `This quotation is for project: <strong>${projectName}</strong>.` : ''}</p>
+    <h2>Quotation ${esc(quotationNumber)}</h2>
+    <p>Dear ${esc(clientName)},</p>
+    <p>Please find your quotation details below. ${projectName ? `This quotation is for project: <strong>${esc(projectName)}</strong>.` : ''}</p>
     <div class="info-box">
-      <p><strong>Quotation #:</strong> ${quotationNumber}</p>
-      ${projectName ? `<p><strong>Project:</strong> ${projectName}</p>` : ''}
-      ${engineerName ? `<p><strong>Engineer:</strong> ${engineerName}</p>` : ''}
+      <p><strong>Quotation #:</strong> ${esc(quotationNumber)}</p>
+      ${projectName ? `<p><strong>Project:</strong> ${esc(projectName)}</p>` : ''}
+      ${engineerName ? `<p><strong>Engineer:</strong> ${esc(engineerName)}</p>` : ''}
       <p style="margin-top: 12px; border-top: 1px solid #e4e4e7; padding-top: 10px;">
         <strong>Subtotal:</strong> AED ${fmt(subtotal)}<br/>
         <strong>VAT (5%):</strong> AED ${fmt(taxAmount)}<br/>
@@ -251,7 +255,7 @@ export async function sendQuotationEmail(params: {
     <p>To view the full quotation details, please click the button below:</p>
     <a href="${fullUrl}" class="button">View Quotation</a>
     <p style="font-size: 12px; color: #a1a1aa;">
-      This quotation was sent by ${companyName || 'our team'}.
+      This quotation was sent by ${esc(companyName || 'our team')}.
       If you have any questions, please don't hesitate to contact us.
     </p>
   `;
@@ -259,6 +263,72 @@ export async function sendQuotationEmail(params: {
   return sendEmail({
     to,
     subject: `Quotation ${quotationNumber}${projectName ? ` — ${projectName}` : ''}`,
+    html: wrapInTemplate(content, 'en'),
+  });
+}
+
+// Quotation status change notification (internal — to quotation creator)
+export async function sendQuotationStatusEmail(params: {
+  to: string;
+  recipientName: string;
+  quotationNumber: string;
+  projectName: string | null;
+  status: 'CLIENT_APPROVED' | 'CLIENT_REJECTED' | 'CONFIRMED';
+  lpoNumber?: string | null;
+  clientNotes?: string | null;
+  total: number;
+  quotationUrl: string;
+}) {
+  const { to, recipientName, quotationNumber, projectName, status, lpoNumber, clientNotes, total, quotationUrl } = params;
+  const fmt = (n: number) => n.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const statusMeta = {
+    CLIENT_APPROVED: {
+      subject: `✅ Client Approved: ${esc(quotationNumber)}`,
+      heading: 'Quotation Approved by Client',
+      color: '#059669',
+      message: `Great news! The client has approved quotation <strong>${esc(quotationNumber)}</strong>.`,
+      extra: [
+        lpoNumber ? `<p><strong>LPO Number:</strong> ${esc(lpoNumber)}</p>` : '',
+        clientNotes ? `<p><strong>Client Notes:</strong> ${esc(clientNotes)}</p>` : '',
+      ].filter(Boolean).join(''),
+      next: 'Finance confirmation is now required to proceed with production.',
+    },
+    CLIENT_REJECTED: {
+      subject: `❌ Client Rejected: ${esc(quotationNumber)}`,
+      heading: 'Quotation Declined by Client',
+      color: '#dc2626',
+      message: `The client has declined quotation <strong>${esc(quotationNumber)}</strong>.`,
+      extra: clientNotes ? `<p><strong>Reason / Notes:</strong> ${esc(clientNotes)}</p>` : '',
+      next: 'You can revise and re-send the quotation from the system.',
+    },
+    CONFIRMED: {
+      subject: `🏦 Finance Confirmed: ${esc(quotationNumber)}`,
+      heading: 'Finance Confirmation Complete',
+      color: '#d97706',
+      message: `Finance has confirmed the payment arrangement for quotation <strong>${esc(quotationNumber)}</strong>.`,
+      extra: '',
+      next: 'You can now create a Tax Invoice and proceed with delivery.',
+    },
+  }[status];
+
+  const content = `
+    <h2 style="color: ${statusMeta.color};">${statusMeta.heading}</h2>
+    <p>Dear ${esc(recipientName)},</p>
+    <p>${statusMeta.message}</p>
+    <div class="info-box">
+      <p><strong>Quotation #:</strong> ${esc(quotationNumber)}</p>
+      ${projectName ? `<p><strong>Project:</strong> ${esc(projectName)}</p>` : ''}
+      <p><strong>Total:</strong> AED ${fmt(total)}</p>
+      ${statusMeta.extra}
+    </div>
+    <p>${statusMeta.next}</p>
+    <a href="${APP_URL}${quotationUrl}" class="button">View Quotation</a>
+  `;
+
+  return sendEmail({
+    to,
+    subject: statusMeta.subject,
     html: wrapInTemplate(content, 'en'),
   });
 }
@@ -279,18 +349,18 @@ export async function sendPerformanceReviewEmail(
   const content = isAr
     ? `
       <h2>مراجعة أداء جديدة</h2>
-      <p>تم إنشاء مراجعة أداء جديدة بواسطة <strong>${reviewerName}</strong></p>
+      <p>تم إنشاء مراجعة أداء جديدة بواسطة <strong>${esc(reviewerName)}</strong></p>
       <div class="info-box">
-        <p><strong>الفترة:</strong> ${period}</p>
+        <p><strong>الفترة:</strong> ${esc(period)}</p>
         <p><strong>التقييم العام:</strong> <span style="color: #eab308; font-size: 18px;">${stars}</span></p>
       </div>
       <a href="${fullUrl}" class="button">عرض المراجعة</a>
     `
     : `
       <h2>New Performance Review</h2>
-      <p>A new performance review has been created by <strong>${reviewerName}</strong></p>
+      <p>A new performance review has been created by <strong>${esc(reviewerName)}</strong></p>
       <div class="info-box">
-        <p><strong>Period:</strong> ${period}</p>
+        <p><strong>Period:</strong> ${esc(period)}</p>
         <p><strong>Overall Rating:</strong> <span style="color: #eab308; font-size: 18px;">${stars}</span></p>
       </div>
       <a href="${fullUrl}" class="button">View Review</a>

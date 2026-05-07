@@ -544,6 +544,22 @@ export default function QuotationDetailsPage() {
         {/* ── Status Banners ──────────────────────────────────────────────── */}
         <div className="px-6 pt-4 space-y-3">
 
+          {/* EXPIRED — validUntil in the past for DRAFT or SENT */}
+          {quotation.validUntil && ['DRAFT', 'SENT'].includes(quotation.status) &&
+            new Date(quotation.validUntil) < new Date() && (
+            <div className="rounded-xl border border-orange-300/50 bg-orange-50/60 dark:bg-orange-950/20 dark:border-orange-500/30 p-3.5 flex items-center gap-3">
+              <AlertCircle className="size-4 text-orange-500 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-orange-700 dark:text-orange-400">
+                  {t('quotations.statusExpired')}
+                </p>
+                <p className="text-xs text-orange-600/80">
+                  {t('quotations.validUntil')}: {formatDate(quotation.validUntil, locale)}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* SENT — waiting */}
           {quotation.status === 'SENT' && (
             <div className="rounded-xl border border-blue-300/50 bg-blue-50/60 dark:bg-blue-950/20 dark:border-blue-500/30 p-3.5 flex items-center gap-3">
@@ -1182,7 +1198,7 @@ export default function QuotationDetailsPage() {
                 <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border cursor-pointer hover:bg-muted/20 transition-colors">
                   <Upload className="size-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">{fcUploading ? t('quotations.uploadingFile') : t('quotations.uploadReceipt')}</span>
-                  <input type="file" className="hidden" accept="image/*,.pdf" disabled={fcUploading}
+                  <input type="file" className="hidden" accept="*" disabled={fcUploading}
                     onChange={(e) => { if (e.target.files?.[0]) handleUploadProof(e.target.files[0]); }} />
                 </label>
               )}

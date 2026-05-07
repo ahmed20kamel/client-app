@@ -34,6 +34,15 @@ export async function POST(
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: 'File too large (max 5MB)' }, { status: 400 });
+    }
+
+    const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+    if (!allowedImageTypes.has(file.type)) {
+      return NextResponse.json({ error: 'Only image files allowed (jpg, png, webp, gif)' }, { status: 400 });
+    }
+
     const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'products');
     await mkdir(uploadDir, { recursive: true });
 

@@ -5,48 +5,44 @@ import { processEscalations } from '@/lib/escalation';
 import { prisma } from '@/lib/prisma';
 import { timingSafeEqual } from 'crypto';
 
+async function runEscalation() {
+  await prisma.task.updateMany({
+    where: { status: 'OPEN', dueAt: { lt: new Date() } },
+    data: { status: 'OVERDUE' },
+  });
+  return processEscalations();
+}
+
 // POST /api/cron/escalate - Run escalation engine
-// Can be triggered by cron job or manually by admin
+// Triggered by cron job (x-cron-secret header) or manually by admin
 export async function POST(request: NextRequest) {
   try {
-    // Check for cron secret or authenticated admin
     const cronSecret = request.headers.get('x-cron-secret');
     const expectedSecret = process.env.CRON_SECRET;
 
-    const isValidCronSecret =
-      cronSecret &&
-      expectedSecret &&
-      cronSecret.length === expectedSecret.length &&
-      timingSafeEqual(Buffer.from(cronSecret), Buffer.from(expectedSecret));
-
-    if (isValidCronSecret) {
-      // Mark overdue tasks
-      await prisma.task.updateMany({
-        where: { status: 'OPEN', dueAt: { lt: new Date() } },
-        data: { status: 'OVERDUE' },
-      });
-      // Run escalation engine
-      const result = await processEscalations();
-      return NextResponse.json({ data: result });
+    // Path 1: valid cron secret from external scheduler
+    if (cronSecret && expectedSecret) {
+      const valid =
+        cronSecret.length === expectedSecret.length &&
+        timingSafeEqual(Buffer.from(cronSecret), Buffer.from(expectedSecret));
+      if (valid) {
+        const result = await runEscalation();
+        return NextResponse.json({ data: result });
+      }
+      // Wrong secret provided — reject immediately, don't fall through
+      return NextResponse.json({ error: 'Invalid cron secret' }, { status: 401 });
     }
 
-    // Otherwise require admin auth
+    // Path 2: no cron secret — require authenticated admin session
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const hasPermission = await can(session.user.id, 'user.manage');
-    if (!hasPermission) {
+    if (!(await can(session.user.id, 'user.manage'))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Mark overdue tasks
-    await prisma.task.updateMany({
-      where: { status: 'OPEN', dueAt: { lt: new Date() } },
-      data: { status: 'OVERDUE' },
-    });
-    const result = await processEscalations();
+    const result = await runEscalation();
     return NextResponse.json({ data: result });
   } catch (error) {
     console.error('Escalation cron error:', error);

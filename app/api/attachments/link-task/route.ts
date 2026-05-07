@@ -18,11 +18,17 @@ export async function POST(request: NextRequest) {
 
     const task = await prisma.internalTask.findUnique({
       where: { id: internalTaskId },
-      select: { id: true },
+      select: { id: true, assignedToId: true, createdById: true },
     });
 
     if (!task) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    }
+
+    const isAdmin = session.user.role === 'Admin';
+    const isRelated = task.assignedToId === session.user.id || task.createdById === session.user.id;
+    if (!isAdmin && !isRelated) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const result = await prisma.attachment.updateMany({

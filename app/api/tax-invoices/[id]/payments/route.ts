@@ -43,12 +43,27 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const body = await request.json();
     const data = createPaymentSchema.parse(body);
 
-    // Get invoice to validate
     const invoice = await prisma.taxInvoice.findUnique({
       where: { id: invoiceId },
       include: { payments: { where: { status: 'CONFIRMED' } } },
     });
     if (!invoice) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+
+    // Guard: cancelled invoices accept no further payments
+    if (invoice.status === 'CANCELLED') {
+      return NextResponse.json({ error: 'Cannot add payments to a cancelled invoice.' }, { status: 409 });
+    }
+
+    // Guard: prevent overpayment — new CONFIRMED payment must not push total past invoice amount
+    if (data.status === 'CONFIRMED') {
+      const alreadyPaid = invoice.payments.reduce((sum, p) => sum + p.amount, 0);
+      if (alreadyPaid + data.amount > invoice.total + 0.01) {
+        return NextResponse.json(
+          { error: `Payment of ${data.amount} would exceed invoice total. Remaining: ${(invoice.total - alreadyPaid).toFixed(2)}` },
+          { status: 400 }
+        );
+      }
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       const payment = await tx.taxInvoicePayment.create({
@@ -64,22 +79,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         },
       });
 
-      // Recalculate paidAmount and status
+      // Recalculate paidAmount from all confirmed payments (including new one)
       const allConfirmed = await tx.taxInvoicePayment.findMany({
         where: { invoiceId, status: 'CONFIRMED' },
       });
       const paidAmount = allConfirmed.reduce((sum, p) => sum + p.amount, 0);
 
-      // Cannot add payments to a cancelled invoice
-      if (invoice.status === 'CANCELLED') {
-        throw new Error('CANCELLED');
-      }
-
-      // Derive status from payment totals — always automatic, even for DRAFT invoices
+      // Derive status — use 0.01 tolerance to handle floating-point precision
       let invoiceStatus: string;
       if (paidAmount <= 0) {
         invoiceStatus = 'UNPAID';
-      } else if (paidAmount >= invoice.total) {
+      } else if (paidAmount >= invoice.total - 0.01) {
         invoiceStatus = 'PAID';
       } else {
         invoiceStatus = 'PARTIAL';
@@ -96,9 +106,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ data: result }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: error.issues[0]?.message || 'Validation error' }, { status: 400 });
-    if (error instanceof Error && error.message === 'CANCELLED') {
-      return NextResponse.json({ error: 'Cannot add payments to a cancelled invoice.' }, { status: 409 });
-    }
     logError('Create invoice payment error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

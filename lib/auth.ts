@@ -15,12 +15,12 @@ export interface Session {
   user: SessionUser;
 }
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET ?? '');
-const COOKIE_NAME = 'crm-session';
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is not set. Application cannot start without it.');
+}
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+const COOKIE_NAME = 'stride-erp-session';
 
-/**
- * Create a JWT token for the user
- */
 export async function createSessionToken(user: {
   id: string;
   email: string;
@@ -35,20 +35,17 @@ export async function createSessionToken(user: {
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('7d')
+    .setExpirationTime('24h')
     .sign(JWT_SECRET);
 }
 
-/**
- * Set the session cookie
- */
 export async function setSessionCookie(token: string) {
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60 * 60 * 24, // 24 hours
     path: '/',
   });
 }

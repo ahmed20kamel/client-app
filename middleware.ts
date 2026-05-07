@@ -8,7 +8,10 @@ const intlMiddleware = createMiddleware({
   localePrefix: 'always',
 });
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET ?? '');
+// Middleware runs on every request — fail fast if JWT_SECRET is missing
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || (() => { throw new Error('JWT_SECRET is not set'); })()
+);
 
 // Public routes that don't require authentication
 const publicPaths = [
@@ -84,7 +87,7 @@ export default async function middleware(request: NextRequest) {
 
   // Check authentication for protected routes
   if (!isPublicPath(pathname)) {
-    const sessionCookie = request.cookies.get('crm-session');
+    const sessionCookie = request.cookies.get('stride-erp-session');
 
     if (!sessionCookie?.value) {
       const localeMatch = pathname.match(/^\/(en|ar)/);
@@ -100,7 +103,7 @@ export default async function middleware(request: NextRequest) {
       const locale = localeMatch ? localeMatch[1] : 'en';
       const signInUrl = new URL(`/${locale}/login`, request.url);
       const response = NextResponse.redirect(signInUrl);
-      response.cookies.delete('crm-session');
+      response.cookies.delete('stride-erp-session');
       return response;
     }
 

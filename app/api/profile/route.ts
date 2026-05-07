@@ -12,7 +12,10 @@ const updateProfileSchema = z.object({
   phone: z.string().optional(),
   jobTitle: z.string().optional(),
   currentPassword: z.string().optional(),
-  newPassword: z.string().min(6).optional(),
+  newPassword: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/, 'Password must contain uppercase, lowercase, number, and special character')
+    .optional(),
 }).refine(data => {
   if (data.newPassword && !data.currentPassword) return false;
   return true;

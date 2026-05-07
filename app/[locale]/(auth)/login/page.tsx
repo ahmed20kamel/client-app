@@ -80,7 +80,7 @@ export default function LoginPage() {
         {/* Background Image */}
         <Image
           src="/login-bg.jpg"
-          alt="Management System"
+          alt="Stride ERP"
           fill
           className="object-cover"
           priority
@@ -99,7 +99,7 @@ export default function LoginPage() {
               <Image src="/logo.svg" alt="Logo" width={28} height={28} className="brightness-0 invert" />
             </div>
             <div>
-              <h2 className="text-lg font-bold tracking-tight">Management System</h2>
+              <h2 className="text-lg font-bold tracking-tight">Stride ERP</h2>
               <p className="text-[11px] text-white/50 font-medium tracking-wider uppercase">Enterprise Platform</p>
             </div>
           </div>
@@ -150,7 +150,7 @@ export default function LoginPage() {
           {/* Bottom */}
           <div className="flex items-center justify-between">
             <p className="text-xs text-white/30">
-              &copy; 2026 Management System. All rights reserved.
+              &copy; 2026 Stride ERP. All rights reserved.
             </p>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5 text-xs text-white/30">
@@ -304,7 +304,7 @@ export default function LoginPage() {
 
           {/* Mobile Footer */}
           <p className="text-center text-xs text-slate-400/70 mt-8 lg:hidden">
-            &copy; 2026 Management System. All rights reserved.
+            &copy; 2026 Stride ERP. All rights reserved.
           </p>
         </div>
       </div>

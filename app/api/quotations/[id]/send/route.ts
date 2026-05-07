@@ -65,7 +65,7 @@ export async function POST(
         taxAmount: quotation.taxAmount,
         total: quotation.total,
         quotationUrl: `${appUrl}/en/quotations/${id}`,
-        companyName: 'LitBeam',
+        companyName: 'Stride International',
       }).catch(err => console.error('Failed to send quotation email:', err));
     }
 

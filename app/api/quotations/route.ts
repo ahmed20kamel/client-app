@@ -103,14 +103,19 @@ export async function POST(request: NextRequest) {
 
     const itemsData = validatedData.items.map((item, index) => {
       const lineDiscount = item.discount || 0;
-      const lm = item.linearMeters ?? (item.quantity * (item.length ?? 100) / 100);
-      const lineTotal = lm * item.unitPrice * (1 - lineDiscount / 100);
+      const isLM = item.unit === 'LM';
+      // For LM items: use provided linearMeters or calculate from quantity × length
+      // For Nos items: effective quantity is just item.quantity
+      const effectiveQty = isLM
+        ? (item.linearMeters ?? (item.quantity * (item.length ?? 0) / 100))
+        : item.quantity;
+      const lineTotal = effectiveQty * item.unitPrice * (1 - lineDiscount / 100);
       return {
         productId: item.productId || null,
         description: item.description,
         quantity: item.quantity,
         length: item.length ?? null,
-        linearMeters: item.unit === 'LM' ? lm : null,
+        linearMeters: isLM ? effectiveQty : null,
         size: item.size ?? null,
         unit: item.unit ?? null,
         unitPrice: item.unitPrice,
