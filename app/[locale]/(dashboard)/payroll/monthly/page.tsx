@@ -2,10 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Banknote, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS = [
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December',
+];
 
 export default function PayrollIndexPage() {
   const router = useRouter();
@@ -18,36 +21,77 @@ export default function PayrollIndexPage() {
 
   const years = Array.from({ length: 5 }, (_, i) => String(now.getFullYear() - 2 + i));
 
-  return (
-    <div className="p-3 md:p-3.5 flex items-center justify-center min-h-[60vh]">
-      <div className="bg-card rounded-2xl border border-border shadow-sm p-10 max-w-md w-full text-center">
-        <Banknote className="size-12 text-primary mx-auto mb-4 opacity-80" />
-        <h1 className="text-2xl font-bold mb-1">Monthly Payroll</h1>
-        <p className="text-muted-foreground text-sm mb-8">Select a month and year to view the payroll report</p>
+  const recent = Array.from({ length: 4 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    return {
+      label: `${MONTHS[d.getMonth()]} ${d.getFullYear()}`,
+      period: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+    };
+  });
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div>
-            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-2">Month</label>
-            <select value={month} onChange={e => setMonth(e.target.value)}
-              className="w-full border border-border rounded-xl px-3 py-3 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium">
-              {MONTHS.map((m, i) => (
-                <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-2">Year</label>
-            <select value={year} onChange={e => setYear(e.target.value)}
-              className="w-full border border-border rounded-xl px-3 py-3 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium">
-              {years.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </div>
+  const inp = "w-full h-9 border border-input rounded-lg px-3 text-[13px] bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-shadow appearance-none";
+
+  return (
+    <div className="max-w-lg space-y-4">
+
+      {/* ── Unified card ── */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-border bg-muted/40">
+          <h1 className="text-[15px] font-semibold tracking-tight">Monthly Payroll</h1>
+          <p className="text-[12px] text-muted-foreground mt-0.5">
+            View and print the calculated payroll report for any month
+          </p>
         </div>
 
-        <Button onClick={go} className="w-full py-3 text-base font-semibold">
-          Open Payroll <ArrowRight className="size-4 ms-2" />
-        </Button>
+        {/* Period selector */}
+        <div className="p-5 space-y-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Select period</p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Month</label>
+              <select value={month} onChange={e => setMonth(e.target.value)} className={inp}>
+                {MONTHS.map((m, i) => (
+                  <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Year</label>
+              <select value={year} onChange={e => setYear(e.target.value)} className={inp}>
+                {years.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <Button onClick={go} size="sm" className="w-full gap-1.5">
+            Open {MONTHS[parseInt(month) - 1]} {year}
+            <ArrowRight className="size-3.5" />
+          </Button>
+        </div>
+
+        {/* Recent periods */}
+        <div className="border-t border-border">
+          <div className="px-5 py-3 border-b border-border/60 bg-muted/20">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Recent periods</p>
+          </div>
+          <div className="divide-y divide-border/50">
+            {recent.map(r => (
+              <button
+                key={r.period}
+                onClick={() => router.push(`/${locale}/payroll/monthly/${r.period}`)}
+                className="w-full flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors group"
+              >
+                <span className="text-[13px] font-medium">{r.label}</span>
+                <ArrowRight className="size-3.5 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
+
     </div>
   );
 }
