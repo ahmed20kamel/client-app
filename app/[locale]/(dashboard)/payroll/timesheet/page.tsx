@@ -2,10 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Clock, ArrowRight } from 'lucide-react';
+import { Calendar, ArrowRight, Clock, Users, BarChart2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS = [
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December',
+];
 
 export default function TimesheetIndexPage() {
   const router = useRouter();
@@ -18,35 +21,95 @@ export default function TimesheetIndexPage() {
 
   const years = Array.from({ length: 5 }, (_, i) => String(now.getFullYear() - 2 + i));
 
-  return (
-    <div className="p-3 md:p-3.5 flex items-center justify-center min-h-[60vh]">
-      <div className="bg-card rounded-2xl border border-border shadow-sm p-10 max-w-md w-full text-center">
-        <Clock className="size-12 text-primary mx-auto mb-4 opacity-80" />
-        <h1 className="text-2xl font-bold mb-1">Monthly Timesheet</h1>
-        <p className="text-muted-foreground text-sm mb-8">التايم شيت الشهري — اختر الشهر والسنة</p>
+  // Quick-access: last 3 months
+  const recent = Array.from({ length: 3 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    return {
+      label: `${MONTHS[d.getMonth()]} ${d.getFullYear()}`,
+      period: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+    };
+  });
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div>
-            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-2">Month</label>
+  return (
+    <div className="max-w-xl mx-auto space-y-6 pt-4">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Timesheet</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Track daily attendance, hours worked, absences, and overtime for all employees.
+        </p>
+      </div>
+
+      {/* How it works */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-card rounded-xl border border-border p-4 text-center space-y-2">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mx-auto">
+            <Calendar className="size-4 text-primary" />
+          </div>
+          <p className="text-xs font-semibold">1. Pick a month</p>
+          <p className="text-xs text-muted-foreground">Select the period you want to fill in</p>
+        </div>
+        <div className="bg-card rounded-xl border border-border p-4 text-center space-y-2">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mx-auto">
+            <Users className="size-4 text-primary" />
+          </div>
+          <p className="text-xs font-semibold">2. Fill attendance</p>
+          <p className="text-xs text-muted-foreground">Mark each employee's daily status and hours</p>
+        </div>
+        <div className="bg-card rounded-xl border border-border p-4 text-center space-y-2">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mx-auto">
+            <BarChart2 className="size-4 text-primary" />
+          </div>
+          <p className="text-xs font-semibold">3. Generate payroll</p>
+          <p className="text-xs text-muted-foreground">Auto-calculate salaries from attendance data</p>
+        </div>
+      </div>
+
+      {/* Period selector */}
+      <div className="bg-card rounded-xl border border-border p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Clock className="size-4 text-primary" />
+          <h2 className="text-sm font-semibold">Open a timesheet period</h2>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Month</label>
             <select value={month} onChange={e => setMonth(e.target.value)}
-              className="w-full border border-border rounded-xl px-3 py-3 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium">
+              className="w-full h-10 border border-border rounded-lg px-3 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30">
               {MONTHS.map((m, i) => (
                 <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>
               ))}
             </select>
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-2">Year</label>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Year</label>
             <select value={year} onChange={e => setYear(e.target.value)}
-              className="w-full border border-border rounded-xl px-3 py-3 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium">
-              {years.map(y => <option key={y} value={y}>{y}</option>)}
+              className="w-full h-10 border border-border rounded-lg px-3 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30">
+              {years.map(y => <option key={y}>{y}</option>)}
             </select>
           </div>
         </div>
 
-        <Button onClick={go} className="w-full py-3 text-base font-semibold">
-          Open Timesheet <ArrowRight className="size-4 ms-2" />
+        <Button onClick={go} className="w-full gap-2">
+          Open {MONTHS[parseInt(month) - 1]} {year}
+          <ArrowRight className="size-4" />
         </Button>
+      </div>
+
+      {/* Quick access */}
+      <div className="bg-card rounded-xl border border-border p-5 space-y-3">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Recent periods</h2>
+        <div className="space-y-2">
+          {recent.map(r => (
+            <button key={r.period}
+              onClick={() => router.push(`/${locale}/payroll/timesheet/${r.period}`)}
+              className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg border border-border hover:bg-muted/50 hover:border-primary/30 transition-all text-sm font-medium group">
+              <span>{r.label}</span>
+              <ArrowRight className="size-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

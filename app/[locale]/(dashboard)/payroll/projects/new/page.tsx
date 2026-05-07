@@ -62,7 +62,7 @@ export default function NewProjectPage() {
           <FolderPlus className="size-5 text-primary" />
           <div>
             <h1 className="text-xl font-bold">Add Project</h1>
-            <p className="text-sm text-muted-foreground">إضافة مشروع جديد</p>
+            <p className="text-sm text-muted-foreground">Fill in the details to add a new project</p>
           </div>
         </div>
 

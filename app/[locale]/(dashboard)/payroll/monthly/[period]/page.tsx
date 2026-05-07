@@ -123,7 +123,7 @@ export default function MonthlyPayrollPage() {
           <div>
             <h1 className="text-xl font-bold">Payroll — {MONTHS[month]} {year}</h1>
             <p className="text-xs text-muted-foreground">
-              كشف الرواتب · {rows.length} employees ·
+              {rows.length} employees ·
               {source === 'saved' ? <span className="text-emerald-600 font-semibold"> Saved</span> : <span className="text-amber-600 font-semibold"> Computed (unsaved)</span>}
             </p>
           </div>
@@ -252,7 +252,7 @@ export default function MonthlyPayrollPage() {
           {/* Grand Total */}
           {rows.length > 0 && (
             <div className="bg-card rounded-2xl border-2 border-primary shadow-sm p-5">
-              <div className="text-sm font-bold text-primary uppercase tracking-wide mb-3">Grand Total — إجمالي كشف الرواتب</div>
+              <div className="text-sm font-bold text-primary uppercase tracking-wide mb-3">Grand Total</div>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 {[
                   { label: 'Total Salary', value: total(rows, 'totalSalary'), color: 'text-foreground' },

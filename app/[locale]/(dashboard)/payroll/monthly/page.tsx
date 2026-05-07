@@ -23,7 +23,7 @@ export default function PayrollIndexPage() {
       <div className="bg-card rounded-2xl border border-border shadow-sm p-10 max-w-md w-full text-center">
         <Banknote className="size-12 text-primary mx-auto mb-4 opacity-80" />
         <h1 className="text-2xl font-bold mb-1">Monthly Payroll</h1>
-        <p className="text-muted-foreground text-sm mb-8">كشف الرواتب الشهري — اختر الشهر والسنة</p>
+        <p className="text-muted-foreground text-sm mb-8">Select a month and year to view the payroll report</p>
 
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div>
