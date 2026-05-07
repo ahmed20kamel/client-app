@@ -222,13 +222,13 @@ export default function ProjectsPage() {
   }, [totalPages, safePage]);
 
   return (
-    <div className="space-y-5">
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
 
-      {/* ── Page header ── */}
-      <div className="flex items-start justify-between gap-4">
+      {/* ── Header row ── */}
+      <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Projects</h1>
-          <p className="text-[13px] text-muted-foreground mt-0.5">{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
+          <h1 className="text-[15px] font-semibold tracking-tight">Projects</h1>
+          <p className="text-[12px] text-muted-foreground mt-0.5">{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
         </div>
         <Link href={`/${locale}/payroll/projects/new`}>
           <Button size="sm" className="gap-1.5"><Plus className="size-3.5" />Add Project</Button>
@@ -236,32 +236,29 @@ export default function ProjectsPage() {
       </div>
 
       {/* ── Stats strip ── */}
-      <div className="flex items-stretch divide-x divide-border border border-border rounded-xl bg-card overflow-hidden">
-        <div className="flex-1 px-5 py-4 min-w-0">
+      <div className="flex items-stretch divide-x divide-border border-b border-border">
+        <div className="flex-1 px-5 py-3.5 min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Ongoing</p>
-          <p className="text-2xl font-semibold tabular-nums mt-1">{ongoing}</p>
+          <p className="text-xl font-semibold tabular-nums mt-0.5">{ongoing}</p>
         </div>
-        <div className="flex-1 px-5 py-4 min-w-0">
+        <div className="flex-1 px-5 py-3.5 min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Work Done</p>
-          <p className="text-2xl font-semibold tabular-nums mt-1">{workDone}</p>
+          <p className="text-xl font-semibold tabular-nums mt-0.5">{workDone}</p>
         </div>
-        <div className="flex-1 px-5 py-4 min-w-0">
+        <div className="flex-1 px-5 py-3.5 min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Total Projects</p>
-          <p className="text-2xl font-semibold tabular-nums mt-1">{projects.length}</p>
+          <p className="text-xl font-semibold tabular-nums mt-0.5">{projects.length}</p>
         </div>
-        <div className="flex-1 px-5 py-4 min-w-0">
+        <div className="flex-1 px-5 py-3.5 min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Total Contract Value</p>
-          <p className="text-2xl font-semibold tabular-nums mt-1">
-            {fmt(total)} <span className="text-sm font-normal text-muted-foreground">AED</span>
+          <p className="text-xl font-semibold tabular-nums mt-0.5">
+            {fmt(total)} <span className="text-xs font-normal text-muted-foreground">AED</span>
           </p>
         </div>
       </div>
 
-      {/* ── Table card ── */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
-
-        {/* Filter bar */}
-        <div className="px-4 py-2.5 border-b border-border flex flex-wrap items-center gap-2 bg-muted/20">
+      {/* ── Filter bar ── */}
+      <div className="px-4 py-2.5 border-b border-border flex flex-wrap items-center gap-2">
           {/* Search */}
           <div className="relative min-w-52 flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
@@ -494,7 +491,6 @@ export default function ProjectsPage() {
             )}
           </>
         )}
-      </div>
     </div>
   );
 }
