@@ -1,9 +1,119 @@
-�������������������뫼뫽뫾뫿묀묁묂묃묄묅묆묇묈묉묊묋묌�묍묎묏묐묑묒묓묔묕묖묗���묘묙묚묛묜묝묞묟묠묡묢묣묤묥묦묧묨�묩묪묫묬묭묮묯묰묱묲묳���무묵묶묷문묹묺묻물묽묾묿뭀뭁뭂뭃뭄�뭅뭆뭇뭈뭉뭊뭋뭌뭍뭎뭏���뭐뭑뭒뭓뭔뭕뭖뭗뭘뭙뭚뭛뭜뭝뭞뭟뭠�뭡뭢뭣뭤뭥뭦뭧뭨뭩뭪뭫���뭬뭭뭮뭯뭰뭱뭲뭳뭴뭵뭶뭷뭸뭹뭺뭻뭼�뭽뭾뭿뮀뮁뮂뮃뮄뮅뮆뮇���뮈뮉뮊뮋뮌뮍뮎뮏뮐뮑뮒뮓뮔뮕뮖뮗뮘�뮙뮚뮛뮜뮝뮞뮟뮠뮡뮢뮣��".split("");
-for(j = 0; j != D[162].length; ++j) if(D[162][j].charCodeAt(0) !== 0xFFFD) { e[D[162][j]] = 41472 + j; d[41472 + j] = D[162][j];}
-D[163] = "�����������������������������������������������������������������뮤뮥뮦뮧뮨뮩뮪뮫뮬뮭뮮뮯뮰뮱뮲뮳뮴�뮵뮶뮷뮸뮹뮺뮻뮼뮽뮾뮿���므믁믂믃믄믅믆믇믈믉믊믋믌믍믎믏믐�믑믒믓믔믕믖믗믘믙믚믛���믜믝믞믟믠믡믢믣믤믥믦믧믨믩믪믫믬�믭믮믯믰믱믲믳믴믵믶믷���미믹믺믻민믽믾믿밀밁밂밃밄밅밆밇밈�밉밊밋밌밍밎및밐밑밒밓������������������������������������������������������������������".split("");
-for(j = 0; j != D[163].length; ++j) if(D[163][j].charCodeAt(0) !== 0xFFFD) { e[D[163][j]] = 41728 + j; d[41728 + j] = D[163][j];}
-D[164] = "�����������������������������������������������������������������ᄇ�������������������������������바박밖밗반밙밚받발밝밞밟밠밡밢밣밤�밥밦밧밨방밪밫밬밭밮밯���배백밲밳밴밵밶밷밸밹밺밻밼밽밾밿뱀�뱁뱂뱃뱄뱅뱆뱇뱈뱉뱊뱋���뱌뱍뱎뱏뱐뱑뱒뱓뱔뱕뱖뱗뱘뱙뱚뱛뱜�뱝뱞뱟뱠뱡뱢뱣뱤뱥뱦뱧���뱨뱩뱪뱫뱬뱭뱮뱯뱰뱱뱲뱳뱴뱵뱶뱷뱸�뱹뱺뱻뱼뱽뱾뱿벀벁벂벃���버벅벆벇번벉벊벋벌벍벎벏벐벑벒벓범�법벖벗벘벙벚벛벜벝벞벟��".split("");
-for(j = 0; j != D[164].length; ++j) if(D[164][j].charCodeAt(0) !== 0xFFFD) { e[D[164][j]] = 41984 + j; d[41984 + j] = D[164][j];}
-D[165] = "�����������������������������������������������������������������베벡벢벣벤벥벦벧벨벩벪벫벬벭벮벯벰�벱벲벳벴벵벶벷벸벹벺벻���벼벽벾벿변볁볂볃별볅볆볇볈볉볊볋볌�볍볎볏볐병볒볓볔볕볖볗���볘볙볚볛볜볝볞볟볠볡볢볣볤볥볦볧볨�볩볪볫볬볭볮볯볰볱볲볳���보복볶볷본볹볺볻볼볽볾볿봀봁봂봃봄�봅봆봇봈봉봊봋봌봍봎봏���봐봑봒봓봔봕봖봗봘봙봚봛봜봝봞봟봠�봡봢봣봤봥봦봧봨봩봪봫���봬봭봮봯봰봱봲봳봴봵봶봷봸봹봺봻봼�봽봾봿뵀뵁뵂뵃뵄뵅뵆뵇��".split("");
-for(j = 0; j != D[165].length; ++j) if(D[165][j].charCodeAt(0) !== 0xFFFD) { e[D[165][j]] = 42240 + j; d[42240 + j] = D[165][j];}
-D[166] = "�����������������������������������������������������������������뵈뵉뵊뵋뵌뵍뵎뵏뵐뵑뵒뵓뵔뵕뵖뵗뵘�뵙뵚뵛뵜뵝뵞뵟뵠뵡뵢뵣���뵤뵥뵦뵧뵨뵩뵪뵫뵬뵭뵮뵯뵰뵱뵲뵳뵴�뵵뵶뵷뵸뵹뵺뵻뵼뵽뵾뵿���부북붂붃분붅붆붇불붉붊붋붌붍붎붏붐�붑붒붓붔붕붖붗붘붙붚붛���붜붝붞붟붠붡붢붣붤붥붦붧붨붩붪붫붬�붭붮붯붰붱붲붳붴붵붶붷���붸붹붺붻붼붽붾붿뷀뷁뷂뷃뷄뷅뷆뷇뷈�뷉뷊뷋뷌뷍뷎뷏뷐뷑뷒뷓���뷔뷕뷖뷗뷘뷙뷚뷛뷜뷝뷞뷟뷠
+import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/logger';
+import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { uploadToCloudinary, deleteFromCloudinary } from '@/lib/cloudinary';
+
+export const maxDuration = 30;
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_TYPES = [
+  'image/jpeg', 'image/png', 'image/webp',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+];
+
+// GET /api/quotations/[id]/attachments
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { id } = await params;
+
+    const quotation = await prisma.quotation.findUnique({ where: { id }, select: { id: true } });
+    if (!quotation) return NextResponse.json({ error: 'Quotation not found' }, { status: 404 });
+
+    const attachments = await prisma.attachment.findMany({
+      where: { quotationId: id },
+      include: { uploadedBy: { select: { fullName: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return NextResponse.json({ data: attachments });
+  } catch (error) {
+    logError('Get quotation attachments error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+// POST /api/quotations/[id]/attachments
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { id: quotationId } = await params;
+
+    const quotation = await prisma.quotation.findUnique({ where: { id: quotationId }, select: { id: true } });
+    if (!quotation) return NextResponse.json({ error: 'Quotation not found' }, { status: 404 });
+
+    const formData = await request.formData();
+    const file = formData.get('file') as File | null;
+    const category = (formData.get('category') as string) || 'document';
+
+    if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    if (file.size > MAX_FILE_SIZE) return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 });
+    if (!ALLOWED_TYPES.includes(file.type)) return NextResponse.json({ error: 'File type not allowed' }, { status: 400 });
+
+    const bytes = await file.arrayBuffer();
+    const { url, publicId } = await uploadToCloudinary(Buffer.from(bytes), file.name, 'crm/quotations');
+
+    const attachment = await prisma.attachment.create({
+      data: {
+        quotationId,
+        category,
+        fileName: publicId,
+        originalName: file.name,
+        fileSize: file.size,
+        mimeType: file.type,
+        filePath: url,
+        uploadedById: session.user.id,
+      },
+      include: { uploadedBy: { select: { fullName: true } } },
+    });
+
+    return NextResponse.json({ data: attachment }, { status: 201 });
+  } catch (error) {
+    logError('Upload quotation attachment error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+// DELETE /api/quotations/[id]/attachments?attachmentId=xxx
+export async function DELETE(
+  request: NextRequest,
+  { params: _params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const attachmentId = new URL(request.url).searchParams.get('attachmentId');
+    if (!attachmentId) return NextResponse.json({ error: 'Attachment ID required' }, { status: 400 });
+
+    const attachment = await prisma.attachment.findUnique({ where: { id: attachmentId } });
+    if (!attachment) return NextResponse.json({ error: 'Attachment not found' }, { status: 404 });
+
+    if (attachment.uploadedById !== session.user.id && session.user.role !== 'Admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    await deleteFromCloudinary(attachment.fileName);
+    await prisma.attachment.delete({ where: { id: attachmentId } });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    logError('Delete quotation attachment error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
