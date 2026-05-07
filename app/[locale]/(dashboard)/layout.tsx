@@ -41,6 +41,7 @@ export default async function DashboardLayout({
     { href: `/${locale}/internal-tasks`,  label: t('navigation.internalTasks'),  icon: 'ClipboardList',   perm: null },
     { href: `/${locale}/approvals`,       label: t('navigation.approvals'),      icon: 'CheckCircle2',    perm: 'page.approvals' },
     { href: `/${locale}/reports`,         label: t('navigation.reports'),        icon: 'BarChart3',       perm: 'page.reports' },
+    { href: `/${locale}/reports/sales-bonus`, label: 'Sales Bonus',              icon: 'TrendingUp',      perm: 'page.reports' },
     { href: `/${locale}/clients`,         label: t('navigation.clients'),        icon: 'Building2',       perm: 'page.clients' },
     { href: `/${locale}/quotations`,      label: t('navigation.quotations'),     icon: 'FileText',        perm: 'page.quotations' },
     { href: `/${locale}/tax-invoices`,    label: t('navigation.taxInvoices'),    icon: 'Receipt',         perm: 'page.tax-invoices' },
@@ -88,10 +89,10 @@ export default async function DashboardLayout({
           {/* Logo */}
           <div className="flex flex-col items-center justify-center py-5 px-6 border-b border-sidebar-border gap-3">
             <div className="w-full flex items-center justify-center">
-              <Image src="/logo.svg" alt="SCoRD Logo" width={100} height={100} loading="eager" className="brightness-0 invert object-contain" style={{ height: 'auto' }} />
+              <Image src="/logo.svg" alt="Stride ERP" width={100} height={100} loading="eager" className="brightness-0 invert object-contain" style={{ height: 'auto' }} />
             </div>
             <div className="w-full flex items-center justify-center">
-              <p className="text-[10px] font-semibold text-sidebar-foreground/35 tracking-[0.18em] uppercase">Management System</p>
+              <p className="text-[10px] font-semibold text-sidebar-foreground/35 tracking-[0.18em] uppercase">Stride ERP</p>
             </div>
           </div>
 
@@ -164,7 +165,7 @@ export default async function DashboardLayout({
               userRole={session.user?.role || ''}
               initials={initials}
             />
-            <Image src="/logo.svg" alt="SCoRD Logo" width={32} height={32} loading="eager" className="lg:hidden object-contain" style={{ height: 'auto' }} />
+            <Image src="/logo.svg" alt="Stride ERP" width={32} height={32} loading="eager" className="lg:hidden object-contain" style={{ height: 'auto' }} />
           </div>
 
           {/* Breadcrumbs - hidden on mobile */}
