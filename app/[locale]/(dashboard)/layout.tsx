@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Settings } from 'lucide-react';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { LogoutButton } from '@/components/LogoutButton';
@@ -125,65 +124,57 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-background" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
-      {/* Desktop Sidebar - hidden on mobile */}
-      <aside className="hidden lg:block fixed top-0 start-0 z-40 w-60 h-screen">
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:block fixed top-0 start-0 z-40 w-56 h-screen">
         <div className="h-full flex flex-col bg-sidebar text-sidebar-foreground">
+
           {/* Logo */}
-          <div className="flex flex-col items-center justify-center py-5 px-6 border-b border-sidebar-border gap-3">
-            <div className="w-full flex items-center justify-center">
-              <Image src="/logo.svg" alt="Stride ERP" width={100} height={100} loading="eager" className="brightness-0 invert object-contain" style={{ height: 'auto' }} />
-            </div>
-            <div className="w-full flex items-center justify-center">
-              <p className="text-[10px] font-semibold text-sidebar-foreground/35 tracking-[0.18em] uppercase">Stride ERP</p>
+          <div className="px-5 py-5 border-b border-sidebar-border">
+            <div className="flex items-center gap-3">
+              <Image src="/logo.svg" alt="Stride ERP" width={32} height={32} loading="eager"
+                className="brightness-0 invert object-contain shrink-0" style={{ height: 'auto' }} />
+              <div>
+                <p className="text-[13px] font-semibold text-sidebar-accent-foreground leading-tight tracking-tight">Stride ERP</p>
+                <p className="text-[10px] text-sidebar-foreground/40 tracking-wide mt-0.5">Management System</p>
+              </div>
             </div>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-3 overflow-y-auto">
+          <nav className="flex-1 px-3 py-3 overflow-y-auto">
             <SidebarNav groups={navGroups} />
 
-            {/* Settings Section (Admin) */}
             {adminItems.length > 0 && (
-              <div className="mt-2">
-                <div className="pt-4 pb-2 px-3.5">
-                  <p className="text-[11px] font-semibold text-sidebar-foreground/35 uppercase tracking-wider flex items-center gap-1.5">
-                    <Settings className="w-3 h-3" />
-                    {t('navigation.settings')}
-                  </p>
-                </div>
+              <div className="mt-3 pt-3 border-t border-sidebar-border">
+                <p className="px-3 mb-1.5 text-[10px] font-semibold text-sidebar-foreground/35 uppercase tracking-[0.16em]">
+                  {t('navigation.settings')}
+                </p>
                 {adminItems.map((item) => (
-                  <SidebarLink key={item.href} href={item.href} label={item.label} icon={item.icon} />
+                  <SidebarLink key={item.href} href={item.href} label={item.label} />
                 ))}
               </div>
             )}
           </nav>
 
-          {/* User Section */}
-          <div className="p-3 border-t border-sidebar-border">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-sidebar-accent/50">
-              <Link href={`/${locale}/profile`} className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity">
-                {profileImage ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={profileImage} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-sm font-semibold text-primary shrink-0">
-                    {initials}
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-sidebar-foreground truncate">
-                    {session.user?.name}
-                  </p>
-                  <p className="text-xs text-sidebar-foreground/50 truncate">
-                    {session.user?.role}
-                  </p>
+          {/* User footer */}
+          <div className="border-t border-sidebar-border px-3 py-3 space-y-2">
+            <Link href={`/${locale}/profile`}
+              className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-sidebar-accent/60 transition-colors group">
+              {profileImage ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={profileImage} alt="" className="w-7 h-7 rounded-full object-cover shrink-0" />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-sidebar-accent flex items-center justify-center text-[11px] font-semibold text-sidebar-primary shrink-0">
+                  {initials}
                 </div>
-              </Link>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-semibold text-sidebar-accent-foreground truncate leading-tight">{session.user?.name}</p>
+                <p className="text-[10px] text-sidebar-foreground/45 truncate">{session.user?.role}</p>
+              </div>
               <LogoutButton locale={locale} />
-            </div>
-
-            {/* Language Switcher */}
-            <div className="flex items-center gap-2 mt-2.5">
+            </Link>
+            <div className="px-1">
               <LanguageSwitcher locale={locale} />
             </div>
           </div>
@@ -191,7 +182,7 @@ export default async function DashboardLayout({
       </aside>
 
       {/* Main Content Area */}
-      <div className="lg:ms-60 min-h-screen flex flex-col">
+      <div className="lg:ms-56 min-h-screen flex flex-col">
         {/* Top Header */}
         <header className="sticky top-0 z-30 h-14 lg:h-16 bg-background/80 backdrop-blur-lg border-b border-border flex items-center justify-between px-4 lg:px-8 gap-3">
           {/* Mobile: Hamburger + Logo */}
