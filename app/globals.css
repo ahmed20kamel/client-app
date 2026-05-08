@@ -66,8 +66,8 @@
   --accent: #e8edf4;
   --accent-foreground: #1e3a5f;
 
-  /* Background — Off-White */
-  --background: #f4f6f9;
+  /* Background */
+  --background: #f1f5f9;
   --foreground: #0f172a;
 
   /* Card */
@@ -79,7 +79,7 @@
   --popover-foreground: #0f172a;
 
   /* Muted */
-  --muted: #f8f9fb;
+  --muted: #f8fafc;
   --muted-foreground: #64748b;
 
   /* Destructive */
@@ -102,15 +102,15 @@
   --chart-4: #0284c7;
   --chart-5: #dc2626;
 
-  /* ── Sidebar — Brand Charcoal (matches stride-construction.com) ── */
-  --sidebar: #0f0f14;
-  --sidebar-foreground: rgba(203, 213, 225, 0.62);
-  --sidebar-primary: #94a3b8;
-  --sidebar-primary-foreground: #0f0f14;
-  --sidebar-accent: rgba(148, 163, 184, 0.10);
-  --sidebar-accent-foreground: #e2e8f0;
-  --sidebar-border: rgba(203, 213, 225, 0.07);
-  --sidebar-ring: #94a3b8;
+  /* ── Sidebar — Premium Dark Navy ── */
+  --sidebar: #1e293b;
+  --sidebar-foreground: rgba(203, 213, 225, 0.72);
+  --sidebar-primary: #93c5fd;
+  --sidebar-primary-foreground: #1e293b;
+  --sidebar-accent: rgba(147, 197, 253, 0.10);
+  --sidebar-accent-foreground: #f1f5f9;
+  --sidebar-border: rgba(203, 213, 225, 0.09);
+  --sidebar-ring: #93c5fd;
 }
 
 .dark {
@@ -153,14 +153,14 @@
   --chart-4: #38bdf8;
   --chart-5: #f87171;
 
-  --sidebar: #07080d;
-  --sidebar-foreground: rgba(203, 213, 225, 0.50);
-  --sidebar-primary: #94a3b8;
-  --sidebar-primary-foreground: #07080d;
-  --sidebar-accent: rgba(148, 163, 184, 0.08);
-  --sidebar-accent-foreground: #cbd5e1;
-  --sidebar-border: rgba(203, 213, 225, 0.06);
-  --sidebar-ring: #94a3b8;
+  --sidebar: #0f172a;
+  --sidebar-foreground: rgba(203, 213, 225, 0.65);
+  --sidebar-primary: #93c5fd;
+  --sidebar-primary-foreground: #0f172a;
+  --sidebar-accent: rgba(147, 197, 253, 0.10);
+  --sidebar-accent-foreground: #f1f5f9;
+  --sidebar-border: rgba(203, 213, 225, 0.08);
+  --sidebar-ring: #93c5fd;
 }
 
 @layer base {
