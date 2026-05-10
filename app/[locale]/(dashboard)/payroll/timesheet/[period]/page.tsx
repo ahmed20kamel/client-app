@@ -154,13 +154,15 @@ export default function TimesheetPage() {
   const removeAlloc = (empId: string, idx: number) => setAllocs(a => ({ ...a, [empId]: a[empId].filter((_, i) => i !== idx) }));
 
   const setDayEntry = (empId: string, day: number, patch: Partial<DayEntry>) =>
-    setDailyData(s => ({
-      ...s,
-      [empId]: {
-        ...(s[empId] || {}),
-        [day]: { status: 'P', hours: 8, projectId: '', ...(s[empId]?.[day] || {}), ...patch },
-      },
-    }));
+    setDailyData(s => {
+      const existing = s[empId]?.[day];
+      const updated: DayEntry = {
+        status:    patch.status    ?? existing?.status    ?? 'P',
+        hours:     patch.hours     ?? existing?.hours     ?? 8,
+        projectId: patch.projectId ?? existing?.projectId ?? '',
+      };
+      return { ...s, [empId]: { ...(s[empId] || {}), [day]: updated } };
+    });
   const clearDay = (empId: string, day: number) =>
     setDailyData(s => {
       const empData = { ...(s[empId] || {}) };
