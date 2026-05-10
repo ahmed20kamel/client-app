@@ -20,7 +20,7 @@ function getWorkingDays(year: number, month: number): number {
 }
 
 // Calculate payroll from timesheet entries for a given month
-function calcEntry(emp: any, entries: any[], year: number, month: number) {
+function calcEntry(emp: any, entries: any[], year: number, month: number, loanDeduction = 0) {
   const hpd      = 8;
   const workDays = getWorkingDays(year, month);
 
@@ -44,16 +44,17 @@ function calcEntry(emp: any, entries: any[], year: number, month: number) {
   const otHourlyRate = emp.basicSalary / workDays / hpd;
   const otAmount     = otHourlyRate * otHours;
 
-  const grossSalary = emp.totalSalary + emp.otherAllowance - absentDeduction + otAmount;
+  const grossSalary  = emp.totalSalary + emp.otherAllowance - absentDeduction + otAmount;
+  const netPayable   = grossSalary - loanDeduction;
 
   // WPS vs Cash split based on paymentMethod and wpsEntity
   let wpsAmount  = 0;
   let cashAmount = 0;
   if (emp.paymentMethod === 'Cash') {
-    cashAmount = grossSalary;
+    cashAmount = netPayable;
   } else {
     wpsAmount = emp.basicSalary - absentDeduction < 0 ? 0 : emp.basicSalary - absentDeduction;
-    cashAmount = grossSalary - wpsAmount;
+    cashAmount = netPayable - wpsAmount;
     if (cashAmount < 0) cashAmount = 0;
   }
 
@@ -70,12 +71,13 @@ function calcEntry(emp: any, entries: any[], year: number, month: number) {
     absentDeduction: Math.round(absentDeduction * 100) / 100,
     allowanceAdj:    0,
     deduction:       0,
+    loanDeduction:   Math.round(loanDeduction * 100) / 100,
     adjustment:      0,
     grossSalary:     Math.round(grossSalary * 100) / 100,
     wpsAmount:       Math.round(wpsAmount * 100) / 100,
     cashAmount:      Math.round(cashAmount * 100) / 100,
     otPayment:       Math.round(otAmount * 100) / 100,
-    totalPayment:    Math.round(grossSalary * 100) / 100,
+    totalPayment:    Math.round(netPayable * 100) / 100,
   };
 }
 
@@ -111,6 +113,26 @@ export async function GET(
       where: { status: { not: 'TERMINATED' } },
     });
 
+    // Active loans for this period
+    const activeLoans = await prisma.payrollLoan.findMany({
+      where: {
+        status: 'ACTIVE',
+        OR: [
+          { startYear: { lt: year } },
+          { startYear: year, startMonth: { lte: month } },
+        ],
+      },
+    });
+
+    // Build map: employeeId → total installment this month
+    const loanMap: Record<string, number> = {};
+    for (const loan of activeLoans) {
+      const remaining = loan.totalAmount - loan.paidAmount;
+      if (remaining <= 0) continue;
+      const installment = Math.min(loan.installmentAmount, remaining);
+      loanMap[loan.employeeId] = (loanMap[loan.employeeId] || 0) + installment;
+    }
+
     const entryMap: Record<string, any[]> = {};
     if (timesheet?.entries) {
       for (const e of timesheet.entries) {
@@ -120,7 +142,7 @@ export async function GET(
     }
 
     const computed = employees.map(emp => ({
-      ...calcEntry(emp, entryMap[emp.id] || [], year, month),
+      ...calcEntry(emp, entryMap[emp.id] || [], year, month, loanMap[emp.id] || 0),
       employee: emp,
     }));
 
@@ -148,9 +170,29 @@ export async function POST(
       return NextResponse.json({ error: 'entries array required' }, { status: 400 });
     }
 
-    await prisma.$transaction(
-      entries.map((e: any) =>
-        prisma.payrollEntry.upsert({
+    // Fetch active loans for employees being saved
+    const employeeIds = entries.map((e: any) => e.employeeId);
+    const activeLoans = await prisma.payrollLoan.findMany({
+      where: {
+        employeeId: { in: employeeIds },
+        status: 'ACTIVE',
+        OR: [
+          { startYear: { lt: year } },
+          { startYear: year, startMonth: { lte: month } },
+        ],
+      },
+    });
+
+    // Group loans by employee
+    const loansByEmp: Record<string, typeof activeLoans> = {};
+    for (const loan of activeLoans) {
+      if (!loansByEmp[loan.employeeId]) loansByEmp[loan.employeeId] = [];
+      loansByEmp[loan.employeeId].push(loan);
+    }
+
+    await prisma.$transaction(async (tx) => {
+      for (const e of entries) {
+        await tx.payrollEntry.upsert({
           where:  { month_year_employeeId: { month, year, employeeId: e.employeeId } },
           update: {
             basicSalary:     e.basicSalary,
@@ -164,6 +206,7 @@ export async function POST(
             absentDeduction: e.absentDeduction,
             allowanceAdj:    e.allowanceAdj    || 0,
             deduction:       e.deduction       || 0,
+            loanDeduction:   e.loanDeduction   || 0,
             adjustment:      e.adjustment      || 0,
             grossSalary:     e.grossSalary,
             wpsAmount:       e.wpsAmount,
@@ -186,6 +229,7 @@ export async function POST(
             absentDeduction: e.absentDeduction || 0,
             allowanceAdj:    e.allowanceAdj    || 0,
             deduction:       e.deduction       || 0,
+            loanDeduction:   e.loanDeduction   || 0,
             adjustment:      e.adjustment      || 0,
             grossSalary:     e.grossSalary     || 0,
             wpsAmount:       e.wpsAmount       || 0,
@@ -194,9 +238,30 @@ export async function POST(
             totalPayment:    e.totalPayment    || 0,
             remarks:         e.remarks         || null,
           },
-        })
-      )
-    );
+        });
+
+        // Record loan deductions for this employee
+        const empLoans = loansByEmp[e.employeeId] || [];
+        for (const loan of empLoans) {
+          const remaining   = loan.totalAmount - loan.paidAmount;
+          if (remaining <= 0) continue;
+          const deducted = Math.min(loan.installmentAmount, remaining);
+          // Upsert deduction record
+          await tx.payrollLoanDeduction.upsert({
+            where:  { loanId_month_year: { loanId: loan.id, month, year } },
+            update: { amount: deducted },
+            create: { loanId: loan.id, employeeId: e.employeeId, month, year, amount: deducted },
+          });
+          // Update loan paidAmount
+          const newPaid = loan.paidAmount + deducted;
+          const newStatus = newPaid >= loan.totalAmount ? 'COMPLETED' : 'ACTIVE';
+          await tx.payrollLoan.update({
+            where:  { id: loan.id },
+            data:   { paidAmount: newPaid, status: newStatus },
+          });
+        }
+      }
+    });
 
     return NextResponse.json({ message: 'Payroll saved', count: entries.length });
   } catch (error) {

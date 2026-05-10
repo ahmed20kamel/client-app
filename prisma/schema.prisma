@@ -1054,6 +1054,7 @@ model PayrollEmployee {
 
   timesheetEntries PayrollTimesheetEntry[]
   payrollEntries   PayrollEntry[]
+  loans            PayrollLoan[]
 
   @@index([costCenter])
   @@index([visaType])
@@ -1136,6 +1137,7 @@ model PayrollEntry {
   absentDeduction  Float    @default(0)       // deduction for absent days
   allowanceAdj     Float    @default(0)       // extra allowances this month
   deduction        Float    @default(0)       // other deductions
+  loanDeduction    Float    @default(0)       // total loan installments deducted this month
   adjustment       Float    @default(0)       // +/- manual adjustment
   grossSalary      Float    @default(0)       // GT / Salaries and Wages
   wpsAmount        Float    @default(0)       // paid via WPS bank transfer
@@ -1151,4 +1153,40 @@ model PayrollEntry {
   @@unique([month, year, employeeId])
   @@index([month, year])
   @@index([employeeId])
+}
+
+model PayrollLoan {
+  id                String   @id @default(uuid())
+  employeeId        String
+  description       String?                         // e.g. "Personal Advance", "Medical"
+  totalAmount       Float                           // original loan amount
+  paidAmount        Float    @default(0)            // total deducted so far
+  installmentAmount Float                           // amount per month
+  status            String   @default("ACTIVE")     // ACTIVE, COMPLETED, CANCELLED
+  startMonth        Int                             // 1-12
+  startYear         Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  employee          PayrollEmployee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  deductions        PayrollLoanDeduction[]
+
+  @@index([employeeId])
+  @@index([status])
+}
+
+model PayrollLoanDeduction {
+  id         String   @id @default(uuid())
+  loanId     String
+  employeeId String
+  month      Int
+  year       Int
+  amount     Float
+  createdAt  DateTime @default(now())
+
+  loan       PayrollLoan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@unique([loanId, month, year])
+  @@index([loanId])
+  @@index([employeeId, month, year])
 }

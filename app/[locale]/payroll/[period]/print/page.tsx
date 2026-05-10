@@ -24,7 +24,8 @@ interface PayrollRow {
   };
   basicSalary: number; allowances: number; otherAllowance: number; totalSalary: number;
   workDays: number; absentDays: number; otHours: number; otAmount: number;
-  absentDeduction: number; allowanceAdj: number; deduction: number; adjustment: number;
+  absentDeduction: number; allowanceAdj: number; deduction: number;
+  loanDeduction: number; adjustment: number;
   grossSalary: number; wpsAmount: number; cashAmount: number; totalPayment: number;
 }
 
@@ -114,10 +115,11 @@ function PaySlip({ row, month, year }: { row: PayrollRow; month: number; year: n
                 </tr>
               )}
               {row.deduction > 0 && <tr className="ded-row"><td>Other Deductions</td><td>({fmt(row.deduction)})</td></tr>}
-              {!row.absentDays && !row.deduction && <tr><td className="no-ded">No deductions this month</td><td>—</td></tr>}
+              {row.loanDeduction > 0 && <tr className="ded-row loan-row"><td>Loan / Advance Repayment</td><td>({fmt(row.loanDeduction)})</td></tr>}
+              {!row.absentDays && !row.deduction && !row.loanDeduction && <tr><td className="no-ded">No deductions this month</td><td>—</td></tr>}
             </tbody>
             <tfoot>
-              <tr className="total-row ded-row"><td>Total Deductions</td><td>({fmt(row.absentDeduction + row.deduction)})</td></tr>
+              <tr className="total-row ded-row"><td>Total Deductions</td><td>({fmt(row.absentDeduction + row.deduction + (row.loanDeduction || 0))})</td></tr>
             </tfoot>
           </table>
         </div>
@@ -125,8 +127,15 @@ function PaySlip({ row, month, year }: { row: PayrollRow; month: number; year: n
 
       {/* Net Salary */}
       <div className="net-section">
-        <div className="net-label">NET SALARY</div>
-        <div className="net-amount">{fmt(row.grossSalary)} AED</div>
+        <div>
+          <div className="net-label">NET SALARY</div>
+          {row.loanDeduction > 0 && (
+            <div style={{ fontSize:'9px', opacity:0.7, marginTop:'2px' }}>
+              Gross {fmt(row.grossSalary)} − Loan {fmt(row.loanDeduction)}
+            </div>
+          )}
+        </div>
+        <div className="net-amount">{fmt(row.totalPayment)} AED</div>
       </div>
 
       {/* Payment breakdown */}
@@ -170,7 +179,7 @@ function DeptReport({ cc, rows, month, year }: { cc: string; rows: PayrollRow[];
             <th>#</th><th>Code</th><th>Name</th><th>WPS Entity</th>
             <th>Basic</th><th>Allow.</th><th>Total Salary</th>
             <th>Work Days</th><th>Absent</th><th>OT Hrs</th><th>OT Amt</th>
-            <th>Deductions</th><th>Gross</th><th>WPS</th><th>Cash</th>
+            <th>Abs Deduct</th><th>Loan Ded.</th><th>Gross</th><th>Net</th><th>WPS</th><th>Cash</th>
           </tr>
         </thead>
         <tbody>
@@ -188,7 +197,9 @@ function DeptReport({ cc, rows, month, year }: { cc: string; rows: PayrollRow[];
               <td className="num center">{r.otHours || '—'}</td>
               <td className="num">{r.otAmount ? fmt(r.otAmount) : '—'}</td>
               <td className="num red-t">{r.absentDeduction ? fmt(r.absentDeduction) : '—'}</td>
+              <td className="num" style={{ color:'#7c3aed' }}>{r.loanDeduction ? fmt(r.loanDeduction) : '—'}</td>
               <td className="num bold">{fmt(r.grossSalary)}</td>
+              <td className="num bold">{fmt(r.totalPayment)}</td>
               <td className="num blue-t">{r.wpsAmount ? fmt(r.wpsAmount) : '—'}</td>
               <td className="num orange-t">{r.cashAmount ? fmt(r.cashAmount) : '—'}</td>
             </tr>
@@ -204,7 +215,9 @@ function DeptReport({ cc, rows, month, year }: { cc: string; rows: PayrollRow[];
             <td className="num">{sum(rows,'otHours') || '—'}</td>
             <td className="num bold">{fmt(sum(rows,'otAmount'))}</td>
             <td className="num bold red-t">{fmt(sum(rows,'absentDeduction'))}</td>
+            <td className="num bold" style={{ color:'#7c3aed' }}>{fmt(sum(rows,'loanDeduction'))}</td>
             <td className="num bold">{fmt(sum(rows,'grossSalary'))}</td>
+            <td className="num bold">{fmt(sum(rows,'totalPayment'))}</td>
             <td className="num bold blue-t">{fmt(sum(rows,'wpsAmount'))}</td>
             <td className="num bold orange-t">{fmt(sum(rows,'cashAmount'))}</td>
           </tr>
@@ -292,6 +305,7 @@ export default function PrintPage() {
         .calc-table tfoot tr { border-top:2px solid #e0e0e0; background:#f9f9f9; font-weight:700; }
         .ot-row td { color:#15803d; }
         .ded-row td { color:#dc2626; }
+        .loan-row td { color:#7c3aed; }
         .no-ded { color:#aaa !important; font-style:italic; }
 
         .net-section { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; background:#1e2d6b; color:#fff; }
@@ -374,7 +388,7 @@ export default function PrintPage() {
               <thead>
                 <tr>
                   <th>Department</th><th>Employees</th><th>Total Salary</th>
-                  <th>OT Amount</th><th>Deductions</th><th>Gross</th><th>WPS</th><th>Cash</th>
+                  <th>OT Amount</th><th>Abs Deduct</th><th>Loan Ded.</th><th>Gross</th><th>Net</th><th>WPS</th><th>Cash</th>
                 </tr>
               </thead>
               <tbody>
@@ -385,7 +399,9 @@ export default function PrintPage() {
                     <td className="num bold">{fmt(sum(ccRows,'totalSalary'))}</td>
                     <td className="num">{fmt(sum(ccRows,'otAmount'))}</td>
                     <td className="num red-t">{fmt(sum(ccRows,'absentDeduction'))}</td>
+                    <td className="num" style={{ color:'#7c3aed' }}>{fmt(sum(ccRows,'loanDeduction'))}</td>
                     <td className="num bold">{fmt(sum(ccRows,'grossSalary'))}</td>
+                    <td className="num bold">{fmt(sum(ccRows,'totalPayment'))}</td>
                     <td className="num blue-t bold">{fmt(sum(ccRows,'wpsAmount'))}</td>
                     <td className="num orange-t bold">{fmt(sum(ccRows,'cashAmount'))}</td>
                   </tr>
@@ -397,7 +413,9 @@ export default function PrintPage() {
                   <td className="num bold">{fmt(sum(rows,'totalSalary'))}</td>
                   <td className="num bold">{fmt(sum(rows,'otAmount'))}</td>
                   <td className="num bold red-t">{fmt(sum(rows,'absentDeduction'))}</td>
+                  <td className="num bold" style={{ color:'#7c3aed' }}>{fmt(sum(rows,'loanDeduction'))}</td>
                   <td className="num bold">{fmt(sum(rows,'grossSalary'))}</td>
+                  <td className="num bold">{fmt(sum(rows,'totalPayment'))}</td>
                   <td className="num bold blue-t">{fmt(sum(rows,'wpsAmount'))}</td>
                   <td className="num bold orange-t">{fmt(sum(rows,'cashAmount'))}</td>
                 </tr>
