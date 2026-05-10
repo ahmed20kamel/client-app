@@ -17,6 +17,7 @@ interface Employee {
 interface Project { id: string; projectCode: string; projectName: string; }
 interface RowData  { absent: number; sick: number; otHours: number; notes: string; }
 interface Alloc    { projectId: string; days: number; fromDay: number; toDay: number; }
+interface DayEntry { status: 'P'|'A'|'SICK'|'AL'|'PH'; hours: number; projectId: string; }
 
 function workingDaysInMonth(year: number, month: number) {
   const total = new Date(year, month, 0).getDate();
@@ -41,6 +42,18 @@ const nextPeriod = (y: number, m: number) => { const d = new Date(y, m,     1); 
 const numInp  = "w-14 h-8 text-center text-[13px] border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 tabular-nums";
 const noteInp = "w-full h-8 px-2 text-[12px] border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/40";
 
+const STATUS_COLORS: Record<string, string> = {
+  P:    '#d1fae5',  // green-100
+  A:    '#fee2e2',  // red-100
+  SICK: '#fef9c3',  // yellow-100
+  AL:   '#ede9fe',  // violet-100
+  PH:   '#e2e8f0',  // slate-200
+};
+const STATUS_LABELS: Record<string, string> = { P: 'P', A: 'A', SICK: 'SL', AL: 'AL', PH: 'PH' };
+const STATUS_TEXT_COLOR: Record<string, string> = {
+  P: '#065f46', A: '#991b1b', SICK: '#92400e', AL: '#5b21b6', PH: '#475569',
+};
+
 export default function TimesheetPage() {
   const { locale, period } = useParams() as { locale: string; period: string };
   const router = useRouter();
@@ -58,8 +71,8 @@ export default function TimesheetPage() {
   const [loading,   setLoading]   = useState(true);
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
-  const [tab,        setTab]       = useState<'attendance'|'projects'|'daily'>('attendance');
-  const [dailySites, setDailySites] = useState<Record<string, Record<number, string>>>({});
+  const [tab,       setTab]       = useState<'attendance'|'projects'|'daily'>('attendance');
+  const [dailyData, setDailyData] = useState<Record<string, Record<number, DayEntry>>>({});
   const [activeCell, setActiveCell] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -69,20 +82,31 @@ export default function TimesheetPage() {
     setEmployees(data.employees || []);
     setProjects(data.projects   || []);
 
-    const initRows:      Record<string, RowData>            = {};
-    const initAlloc:     Record<string, Alloc[]>            = {};
-    const initDailySites: Record<string, Record<number, string>> = {};
+    const initRows:      Record<string, RowData>                 = {};
+    const initAlloc:     Record<string, Alloc[]>                 = {};
+    const initDailyData: Record<string, Record<number, DayEntry>> = {};
     for (const emp of (data.employees || [])) {
-      initRows[emp.id]       = { absent: 0, sick: 0, otHours: 0, notes: '' };
-      initAlloc[emp.id]      = [];
-      initDailySites[emp.id] = {};
+      initRows[emp.id]      = { absent: 0, sick: 0, otHours: 0, notes: '' };
+      initAlloc[emp.id]     = [];
+      initDailyData[emp.id] = {};
     }
     if (data.timesheet?.entries) {
       for (const e of data.timesheet.entries) {
         if (e.day >= 300) {
           // Daily site log: day = 300 + calendarDay
-          if (e.projectId && initDailySites[e.employeeId])
-            initDailySites[e.employeeId][e.day - 300] = e.projectId;
+          if (initDailyData[e.employeeId]) {
+            const calDay = e.day - 300;
+            // 'SITE' was the old dayStatus before this refactor → treat as Present
+            const rawStatus = e.dayStatus === 'SITE' ? 'P' : e.dayStatus;
+            const status = (['P','A','SICK','AL','PH'] as string[]).includes(rawStatus)
+              ? rawStatus as 'P'|'A'|'SICK'|'AL'|'PH'
+              : 'P';
+            initDailyData[e.employeeId][calDay] = {
+              status,
+              hours:     e.hours ?? 8,
+              projectId: e.projectId || '',
+            };
+          }
         } else if (e.day >= 200) {
           // Project allocation record
           if (!initAlloc[e.employeeId]) initAlloc[e.employeeId] = [];
@@ -107,7 +131,7 @@ export default function TimesheetPage() {
     }
     setRows(initRows);
     setAllocs(initAlloc);
-    setDailySites(initDailySites);
+    setDailyData(initDailyData);
     setLoading(false);
   }, [period]);
 
@@ -125,15 +149,32 @@ export default function TimesheetPage() {
         return n;
       }),
     }));
-  const addAlloc = (empId: string) =>
+  const addAlloc    = (empId: string) =>
     setAllocs(a => ({ ...a, [empId]: [...(a[empId]||[]), { projectId: '', days: 0, fromDay: 1, toDay: workDays }] }));
-  const removeAlloc  = (empId: string, idx: number) => setAllocs(a => ({ ...a, [empId]: a[empId].filter((_, i) => i !== idx) }));
-  const setDailySite = (empId: string, day: number, projectId: string) =>
-    setDailySites(s => ({ ...s, [empId]: { ...(s[empId] || {}), [day]: projectId } }));
+  const removeAlloc = (empId: string, idx: number) => setAllocs(a => ({ ...a, [empId]: a[empId].filter((_, i) => i !== idx) }));
+
+  const setDayEntry = (empId: string, day: number, patch: Partial<DayEntry>) =>
+    setDailyData(s => ({
+      ...s,
+      [empId]: {
+        ...(s[empId] || {}),
+        [day]: { status: 'P', hours: 8, projectId: '', ...(s[empId]?.[day] || {}), ...patch },
+      },
+    }));
+  const clearDay = (empId: string, day: number) =>
+    setDailyData(s => {
+      const empData = { ...(s[empId] || {}) };
+      delete empData[day];
+      return { ...s, [empId]: empData };
+    });
   const fillAll = (empId: string, projectId: string) => {
-    const updates: Record<number, string> = {};
-    for (const { day, dow } of calendarDays) if (dow !== 5) updates[day] = projectId;
-    setDailySites(s => ({ ...s, [empId]: { ...(s[empId] || {}), ...updates } }));
+    if (!projectId) {
+      setDailyData(s => ({ ...s, [empId]: {} }));
+    } else {
+      const updates: Record<number, DayEntry> = {};
+      for (const { day, dow } of calendarDays) if (dow !== 5) updates[day] = { status: 'P', hours: 8, projectId };
+      setDailyData(s => ({ ...s, [empId]: { ...(s[empId] || {}), ...updates } }));
+    }
     setActiveCell(null);
   };
 
@@ -146,9 +187,9 @@ export default function TimesheetPage() {
       const net  = Math.max(0, workDays - row.absent - row.sick);
       const otPerDay = net > 0 ? row.otHours / net : 0;
       let day = 1;
-      for (let i = 0; i < row.absent; i++) entries.push({ employeeId: emp.id, day: day++, hours: 0, dayStatus: 'A', notes: null });
-      for (let i = 0; i < row.sick;   i++) entries.push({ employeeId: emp.id, day: day++, hours: 0, dayStatus: 'SICK', notes: null });
-      for (let i = 0; i < net; i++)        entries.push({ employeeId: emp.id, day: day++, hours: 8 + otPerDay, dayStatus: 'P', notes: row.notes || null });
+      for (let i = 0; i < row.absent; i++) entries.push({ employeeId: emp.id, day: day++, hours: 0,           dayStatus: 'A',    notes: null });
+      for (let i = 0; i < row.sick;   i++) entries.push({ employeeId: emp.id, day: day++, hours: 0,           dayStatus: 'SICK', notes: null });
+      for (let i = 0; i < net; i++)        entries.push({ employeeId: emp.id, day: day++, hours: 8 + otPerDay, dayStatus: 'P',    notes: row.notes || null });
       // Project allocations at day 200+
       const empAllocs = allocs[emp.id] || [];
       empAllocs.forEach((a, idx) => {
@@ -158,9 +199,16 @@ export default function TimesheetPage() {
         }
       });
       // Daily site log at day 300 + calendarDay
-      const empDailySites = dailySites[emp.id] || {};
-      for (const [calDay, projectId] of Object.entries(empDailySites)) {
-        if (projectId) entries.push({ employeeId: emp.id, day: 300 + parseInt(calDay), hours: 8, dayStatus: 'SITE', projectId, notes: null });
+      const empDailyData = dailyData[emp.id] || {};
+      for (const [calDay, entry] of Object.entries(empDailyData)) {
+        entries.push({
+          employeeId: emp.id,
+          day:        300 + parseInt(calDay),
+          hours:      entry.hours,
+          dayStatus:  entry.status,
+          projectId:  entry.status === 'P' ? (entry.projectId || null) : null,
+          notes:      null,
+        });
       }
     }
 
@@ -185,12 +233,12 @@ export default function TimesheetPage() {
     return { absent, sick, ot };
   }, [rows]);
 
-  // Project cost summary
+  // Project cost summary (monthly allocation)
   const projectCosts = useMemo(() => {
     const map: Record<string, { project: Project; totalDays: number; totalCost: number; employees: {emp: Employee; days: number; cost: number; fromDay: number; toDay: number}[] }> = {};
     for (const emp of employees) {
-      const empAllocs = allocs[emp.id] || [];
-      const dailyRate = (emp.totalSalary || (emp.basicSalary + emp.allowances)) / workDays;
+      const empAllocs  = allocs[emp.id] || [];
+      const dailyRate  = (emp.totalSalary || (emp.basicSalary + emp.allowances)) / workDays;
       for (const a of empAllocs) {
         if (!a.projectId || !a.days) continue;
         const proj = projects.find(p => p.id === a.projectId);
@@ -203,32 +251,32 @@ export default function TimesheetPage() {
       }
     }
     return Object.values(map).sort((a, b) => b.totalCost - a.totalCost);
-  }, [allocs, employees, projects]);
+  }, [allocs, employees, projects, workDays]);
 
   // Project colors for daily grid
-  const PROJ_COLORS = ['#dbeafe','#d1fae5','#fef9c3','#fce7f3','#ede9fe','#ffedd5','#e0f2fe','#dcfce7','#fee2e2','#f0f9ff'];
+  const PROJ_COLORS = ['#bfdbfe','#a7f3d0','#fde68a','#fbcfe8','#ddd6fe','#fed7aa','#bae6fd','#bbf7d0','#fecaca','#e0f2fe'];
   const projColorMap = useMemo(() => {
     const m: Record<string, string> = {};
     projects.forEach((p, i) => { m[p.id] = PROJ_COLORS[i % PROJ_COLORS.length]; });
     return m;
   }, [projects]);
 
-  // Daily site project summary
+  // Daily site project summary (only Present days)
   const dailyProjectSummary = useMemo(() => {
     const map: Record<string, { project: Project; empDays: number; cost: number }> = {};
     for (const emp of employees) {
       const dailyRate = (emp.totalSalary || (emp.basicSalary + emp.allowances)) / workDays;
-      for (const projectId of Object.values(dailySites[emp.id] || {})) {
-        if (!projectId) continue;
-        const proj = projects.find(p => p.id === projectId);
+      for (const entry of Object.values(dailyData[emp.id] || {})) {
+        if (entry.status !== 'P' || !entry.projectId) continue;
+        const proj = projects.find(p => p.id === entry.projectId);
         if (!proj) continue;
-        if (!map[projectId]) map[projectId] = { project: proj, empDays: 0, cost: 0 };
-        map[projectId].empDays += 1;
-        map[projectId].cost    += dailyRate;
+        if (!map[entry.projectId]) map[entry.projectId] = { project: proj, empDays: 0, cost: 0 };
+        map[entry.projectId].empDays += 1;
+        map[entry.projectId].cost    += dailyRate;
       }
     }
     return Object.values(map).sort((a, b) => b.cost - a.cost);
-  }, [dailySites, employees, projects, workDays]);
+  }, [dailyData, employees, projects, workDays]);
 
   const fmt = (n: number) => n.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -255,7 +303,7 @@ export default function TimesheetPage() {
         {/* Stats */}
         <div className="flex items-stretch divide-x divide-border border-b-2 border-border">
           {[
-            { label: 'Working Days', val: workDays, cls: '' },
+            { label: 'Working Days', val: workDays,        cls: '' },
             { label: 'Employees',    val: employees.length, cls: '' },
             { label: 'Absences',     val: totals.absent,    cls: totals.absent > 0 ? 'text-red-600' : '' },
             { label: 'Sick Days',    val: totals.sick,      cls: totals.sick > 0 ? 'text-amber-600' : '' },
@@ -376,14 +424,16 @@ export default function TimesheetPage() {
 
           {/* Legend */}
           <div className="rounded-xl border border-border bg-card px-5 py-3 flex items-center gap-4 flex-wrap">
-            <span className="text-[12px] font-medium">Click any day to assign site.</span>
+            <span className="text-[12px] font-medium">Click any day cell to set status, hours, and site.</span>
             <div className="flex items-center gap-2 flex-wrap">
-              {projects.map(p => (
-                <span key={p.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border border-border/60" style={{ background: projColorMap[p.id] }}>
-                  {p.projectCode}
+              {(['P','A','SICK','AL','PH'] as const).map(s => (
+                <span key={s} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border border-border/60"
+                  style={{ background: STATUS_COLORS[s], color: STATUS_TEXT_COLOR[s] }}>
+                  {STATUS_LABELS[s]}
+                  <span className="font-normal opacity-70">{s === 'P' ? 'Present' : s === 'A' ? 'Absent' : s === 'SICK' ? 'Sick' : s === 'AL' ? 'Annual Leave' : 'Public Holiday'}</span>
                 </span>
               ))}
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] text-muted-foreground border border-border/60 bg-slate-100">F = Friday off</span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] text-muted-foreground border border-border/60 bg-slate-100">F = Friday off</span>
             </div>
           </div>
 
@@ -393,13 +443,13 @@ export default function TimesheetPage() {
                 <span className="text-[11px] font-semibold uppercase tracking-[0.12em]">{cc}</span>
               </div>
               <div className="overflow-x-auto">
-                <table className="border-collapse text-[11px]" style={{ minWidth: calendarDays.length * 34 + 220 }}>
+                <table className="border-collapse text-[11px]" style={{ minWidth: calendarDays.length * 36 + 240 }}>
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="sticky left-0 z-20 bg-muted/95 px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground border-r border-border min-w-48">Employee</th>
+                      <th className="sticky left-0 z-20 bg-muted/95 px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground border-r border-border min-w-52">Employee</th>
                       {calendarDays.map(({ day, dow }) => (
                         <th key={day} className="text-center font-medium border-r border-border/30 px-0"
-                          style={{ width: 33, minWidth: 33, background: dow === 5 ? '#f1f5f9' : undefined, color: dow === 5 ? '#94a3b8' : undefined }}>
+                          style={{ width: 35, minWidth: 35, background: dow === 5 ? '#f1f5f9' : undefined, color: dow === 5 ? '#94a3b8' : undefined }}>
                           <div className="text-[10px] font-bold leading-tight">{day}</div>
                           <div className="text-[9px] opacity-60">{['Su','Mo','Tu','We','Th','Fr','Sa'][dow]}</div>
                         </th>
@@ -408,8 +458,10 @@ export default function TimesheetPage() {
                   </thead>
                   <tbody className="divide-y divide-border/30">
                     {emps.map(emp => {
-                      const empDays = dailySites[emp.id] || {};
-                      const assignedCount = Object.values(empDays).filter(Boolean).length;
+                      const empDays = dailyData[emp.id] || {};
+                      const presentCount = Object.values(empDays).filter(e => e.status === 'P').length;
+                      const absentCount  = Object.values(empDays).filter(e => e.status === 'A').length;
+                      const leaveCount   = Object.values(empDays).filter(e => e.status === 'AL' || e.status === 'SICK' || e.status === 'PH').length;
                       return (
                         <tr key={emp.id} className="hover:bg-muted/10 transition-colors">
                           <td className="sticky left-0 z-10 bg-card px-3 py-1.5 border-r border-border/60">
@@ -426,7 +478,7 @@ export default function TimesheetPage() {
                                   Fill all ▾
                                 </button>
                                 {activeCell === `fill-${emp.id}` && (
-                                  <div className="absolute top-full left-0 z-50 bg-card border border-border rounded-lg shadow-xl p-1 min-w-36 mt-0.5">
+                                  <div className="absolute top-full left-0 z-50 bg-card border border-border rounded-lg shadow-xl p-1 min-w-40 mt-0.5">
                                     {projects.map(p => (
                                       <button key={p.id} onClick={() => fillAll(emp.id, p.id)}
                                         className="flex items-center gap-2 w-full text-left px-2 py-1.5 text-[11px] hover:bg-muted/60 rounded transition-colors">
@@ -443,49 +495,136 @@ export default function TimesheetPage() {
                                 )}
                               </div>
                             </div>
-                            {assignedCount > 0 && (
-                              <div className="flex gap-1 flex-wrap mt-0.5">
-                                {Object.entries(
-                                  Object.values(empDays).filter(Boolean).reduce((acc, pid) => { acc[pid] = (acc[pid]||0)+1; return acc; }, {} as Record<string,number>)
+                            {/* Summary badges */}
+                            <div className="flex gap-1 flex-wrap mt-0.5">
+                              {presentCount > 0 && (
+                                Object.entries(
+                                  Object.values(empDays).filter(e => e.status === 'P' && e.projectId).reduce((acc, e) => {
+                                    acc[e.projectId] = (acc[e.projectId]||0) + 1; return acc;
+                                  }, {} as Record<string,number>)
                                 ).map(([pid, cnt]) => {
                                   const p = projects.find(pr => pr.id === pid);
                                   return <span key={pid} className="text-[9px] px-1 rounded font-semibold" style={{ background: projColorMap[pid] }}>{p?.projectCode} {cnt}d</span>;
-                                })}
-                              </div>
-                            )}
+                                })
+                              )}
+                              {absentCount > 0  && <span className="text-[9px] px-1 rounded font-semibold" style={{ background: STATUS_COLORS.A, color: STATUS_TEXT_COLOR.A }}>A×{absentCount}</span>}
+                              {leaveCount > 0   && <span className="text-[9px] px-1 rounded font-semibold" style={{ background: STATUS_COLORS.AL, color: STATUS_TEXT_COLOR.AL }}>Leave×{leaveCount}</span>}
+                            </div>
                           </td>
                           {calendarDays.map(({ day, dow }) => {
                             const isFriday = dow === 5;
-                            const projId   = empDays[day];
-                            const proj     = projects.find(p => p.id === projId);
+                            const entry    = empDays[day];
                             const cellKey  = `${emp.id}-${day}`;
                             const isActive = activeCell === cellKey;
+
                             if (isFriday) return (
-                              <td key={day} className="text-center border-r border-border/20 text-[9px] text-slate-300 font-medium" style={{ background: '#f8fafc', width: 33 }}>F</td>
+                              <td key={day} className="text-center border-r border-border/20 text-[9px] text-slate-300 font-medium" style={{ background: '#f8fafc', width: 35 }}>F</td>
                             );
+
+                            // Determine cell appearance
+                            let cellBg: string | undefined;
+                            let cellLabel = '·';
+                            let cellTextColor = '#cbd5e1';
+                            if (entry) {
+                              if (entry.status === 'P') {
+                                const proj = projects.find(p => p.id === entry.projectId);
+                                cellBg        = proj ? projColorMap[proj.id] : STATUS_COLORS.P;
+                                cellLabel     = proj ? proj.projectCode.slice(0, 4) : 'P';
+                                cellTextColor = '#1e293b';
+                              } else {
+                                cellBg        = STATUS_COLORS[entry.status];
+                                cellLabel     = STATUS_LABELS[entry.status];
+                                cellTextColor = STATUS_TEXT_COLOR[entry.status];
+                              }
+                            }
+
+                            const currentEntry: DayEntry = entry || { status: 'P', hours: 8, projectId: '' };
+
                             return (
-                              <td key={day} className="relative p-0 border-r border-border/20" style={{ width: 33 }} onClick={e => e.stopPropagation()}>
+                              <td key={day} className="relative p-0 border-r border-border/20" style={{ width: 35 }} onClick={e => e.stopPropagation()}>
                                 <button
                                   onClick={() => setActiveCell(isActive ? null : cellKey)}
-                                  className="w-full h-7 text-[9px] font-bold transition-colors hover:opacity-80"
-                                  style={{ background: proj ? projColorMap[proj.id] : undefined, color: proj ? '#1e293b' : '#cbd5e1' }}
-                                  title={proj ? `${proj.projectCode} — ${proj.projectName}` : 'Click to assign'}>
-                                  {proj ? proj.projectCode.slice(0, 4) : '·'}
+                                  className="w-full h-8 transition-opacity hover:opacity-75 flex flex-col items-center justify-center gap-0"
+                                  style={{ background: cellBg, color: cellTextColor }}
+                                  title={entry ? `${entry.status}${entry.status === 'P' && entry.projectId ? ' · ' + projects.find(p=>p.id===entry.projectId)?.projectCode : ''} · ${entry.hours}h` : 'Click to assign'}>
+                                  <span className="text-[9px] font-bold leading-none">{cellLabel}</span>
+                                  {entry?.status === 'P' && entry.hours !== 8 && (
+                                    <span className="text-[8px] leading-none opacity-80">{entry.hours}h</span>
+                                  )}
                                 </button>
+
                                 {isActive && (
-                                  <div className="absolute top-full left-0 z-50 bg-card border border-border rounded-lg shadow-xl p-1 min-w-40 mt-0.5">
-                                    <button onClick={() => { setDailySite(emp.id, day, ''); setActiveCell(null); }}
-                                      className="flex items-center gap-2 w-full text-left px-2 py-1.5 text-[11px] text-muted-foreground hover:bg-muted/60 rounded transition-colors">
-                                      — Unassign
-                                    </button>
-                                    {projects.map(p => (
-                                      <button key={p.id} onClick={() => { setDailySite(emp.id, day, p.id); setActiveCell(null); }}
-                                        className="flex items-center gap-2 w-full text-left px-2 py-1.5 text-[11px] hover:bg-muted/60 rounded transition-colors">
-                                        <span className="w-3 h-3 rounded-sm inline-block shrink-0" style={{ background: projColorMap[p.id] }} />
-                                        <span className="font-mono font-semibold text-primary">{p.projectCode}</span>
-                                        <span className="text-muted-foreground truncate text-[10px]">{p.projectName}</span>
+                                  <div className="absolute top-full left-0 z-50 bg-card border border-border rounded-xl shadow-2xl p-2.5 w-52 mt-1 space-y-2.5" style={{ minWidth: 208 }}>
+                                    <p className="text-[10px] font-semibold text-muted-foreground">{dayLabel(year, month, day)}</p>
+
+                                    {/* Status buttons */}
+                                    <div>
+                                      <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Status</p>
+                                      <div className="grid grid-cols-5 gap-1">
+                                        {(['P','A','SICK','AL','PH'] as const).map(s => (
+                                          <button key={s}
+                                            onClick={() => setDayEntry(emp.id, day, { status: s })}
+                                            className="py-1 text-[10px] font-bold rounded border transition-all"
+                                            style={{
+                                              background:   currentEntry.status === s ? STATUS_COLORS[s] : undefined,
+                                              color:        currentEntry.status === s ? STATUS_TEXT_COLOR[s] : undefined,
+                                              borderColor:  currentEntry.status === s ? STATUS_TEXT_COLOR[s] + '55' : undefined,
+                                              opacity:      currentEntry.status === s ? 1 : 0.5,
+                                            }}>
+                                            {STATUS_LABELS[s]}
+                                          </button>
+                                        ))}
+                                      </div>
+                                      <div className="grid grid-cols-5 gap-1 mt-0.5">
+                                        {(['P','A','SICK','AL','PH'] as const).map(s => (
+                                          <span key={s} className="text-center text-[8px] text-muted-foreground leading-tight">
+                                            {s === 'P' ? 'Work' : s === 'A' ? 'Absent' : s === 'SICK' ? 'Sick' : s === 'AL' ? 'Annual' : 'Holiday'}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+
+                                    {/* Hours (only when Present) */}
+                                    {currentEntry.status === 'P' && (
+                                      <div className="flex items-center gap-2">
+                                        <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">Hours worked</p>
+                                        <input
+                                          type="number" min="0" max="24" step="0.5"
+                                          value={currentEntry.hours}
+                                          onChange={e => setDayEntry(emp.id, day, { hours: parseFloat(e.target.value) || 8 })}
+                                          className="flex-1 h-7 text-center text-[12px] font-semibold border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 tabular-nums" />
+                                      </div>
+                                    )}
+
+                                    {/* Site / Project (only when Present) */}
+                                    {currentEntry.status === 'P' && (
+                                      <div>
+                                        <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Site / Project</p>
+                                        <select
+                                          value={currentEntry.projectId}
+                                          onChange={e => setDayEntry(emp.id, day, { projectId: e.target.value })}
+                                          className="w-full h-7 border border-border rounded-md px-2 text-[11px] bg-background focus:outline-none focus:ring-2 focus:ring-primary/20">
+                                          <option value="">— Unassigned —</option>
+                                          {projects.map(p => (
+                                            <option key={p.id} value={p.id}>{p.projectCode} — {p.projectName}</option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                    )}
+
+                                    {/* Clear / Done */}
+                                    <div className="flex gap-1.5 pt-0.5 border-t border-border">
+                                      <button
+                                        onClick={() => { clearDay(emp.id, day); setActiveCell(null); }}
+                                        className="flex-1 text-[10px] text-muted-foreground hover:text-red-500 border border-border/60 rounded-md py-1 hover:bg-red-50/50 transition-colors">
+                                        Clear
                                       </button>
-                                    ))}
+                                      <button
+                                        onClick={() => setActiveCell(null)}
+                                        className="flex-1 text-[10px] font-semibold text-primary border border-primary/30 rounded-md py-1 hover:bg-primary/5 transition-colors">
+                                        Done
+                                      </button>
+                                    </div>
                                   </div>
                                 )}
                               </td>

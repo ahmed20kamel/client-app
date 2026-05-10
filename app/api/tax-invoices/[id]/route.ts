@@ -108,9 +108,9 @@ export async function PATCH(
     let financialUpdate: Record<string, number> = {};
     if (validatedData.discount !== undefined && validatedData.discount !== null) {
       const discount = validatedData.discount;
-      // VAT applies on subtotal minus discount only — delivery is added on top
-      const taxAmount = (existing.subtotal - discount) * existing.taxPercent / 100;
-      const total = existing.subtotal - discount + taxAmount + existing.deliveryCharges;
+      // VAT applies on (subtotal - discount + deliveryCharges)
+      const taxAmount = (existing.subtotal - discount + existing.deliveryCharges) * existing.taxPercent / 100;
+      const total = existing.subtotal - discount + existing.deliveryCharges + taxAmount;
       financialUpdate = { discount, taxAmount, total };
     }
 
