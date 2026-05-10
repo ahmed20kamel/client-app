@@ -34,7 +34,7 @@ const sum = (arr: PayrollRow[], f: keyof PayrollRow) => arr.reduce((s, r) => s +
 function PaySlip({ row, month, year }: { row: PayrollRow; month: number; year: number }) {
   const stdDays  = getWorkingDays(year, month);
   const daily    = row.totalSalary / stdDays;
-  const otHrRate = (row.basicSalary / stdDays / HOURS_PER_DAY) * 1.25;
+  const otHrRate = row.basicSalary / stdDays / HOURS_PER_DAY;
   const netDays  = row.workDays || (stdDays - row.absentDays);
 
   return (

@@ -41,8 +41,7 @@ function calcEntry(emp: any, entries: any[], year: number, month: number) {
   const dailyRate       = emp.totalSalary / workDays;
   const absentDeduction = dailyRate * absentDays;
 
-  // OT rate: basicSalary / workDays / 8 × 1.25  (UAE Labour Law overtime multiplier)
-  const otHourlyRate = (emp.basicSalary / workDays / hpd) * 1.25;
+  const otHourlyRate = emp.basicSalary / workDays / hpd;
   const otAmount     = otHourlyRate * otHours;
 
   const grossSalary = emp.totalSalary + emp.otherAllowance - absentDeduction + otAmount;
