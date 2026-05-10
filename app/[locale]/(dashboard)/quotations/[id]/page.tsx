@@ -701,15 +701,13 @@ export default function QuotationDetailsPage() {
                       <span className="tabular-nums text-destructive">−{fmt(quotation.discountAmount)} AED</span>
                     </div>
                   )}
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      {t('quotations.vatLabel', { percent: quotation.taxPercent })}
-                    </span>
-                    <span className="tabular-nums">+{fmt(quotation.taxAmount)} AED</span>
-                  </div>
                   <div className="flex justify-between font-extrabold text-base border-t border-border/50 pt-2">
                     <span>{t('quotations.total')}</span>
                     <span className="tabular-nums text-primary">{fmt(quotation.total)} AED</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{t('quotations.vatLabel', { percent: quotation.taxPercent })}</span>
+                    <span className="tabular-nums">+{fmt(quotation.taxAmount)} AED</span>
                   </div>
                 </div>
               </div>

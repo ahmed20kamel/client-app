@@ -338,14 +338,6 @@ export default function TaxInvoicePrintPage() {
                     <span style={{ fontWeight: 600, color: '#16a34a' }}>−{fmt(invoice.discount)} AED</span>
                   </div>
                 )}
-                {/* VAT */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
-                  <div>
-                    <div style={{ color: '#64748b' }}>VAT ({invoice.taxPercent}%)</div>
-                    <div className="ar" style={{ fontSize: 9, color: '#94a3b8' }}>ضريبة القيمة المضافة</div>
-                  </div>
-                  <span style={{ fontWeight: 600 }}>+{fmt(invoice.taxAmount)} AED</span>
-                </div>
                 {/* Total */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 11px', background: BRAND }}>
                   <div>
@@ -353,6 +345,14 @@ export default function TaxInvoicePrintPage() {
                     <div className="ar" style={{ fontSize: 10, color: '#bfdbfe' }}>الإجمالي</div>
                   </div>
                   <span style={{ fontWeight: 700, color: '#fff', fontSize: 13 }}>{fmt(invoice.total)} AED</span>
+                </div>
+                {/* VAT — shown below total as breakdown info */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 11px', fontSize: 10, color: '#94a3b8' }}>
+                  <div>
+                    <span>VAT ({invoice.taxPercent}%) </span>
+                    <span className="ar">ضريبة القيمة المضافة</span>
+                  </div>
+                  <span>+{fmt(invoice.taxAmount)} AED</span>
                 </div>
               </div>
             </td>

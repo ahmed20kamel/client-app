@@ -530,13 +530,13 @@ export default function TaxInvoiceDetailPage() {
                     </div>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t('quotations.tax')} ({invoice.taxPercent}% VAT)</span>
-                  <span className="font-medium text-orange-600">+{fmt(invoice.taxAmount)} AED</span>
-                </div>
                 <div className="flex justify-between text-base font-extrabold border-t pt-3">
                   <span>{t('quotations.total')}</span>
                   <span>{fmt(invoice.total)} AED</span>
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{t('quotations.tax')} ({invoice.taxPercent}% VAT)</span>
+                  <span className="text-orange-500">+{fmt(invoice.taxAmount)} AED</span>
                 </div>
                 {/* Payment summary under totals */}
                 {paid > 0 && (
