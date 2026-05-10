@@ -320,23 +320,13 @@ export default function TaxInvoicePrintPage() {
             {/* Totals */}
             <td style={{ width: '48%', verticalAlign: 'top' }}>
               <div style={{ border: '1px solid #e2e8f0', borderRadius: 7, overflow: 'hidden' }}>
-                {/* Delivery */}
-                {invoice.deliveryCharges > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
-                    <div>
-                      <div style={{ color: '#64748b' }}>Delivery Charges</div>
-                      <div className="ar" style={{ fontSize: 9, color: '#94a3b8' }}>رسوم التوصيل</div>
-                    </div>
-                    <span style={{ fontWeight: 600 }}>+{fmt(invoice.deliveryCharges)} AED</span>
-                  </div>
-                )}
-                {/* Subtotal */}
+                {/* Subtotal (items + delivery combined) */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
                   <div>
                     <div style={{ color: '#64748b' }}>Subtotal</div>
                     <div className="ar" style={{ fontSize: 9, color: '#94a3b8' }}>المجموع الفرعي</div>
                   </div>
-                  <span style={{ fontWeight: 600 }}>{fmt(invoice.subtotal)} AED</span>
+                  <span style={{ fontWeight: 600 }}>{fmt(invoice.subtotal + invoice.deliveryCharges)} AED</span>
                 </div>
                 {/* Discount */}
                 {invoice.discount > 0 && (

@@ -490,15 +490,9 @@ export default function TaxInvoiceDetailPage() {
               </div>
               {/* Totals */}
               <div className="mt-6 border-t pt-4 max-w-xs ms-auto space-y-2 text-sm">
-                {invoice.deliveryCharges > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t('quotations.deliveryCharges')}</span>
-                    <span className="font-medium">+{fmt(invoice.deliveryCharges)} AED</span>
-                  </div>
-                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{t('quotations.subtotal')}</span>
-                  <span className="font-medium">{fmt(invoice.subtotal)} AED</span>
+                  <span className="font-medium">{fmt(invoice.subtotal + invoice.deliveryCharges)} AED</span>
                 </div>
                 {/* Discount — editable inline */}
                 {editingDiscount ? (

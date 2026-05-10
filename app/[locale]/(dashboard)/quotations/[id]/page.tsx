@@ -693,7 +693,7 @@ export default function QuotationDetailsPage() {
                 <div className="max-w-xs ms-auto space-y-1.5 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{t('quotations.subtotal')}</span>
-                    <span className="tabular-nums">{fmt(quotation.subtotal)} AED</span>
+                    <span className="tabular-nums">{fmt(quotation.subtotal + quotation.deliveryCharges)} AED</span>
                   </div>
                   {quotation.discountAmount > 0 && (
                     <div className="flex justify-between">
@@ -701,16 +701,9 @@ export default function QuotationDetailsPage() {
                       <span className="tabular-nums text-destructive">−{fmt(quotation.discountAmount)} AED</span>
                     </div>
                   )}
-                  {quotation.deliveryCharges > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('quotations.delivery')}</span>
-                      <span className="tabular-nums">+{fmt(quotation.deliveryCharges)} AED</span>
-                    </div>
-                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">
                       {t('quotations.vatLabel', { percent: quotation.taxPercent })}
-                      {quotation.deliveryCharges > 0 && <span className="text-xs ms-1 opacity-60">(incl. delivery)</span>}
                     </span>
                     <span className="tabular-nums">+{fmt(quotation.taxAmount)} AED</span>
                   </div>
