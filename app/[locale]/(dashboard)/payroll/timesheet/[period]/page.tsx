@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -129,6 +129,18 @@ export default function TimesheetPage() {
         }
       }
     }
+    // Recompute absent/sick/OT from daily site log entries (day >= 300)
+    for (const [empId, days] of Object.entries(initDailyData)) {
+      if (Object.keys(days).length === 0) continue;
+      let absent = 0, sick = 0, otHours = 0;
+      for (const entry of Object.values(days)) {
+        if (entry.status === 'A')    absent++;
+        if (entry.status === 'SICK') sick++;
+        if ((entry.status === 'P' || entry.status === 'H') && entry.hours > 8)
+          otHours += entry.hours - 8;
+      }
+      initRows[empId] = { ...initRows[empId], absent, sick, otHours: Math.round(otHours * 100) / 100 };
+    }
     setRows(initRows);
     setAllocs(initAlloc);
     setDailyData(initDailyData);
@@ -136,6 +148,26 @@ export default function TimesheetPage() {
   }, [period]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Keep attendance rows in sync with daily site log entries
+  useEffect(() => {
+    if (Object.keys(dailyData).length === 0) return;
+    setRows(prev => {
+      const updated = { ...prev };
+      for (const [empId, days] of Object.entries(dailyData)) {
+        if (Object.keys(days).length === 0) continue;
+        let absent = 0, sick = 0, otHours = 0;
+        for (const entry of Object.values(days)) {
+          if (entry.status === 'A')    absent++;
+          if (entry.status === 'SICK') sick++;
+          if ((entry.status === 'P' || entry.status === 'H') && entry.hours > 8)
+            otHours += entry.hours - 8;
+        }
+        updated[empId] = { ...updated[empId], absent, sick, otHours: Math.round(otHours * 100) / 100 };
+      }
+      return updated;
+    });
+  }, [dailyData]);
 
   const setRow   = (id: string, p: Partial<RowData>) => setRows(r => ({ ...r, [id]: { ...r[id], ...p } }));
   const setAlloc = (empId: string, idx: number, p: Partial<Alloc>) =>
@@ -358,8 +390,18 @@ export default function TimesheetPage() {
                       <th className="px-4 h-9 text-left text-[11px] font-medium text-muted-foreground w-24">Code</th>
                       <th className="px-4 h-9 text-left text-[11px] font-medium text-muted-foreground">Name</th>
                       <th className="px-4 h-9 text-center text-[11px] font-medium text-muted-foreground w-24">Work Days</th>
-                      <th className="px-4 h-9 text-center text-[11px] font-medium text-red-500 w-20">Absent</th>
-                      <th className="px-4 h-9 text-center text-[11px] font-medium text-amber-600 w-20">Sick</th>
+                      <th className="px-4 h-9 text-center text-[11px] font-medium text-red-500 w-20">
+                        Absent
+                        {Object.values(dailyData).some(d => Object.keys(d).length > 0) && (
+                          <span className="block text-[9px] text-muted-foreground font-normal">from daily log</span>
+                        )}
+                      </th>
+                      <th className="px-4 h-9 text-center text-[11px] font-medium text-amber-600 w-20">
+                        Sick
+                        {Object.values(dailyData).some(d => Object.keys(d).length > 0) && (
+                          <span className="block text-[9px] text-muted-foreground font-normal">from daily log</span>
+                        )}
+                      </th>
                       <th className="px-4 h-9 text-center text-[11px] font-medium text-primary w-20">OT (hrs)</th>
                       <th className="px-4 h-9 text-left text-[11px] font-medium text-muted-foreground">Notes</th>
                     </tr>
@@ -378,14 +420,26 @@ export default function TimesheetPage() {
                             <span className="text-[10px] text-muted-foreground ms-1">/ {workDays}</span>
                           </td>
                           <td className="px-4 py-2.5 text-center">
-                            <input type="number" min="0" max={workDays} step="1" value={row.absent || ''} placeholder="0"
-                              onChange={e => setRow(emp.id, { absent: Math.max(0, parseInt(e.target.value)||0) })}
-                              className={cn(numInp, row.absent > 0 && 'border-red-300 text-red-600 bg-red-50/50')} />
+                            {Object.keys(dailyData[emp.id] || {}).length > 0 ? (
+                              <span className={cn('text-[13px] font-semibold tabular-nums', row.absent > 0 ? 'text-red-600' : 'text-muted-foreground')}>
+                                {row.absent || 0}
+                              </span>
+                            ) : (
+                              <input type="number" min="0" max={workDays} step="1" value={row.absent || ''} placeholder="0"
+                                onChange={e => setRow(emp.id, { absent: Math.max(0, parseInt(e.target.value)||0) })}
+                                className={cn(numInp, row.absent > 0 && 'border-red-300 text-red-600 bg-red-50/50')} />
+                            )}
                           </td>
                           <td className="px-4 py-2.5 text-center">
-                            <input type="number" min="0" max={workDays} step="1" value={row.sick || ''} placeholder="0"
-                              onChange={e => setRow(emp.id, { sick: Math.max(0, parseInt(e.target.value)||0) })}
-                              className={cn(numInp, row.sick > 0 && 'border-amber-300 text-amber-700 bg-amber-50/50')} />
+                            {Object.keys(dailyData[emp.id] || {}).length > 0 ? (
+                              <span className={cn('text-[13px] font-semibold tabular-nums', row.sick > 0 ? 'text-amber-600' : 'text-muted-foreground')}>
+                                {row.sick || 0}
+                              </span>
+                            ) : (
+                              <input type="number" min="0" max={workDays} step="1" value={row.sick || ''} placeholder="0"
+                                onChange={e => setRow(emp.id, { sick: Math.max(0, parseInt(e.target.value)||0) })}
+                                className={cn(numInp, row.sick > 0 && 'border-amber-300 text-amber-700 bg-amber-50/50')} />
+                            )}
                           </td>
                           <td className="px-4 py-2.5 text-center">
                             <input type="number" min="0" step="0.5" value={row.otHours || ''} placeholder="0"
