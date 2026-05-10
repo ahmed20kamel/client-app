@@ -90,6 +90,7 @@ export default async function DashboardLayout({
       label: 'HR',
       items: [
         { href: `/${locale}/payroll/employees`, label: 'Employees',        icon: 'UserCheck',   perm: '__admin__' },
+        { href: `/${locale}/payroll/loans`,     label: 'Loans & Advances', icon: 'CreditCard',  perm: '__admin__' },
         { href: `/${locale}/payroll/projects`,  label: 'Projects',         icon: 'Briefcase',   perm: '__admin__' },
         { href: `/${locale}/payroll/timesheet`, label: 'Timesheet',        icon: 'CalendarClock', perm: '__admin__' },
         { href: `/${locale}/payroll/monthly`,   label: 'Monthly Payroll',  icon: 'Banknote',    perm: '__admin__' },
