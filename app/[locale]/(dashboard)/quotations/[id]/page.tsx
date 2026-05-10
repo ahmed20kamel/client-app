@@ -693,21 +693,33 @@ export default function QuotationDetailsPage() {
                 <div className="max-w-xs ms-auto space-y-1.5 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{t('quotations.subtotal')}</span>
-                    <span className="tabular-nums">{fmt(quotation.subtotal + quotation.deliveryCharges)} AED</span>
+                    <span className="tabular-nums">{fmt(quotation.subtotal)} AED</span>
                   </div>
+                  {quotation.deliveryCharges > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('quotations.delivery')}</span>
+                      <span className="tabular-nums">+{fmt(quotation.deliveryCharges)} AED</span>
+                    </div>
+                  )}
+                  {quotation.deliveryCharges > 0 && (
+                    <div className="flex justify-between border-t border-border/40 pt-1.5">
+                      <span className="text-muted-foreground text-xs"></span>
+                      <span className="tabular-nums font-semibold">{fmt(quotation.subtotal + quotation.deliveryCharges)} AED</span>
+                    </div>
+                  )}
                   {quotation.discountAmount > 0 && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{t('quotations.discountLabel', { percent: quotation.discountPercent })}</span>
                       <span className="tabular-nums text-destructive">−{fmt(quotation.discountAmount)} AED</span>
                     </div>
                   )}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{t('quotations.vatLabel', { percent: quotation.taxPercent })}</span>
+                    <span className="tabular-nums">+{fmt(quotation.taxAmount)} AED</span>
+                  </div>
                   <div className="flex justify-between font-extrabold text-base border-t border-border/50 pt-2">
                     <span>{t('quotations.total')}</span>
                     <span className="tabular-nums text-primary">{fmt(quotation.total)} AED</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{t('quotations.vatLabel', { percent: quotation.taxPercent })}</span>
-                    <span className="tabular-nums">+{fmt(quotation.taxAmount)} AED</span>
                   </div>
                 </div>
               </div>

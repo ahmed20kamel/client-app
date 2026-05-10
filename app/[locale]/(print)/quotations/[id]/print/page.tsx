@@ -297,14 +297,31 @@ export default function QuotationPrintPage() {
             {/* Totals */}
             <td style={{ width: '48%', verticalAlign: 'top' }}>
               <div style={{ border: '1px solid #e2e8f0', borderRadius: 7, overflow: 'hidden' }}>
-                {/* Subtotal (items + delivery combined) */}
+                {/* Subtotal (items only) */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
                   <div>
                     <div style={{ color: '#64748b' }}>Subtotal</div>
                     <div className="ar" style={{ fontSize: 9, color: '#94a3b8' }}>المجموع الفرعي</div>
                   </div>
-                  <span style={{ fontWeight: 600 }}>{fmt(quotation.subtotal + quotation.deliveryCharges)} AED</span>
+                  <span style={{ fontWeight: 600 }}>{fmt(quotation.subtotal)} AED</span>
                 </div>
+                {/* Delivery */}
+                {quotation.deliveryCharges > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
+                    <div>
+                      <div style={{ color: '#64748b' }}>Delivery Charges</div>
+                      <div className="ar" style={{ fontSize: 9, color: '#94a3b8' }}>رسوم التوصيل</div>
+                    </div>
+                    <span style={{ fontWeight: 600 }}>+{fmt(quotation.deliveryCharges)} AED</span>
+                  </div>
+                )}
+                {/* Subtotal + Delivery combined line */}
+                {quotation.deliveryCharges > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11, background: '#f8fafc' }}>
+                    <div style={{ color: '#94a3b8', fontSize: 9 }}></div>
+                    <span style={{ fontWeight: 700, color: '#1e293b' }}>{fmt(quotation.subtotal + quotation.deliveryCharges)} AED</span>
+                  </div>
+                )}
                 {/* Discount */}
                 {quotation.discountAmount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
@@ -315,6 +332,14 @@ export default function QuotationPrintPage() {
                     <span style={{ fontWeight: 600, color: '#dc2626' }}>−{fmt(quotation.discountAmount)} AED</span>
                   </div>
                 )}
+                {/* VAT */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderBottom: '1px solid #e2e8f0', fontSize: 11 }}>
+                  <div>
+                    <div style={{ color: '#64748b' }}>VAT ({quotation.taxPercent}%)</div>
+                    <div className="ar" style={{ fontSize: 9, color: '#94a3b8' }}>ضريبة القيمة المضافة</div>
+                  </div>
+                  <span style={{ fontWeight: 600 }}>+{fmt(quotation.taxAmount)} AED</span>
+                </div>
                 {/* Total */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 11px', background: BRAND }}>
                   <div>
@@ -322,14 +347,6 @@ export default function QuotationPrintPage() {
                     <div className="ar" style={{ fontSize: 10, color: '#bfdbfe' }}>الإجمالي</div>
                   </div>
                   <span style={{ fontWeight: 700, color: '#fff', fontSize: 13 }}>{fmt(quotation.total)} AED</span>
-                </div>
-                {/* VAT — shown below total as breakdown info */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 11px', fontSize: 10, color: '#94a3b8' }}>
-                  <div>
-                    <span>VAT ({quotation.taxPercent}%) </span>
-                    <span className="ar">ضريبة القيمة المضافة</span>
-                  </div>
-                  <span>+{fmt(quotation.taxAmount)} AED</span>
                 </div>
               </div>
             </td>

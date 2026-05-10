@@ -492,8 +492,20 @@ export default function TaxInvoiceDetailPage() {
               <div className="mt-6 border-t pt-4 max-w-xs ms-auto space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{t('quotations.subtotal')}</span>
-                  <span className="font-medium">{fmt(invoice.subtotal + invoice.deliveryCharges)} AED</span>
+                  <span className="font-medium">{fmt(invoice.subtotal)} AED</span>
                 </div>
+                {invoice.deliveryCharges > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{t('quotations.deliveryCharges')}</span>
+                    <span className="font-medium">+{fmt(invoice.deliveryCharges)} AED</span>
+                  </div>
+                )}
+                {invoice.deliveryCharges > 0 && (
+                  <div className="flex justify-between border-t border-border/40 pt-2">
+                    <span className="text-muted-foreground text-xs"></span>
+                    <span className="font-semibold">{fmt(invoice.subtotal + invoice.deliveryCharges)} AED</span>
+                  </div>
+                )}
                 {/* Discount — editable inline */}
                 {editingDiscount ? (
                   <div className="flex items-center gap-2">
@@ -530,13 +542,13 @@ export default function TaxInvoiceDetailPage() {
                     </div>
                   </div>
                 )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t('quotations.tax')} ({invoice.taxPercent}% VAT)</span>
+                  <span className="font-medium text-orange-600">+{fmt(invoice.taxAmount)} AED</span>
+                </div>
                 <div className="flex justify-between text-base font-extrabold border-t pt-3">
                   <span>{t('quotations.total')}</span>
                   <span>{fmt(invoice.total)} AED</span>
-                </div>
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{t('quotations.tax')} ({invoice.taxPercent}% VAT)</span>
-                  <span className="text-orange-500">+{fmt(invoice.taxAmount)} AED</span>
                 </div>
                 {/* Payment summary under totals */}
                 {paid > 0 && (
