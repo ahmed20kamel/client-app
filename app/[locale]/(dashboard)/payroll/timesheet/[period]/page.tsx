@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Save, Loader2, ChevronLeft, ChevronRight, Check, Plus, X, FolderOpen } from 'lucide-react';
+import { Save, Loader2, ChevronLeft, ChevronRight, Check, Plus, X, FolderOpen, Settings, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -18,6 +18,7 @@ interface Project { id: string; projectCode: string; projectName: string; }
 interface RowData  { absent: number; sick: number; otHours: number; notes: string; }
 interface Alloc    { projectId: string; days: number; fromDay: number; toDay: number; }
 interface DayEntry { status: 'P'|'A'|'SICK'|'AL'|'PH'; hours: number; projectId: string; }
+interface AttendanceSetting { checkInStart: number; checkInEnd: number; graceMinutes: number; timezone: string; }
 
 function workingDaysInMonth(year: number, month: number) {
   const total = new Date(year, month, 0).getDate();
@@ -74,6 +75,13 @@ export default function TimesheetPage() {
   const [tab,       setTab]       = useState<'attendance'|'projects'|'daily'>('attendance');
   const [dailyData, setDailyData] = useState<Record<string, Record<number, DayEntry>>>({});
   const [activeCell, setActiveCell] = useState<string | null>(null);
+
+  // Attendance window
+  const [attSettings, setAttSettings]     = useState<AttendanceSetting>({ checkInStart: 6, checkInEnd: 8, graceMinutes: 0, timezone: 'Asia/Dubai' });
+  const [showAttSettings, setShowAttSettings] = useState(false);
+  const [settingsDraft, setSettingsDraft] = useState<AttendanceSetting>({ checkInStart: 6, checkInEnd: 8, graceMinutes: 0, timezone: 'Asia/Dubai' });
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [nowDubai, setNowDubai] = useState({ hour: 0, minute: 0, day: 0, month: 0, year: 0 });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -148,6 +156,30 @@ export default function TimesheetPage() {
   }, [period]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Fetch attendance window settings
+  useEffect(() => {
+    fetch('/api/payroll/attendance/settings')
+      .then(r => r.json())
+      .then(s => setAttSettings(s))
+      .catch(() => {});
+  }, []);
+
+  // Dubai clock — updates every 30s
+  useEffect(() => {
+    const update = () => {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Dubai',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false,
+      }).formatToParts(new Date());
+      const get = (t: string) => parseInt(parts.find(p => p.type === t)?.value ?? '0');
+      setNowDubai({ hour: get('hour') % 24, minute: get('minute'), day: get('day'), month: get('month'), year: get('year') });
+    };
+    update();
+    const t = setInterval(update, 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   // Keep attendance rows in sync with daily site log entries
   useEffect(() => {
@@ -250,8 +282,17 @@ export default function TimesheetPage() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ entries }),
     });
-    if (res.ok) { toast.success('Saved'); setSaved(true); setTimeout(() => setSaved(false), 2500); }
-    else        { toast.error('Failed to save'); }
+    if (res.ok) {
+      const data = await res.json();
+      if (data.blocked > 0) {
+        toast.warning(data.message);
+      } else {
+        toast.success('Saved');
+      }
+      setSaved(true); setTimeout(() => setSaved(false), 2500);
+    } else {
+      toast.error('Failed to save');
+    }
     setSaving(false);
   };
 
@@ -313,9 +354,97 @@ export default function TimesheetPage() {
   }, [dailyData, employees, projects, workDays]);
 
   const fmt = (n: number) => n.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtHour = (h: number) => `${String(h).padStart(2, '0')}:00`;
+
+  // Attendance window derived values
+  const windowStartMin     = attSettings.checkInStart * 60;
+  const windowEndMin       = attSettings.checkInEnd   * 60 + (attSettings.graceMinutes ?? 0);
+  const currentMin         = nowDubai.hour * 60 + nowDubai.minute;
+  const windowOpen         = currentMin >= windowStartMin && currentMin <= windowEndMin;
+  const isTodayInPeriod    = nowDubai.year === year && nowDubai.month === month;
+  const todayCalDay        = isTodayInPeriod ? nowDubai.day : -1;
+  const minsUntilClose     = windowOpen ? windowEndMin - currentMin : 0;
+  const minsUntilOpen      = !windowOpen && currentMin < windowStartMin ? windowStartMin - currentMin : 0;
+
+  const saveAttSettings = async () => {
+    setSavingSettings(true);
+    const res = await fetch('/api/payroll/attendance/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settingsDraft),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setAttSettings(updated);
+      setShowAttSettings(false);
+      toast.success('Attendance settings saved');
+    } else {
+      toast.error('Failed to save settings');
+    }
+    setSavingSettings(false);
+  };
 
   return (
     <div className="space-y-3">
+
+      {/* ── Attendance Settings Modal ── */}
+      {showAttSettings && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          onClick={() => setShowAttSettings(false)}>
+          <div className="bg-card rounded-2xl border border-border shadow-2xl w-full max-w-md mx-4 p-6"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-[15px] font-semibold">Attendance Window</h2>
+                <p className="text-[12px] text-muted-foreground mt-0.5">Foremen can only mark Present (P) for today within this window</p>
+              </div>
+              <button onClick={() => setShowAttSettings(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Start Hour (0–23)</label>
+                  <input type="number" min="0" max="23"
+                    value={settingsDraft.checkInStart}
+                    onChange={e => setSettingsDraft(s => ({ ...s, checkInStart: Math.min(23, Math.max(0, parseInt(e.target.value)||0)) }))}
+                    className="mt-1.5 w-full h-9 px-3 border border-border rounded-lg text-[13px] font-semibold tabular-nums bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  <p className="text-[11px] text-muted-foreground mt-1">{fmtHour(settingsDraft.checkInStart)}</p>
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">End Hour (0–23)</label>
+                  <input type="number" min="0" max="23"
+                    value={settingsDraft.checkInEnd}
+                    onChange={e => setSettingsDraft(s => ({ ...s, checkInEnd: Math.min(23, Math.max(0, parseInt(e.target.value)||0)) }))}
+                    className="mt-1.5 w-full h-9 px-3 border border-border rounded-lg text-[13px] font-semibold tabular-nums bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  <p className="text-[11px] text-muted-foreground mt-1">{fmtHour(settingsDraft.checkInEnd)}</p>
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Grace Period (minutes)</label>
+                <input type="number" min="0" max="120"
+                  value={settingsDraft.graceMinutes}
+                  onChange={e => setSettingsDraft(s => ({ ...s, graceMinutes: Math.max(0, parseInt(e.target.value)||0) }))}
+                  className="mt-1.5 w-full h-9 px-3 border border-border rounded-lg text-[13px] tabular-nums bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                <p className="text-[11px] text-muted-foreground mt-1">Extra minutes allowed after end hour</p>
+              </div>
+              <div className="rounded-lg bg-muted/40 border border-border/60 px-4 py-3">
+                <p className="text-[12px] text-muted-foreground">
+                  Window: <strong className="text-foreground">{fmtHour(settingsDraft.checkInStart)} – {fmtHour(settingsDraft.checkInEnd)}{settingsDraft.graceMinutes > 0 ? ` +${settingsDraft.graceMinutes}m` : ''}</strong>
+                  {' '}(UAE time, Asia/Dubai)
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-5">
+              <Button variant="outline" className="flex-1" onClick={() => setShowAttSettings(false)}>Cancel</Button>
+              <Button className="flex-1" onClick={saveAttSettings} disabled={savingSettings}>
+                {savingSettings ? <Loader2 className="size-3.5 animate-spin mr-1.5" /> : null}Save
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Header ── */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -478,6 +607,41 @@ export default function TimesheetPage() {
         /* ══ DAILY SITE LOG TAB ══ */
         <div className="space-y-3" onClick={() => setActiveCell(null)}>
 
+          {/* Attendance Window Status Banner */}
+          <div className={cn('rounded-xl border px-4 py-3 flex items-center justify-between gap-3 flex-wrap',
+            windowOpen ? 'border-emerald-200 bg-emerald-50/60' : 'border-rose-200 bg-rose-50/50')}>
+            <div className="flex items-center gap-3">
+              <div className={cn('w-2.5 h-2.5 rounded-full shrink-0',
+                windowOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-400')} />
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[12px] font-semibold text-foreground">
+                  Check-in Window: {fmtHour(attSettings.checkInStart)} – {fmtHour(attSettings.checkInEnd)}
+                  {attSettings.graceMinutes > 0 && <span className="font-normal text-muted-foreground"> +{attSettings.graceMinutes}m grace</span>}
+                </span>
+                <span className={cn('text-[11px] font-bold px-2 py-0.5 rounded-full',
+                  windowOpen ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700')}>
+                  {windowOpen ? 'OPEN' : 'CLOSED'}
+                </span>
+                {windowOpen && minsUntilClose > 0 && (
+                  <span className="text-[11px] text-emerald-600">closes in {minsUntilClose}m</span>
+                )}
+                {!windowOpen && minsUntilOpen > 0 && (
+                  <span className="text-[11px] text-muted-foreground">opens in {minsUntilOpen}m</span>
+                )}
+                {!windowOpen && isTodayInPeriod && (
+                  <span className="text-[11px] text-rose-600 flex items-center gap-1">
+                    <Lock className="size-3" />Today&apos;s P entries are locked
+                  </span>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={e => { e.stopPropagation(); setSettingsDraft(attSettings); setShowAttSettings(true); }}
+              className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground border border-border/60 rounded-lg px-3 py-1.5 bg-background hover:bg-muted/40 transition-colors shrink-0">
+              <Settings className="size-3" />Settings
+            </button>
+          </div>
+
           {/* Legend */}
           <div className="rounded-xl border border-border bg-card px-5 py-3 flex items-center gap-4 flex-wrap">
             <span className="text-[12px] font-medium">Click any day cell to set status, hours, and site.</span>
@@ -503,13 +667,18 @@ export default function TimesheetPage() {
                   <thead>
                     <tr className="border-b border-border">
                       <th className="sticky left-0 z-20 bg-muted/95 px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground border-r border-border min-w-52">Employee</th>
-                      {calendarDays.map(({ day, dow }) => (
-                        <th key={day} className="text-center font-medium border-r border-border/30 px-0"
-                          style={{ width: 35, minWidth: 35, background: dow === 5 ? '#f1f5f9' : undefined, color: dow === 5 ? '#94a3b8' : undefined }}>
-                          <div className="text-[10px] font-bold leading-tight">{day}</div>
-                          <div className="text-[9px] opacity-60">{['Su','Mo','Tu','We','Th','Fr','Sa'][dow]}</div>
-                        </th>
-                      ))}
+                      {calendarDays.map(({ day, dow }) => {
+                        const isToday = day === todayCalDay;
+                        const thBg    = isToday ? (windowOpen ? '#d1fae5' : '#fee2e2') : dow === 5 ? '#f1f5f9' : undefined;
+                        const thColor = isToday ? (windowOpen ? '#065f46' : '#991b1b') : dow === 5 ? '#94a3b8' : undefined;
+                        return (
+                          <th key={day} className="text-center font-medium border-r border-border/30 px-0"
+                            style={{ width: 35, minWidth: 35, background: thBg, color: thColor }}>
+                            <div className="text-[10px] font-bold leading-tight">{day}</div>
+                            <div className="text-[9px] opacity-70">{isToday ? 'NOW' : ['Su','Mo','Tu','We','Th','Fr','Sa'][dow]}</div>
+                          </th>
+                        );
+                      })}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/30">
@@ -569,6 +738,8 @@ export default function TimesheetPage() {
                           </td>
                           {calendarDays.map(({ day, dow }) => {
                             const isFriday = dow === 5;
+                            const isToday  = day === todayCalDay;
+                            const pLocked  = isToday && !windowOpen;
                             const entry    = empDays[day];
                             const cellKey  = `${emp.id}-${day}`;
                             const isActive = activeCell === cellKey;
@@ -578,7 +749,7 @@ export default function TimesheetPage() {
                             );
 
                             // Determine cell appearance
-                            let cellBg: string | undefined;
+                            let cellBg: string | undefined = isToday && !entry ? (windowOpen ? '#d1fae540' : '#fee2e240') : undefined;
                             let cellLabel = '·';
                             let cellTextColor = '#cbd5e1';
                             if (entry) {
@@ -616,20 +787,31 @@ export default function TimesheetPage() {
                                     {/* Status buttons */}
                                     <div>
                                       <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Status</p>
+                                      {pLocked && (
+                                        <div className="flex items-center gap-1 mb-1.5 px-2 py-1 rounded bg-rose-50 border border-rose-200">
+                                          <Lock className="size-2.5 text-rose-500 shrink-0" />
+                                          <span className="text-[9px] text-rose-600">Window closed · {fmtHour(attSettings.checkInStart)}–{fmtHour(attSettings.checkInEnd)}</span>
+                                        </div>
+                                      )}
                                       <div className="grid grid-cols-5 gap-1">
-                                        {(['P','A','SICK','AL','PH'] as const).map(s => (
-                                          <button key={s}
-                                            onClick={() => setDayEntry(emp.id, day, { status: s })}
-                                            className="py-1 text-[10px] font-bold rounded border transition-all"
-                                            style={{
-                                              background:   currentEntry.status === s ? STATUS_COLORS[s] : undefined,
-                                              color:        currentEntry.status === s ? STATUS_TEXT_COLOR[s] : undefined,
-                                              borderColor:  currentEntry.status === s ? STATUS_TEXT_COLOR[s] + '55' : undefined,
-                                              opacity:      currentEntry.status === s ? 1 : 0.5,
-                                            }}>
-                                            {STATUS_LABELS[s]}
-                                          </button>
-                                        ))}
+                                        {(['P','A','SICK','AL','PH'] as const).map(s => {
+                                          const isLocked = s === 'P' && pLocked;
+                                          return (
+                                            <button key={s}
+                                              onClick={() => !isLocked && setDayEntry(emp.id, day, { status: s })}
+                                              disabled={isLocked}
+                                              title={isLocked ? `Check-in window closed (${fmtHour(attSettings.checkInStart)}–${fmtHour(attSettings.checkInEnd)})` : undefined}
+                                              className={cn('py-1 text-[10px] font-bold rounded border transition-all', isLocked && 'cursor-not-allowed')}
+                                              style={{
+                                                background:  currentEntry.status === s ? STATUS_COLORS[s] : undefined,
+                                                color:       currentEntry.status === s ? STATUS_TEXT_COLOR[s] : undefined,
+                                                borderColor: currentEntry.status === s ? STATUS_TEXT_COLOR[s] + '55' : undefined,
+                                                opacity:     isLocked ? 0.25 : currentEntry.status === s ? 1 : 0.5,
+                                              }}>
+                                              {isLocked ? <Lock className="size-2.5 mx-auto" /> : STATUS_LABELS[s]}
+                                            </button>
+                                          );
+                                        })}
                                       </div>
                                       <div className="grid grid-cols-5 gap-1 mt-0.5">
                                         {(['P','A','SICK','AL','PH'] as const).map(s => (

@@ -1190,3 +1190,12 @@ model PayrollLoanDeduction {
   @@index([loanId])
   @@index([employeeId, month, year])
 }
+
+model AttendanceSetting {
+  id            String   @id @default("singleton")
+  checkInStart  Int      @default(6)
+  checkInEnd    Int      @default(8)
+  graceMinutes  Int      @default(0)
+  timezone      String   @default("Asia/Dubai")
+  updatedAt     DateTime @updatedAt
+}
