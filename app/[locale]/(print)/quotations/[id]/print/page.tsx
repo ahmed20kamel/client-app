@@ -221,7 +221,7 @@ export default function QuotationPrintPage() {
               {[
                 { en: '#',           ar: '#',                  show: true },
                 { en: 'DESCRIPTION', ar: 'الوصف',              show: true },
-                { en: 'L/PC (cm)',   ar: 'الطول/قطعة (سم)',    show: hasLmItems },
+                { en: 'L/PC (cm)',   ar: 'الطول/قطعة (سم)',    show: true },
                 { en: 'UNIT',        ar: 'الوحدة',             show: true },
                 { en: 'QTY',         ar: 'الكمية',             show: true },
                 { en: 'LM',          ar: 'م.خ',                show: hasLmItems },
@@ -248,11 +248,9 @@ export default function QuotationPrintPage() {
                 <td style={{ padding: '8px 7px', fontWeight: 500 }}>
                   {cleanDescription(item.description, item.size)}
                 </td>
-                {hasLmItems && (
-                  <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>
-                    {item.unit === 'LM' && item.length != null ? item.length.toFixed(2) : (item.size || '—')}
-                  </td>
-                )}
+                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>
+                  {item.length != null ? item.length.toFixed(2) : (item.size || '—')}
+                </td>
                 <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>{isLitPAD(item) ? 'pc' : (item.unit || 'pc')}</td>
                 <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>{item.quantity}</td>
                 {hasLmItems && (
@@ -269,7 +267,7 @@ export default function QuotationPrintPage() {
           {/* ── TOTALS SUMMARY ROW ── */}
           <tfoot>
             <tr style={{ background: BRAND_LIGHT, borderTop: `2px solid ${BRAND}` }}>
-              <td colSpan={hasLmItems ? 3 : 2} style={{ padding: '7px 9px' }}>
+              <td colSpan={3} style={{ padding: '7px 9px' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: BRAND }}>TOTAL SUMMARY</div>
                 <div className="ar" style={{ fontSize: 9, color: '#3b82f6', marginTop: 1 }}>ملخص الإجمالي</div>
               </td>
