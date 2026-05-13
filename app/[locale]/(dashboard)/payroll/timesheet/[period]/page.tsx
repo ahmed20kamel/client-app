@@ -136,7 +136,7 @@ export default function TimesheetPage() {
       for (const entry of Object.values(days)) {
         if (entry.status === 'A')    absent++;
         if (entry.status === 'SICK') sick++;
-        if ((entry.status === 'P' || entry.status === 'H') && entry.hours > 8)
+        if (entry.status === 'P' && entry.hours > 8)
           otHours += entry.hours - 8;
       }
       initRows[empId] = { ...initRows[empId], absent, sick, otHours: Math.round(otHours * 100) / 100 };
@@ -160,7 +160,7 @@ export default function TimesheetPage() {
         for (const entry of Object.values(days)) {
           if (entry.status === 'A')    absent++;
           if (entry.status === 'SICK') sick++;
-          if ((entry.status === 'P' || entry.status === 'H') && entry.hours > 8)
+          if (entry.status === 'P' && entry.hours > 8)
             otHours += entry.hours - 8;
         }
         updated[empId] = { ...updated[empId], absent, sick, otHours: Math.round(otHours * 100) / 100 };
