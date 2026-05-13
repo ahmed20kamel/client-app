@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   Plus, Search, Pencil, Trash2, Loader2, FolderOpen,
   ArrowUp, ArrowDown, ArrowUpDown, X,
@@ -90,6 +90,7 @@ function SkeletonRows({ cols }: { cols: number }) {
 
 export default function ProjectsPage() {
   const { locale } = useParams() as { locale: string };
+  const router = useRouter();
 
   /* ── Remote data ── */
   const [projects, setProjects] = useState<Project[]>([]);
@@ -399,7 +400,7 @@ export default function ProjectsPage() {
                     return (
                       <tr
                         key={p.id}
-                        onClick={() => toggleRow(p.id)}
+                        onClick={() => router.push(`/${locale}/payroll/projects/${p.id}`)}
                         className={cn(
                           'cursor-pointer transition-colors',
                           isSelected ? 'bg-primary/5 hover:bg-primary/8' : 'hover:bg-muted/25',
