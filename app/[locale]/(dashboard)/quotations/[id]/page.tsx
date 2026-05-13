@@ -37,7 +37,7 @@ interface QuotationItem {
   unitPrice: number;
   discount: number;
   total: number;
-  product: { id: string; name: string; category: { name: string } | null } | null;
+  product: { id: string; name: string; unitOfMeasure: string; category: { name: string } | null } | null;
 }
 
 interface LinkedDoc {
@@ -386,7 +386,10 @@ export default function QuotationDetailsPage() {
   const hasTaxInvoices  = (quotation.taxInvoices?.length ?? 0) > 0;
   const hasDeliveryNotes = (quotation.deliveryNotes?.length ?? 0) > 0;
   const hasWorkOrders   = (quotation.workOrders?.length ?? 0) > 0;
-  const isLitPAD        = (it: QuotationItem) => it.product?.category?.name === 'LitPAD' || /litpad/i.test(it.description);
+  const isLitPAD        = (it: QuotationItem) =>
+    it.product?.unitOfMeasure === 'PIECE' ||
+    it.product?.category?.name === 'LitPAD' ||
+    /litpad/i.test(it.description);
   const hasLmItems      = quotation.items.some(it => !isLitPAD(it));
 
   // ── Timeline events ───────────────────────────────────────────────────────
