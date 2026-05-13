@@ -85,6 +85,7 @@ export default function QuotationPrintPage() {
   const tel         = quotation.engineer?.mobile || quotation.mobileNumber;
   const totalPieces = quotation.items.reduce((s, it) => s + it.quantity, 0);
   const totalLM     = quotation.items.reduce((s, it) => s + (it.linearMeters ?? 0), 0);
+  const hasLmItems  = quotation.items.some(it => it.unit === 'LM');
 
   return (
     <>
@@ -213,18 +214,18 @@ export default function QuotationPrintPage() {
           <thead>
             <tr style={{ background: BRAND, color: '#fff' }}>
               {[
-                { en: '#',           ar: '#' },
-                { en: 'DESCRIPTION', ar: 'الوصف' },
-                { en: 'L/PC (cm)',   ar: 'الطول/قطعة (سم)' },
-                { en: 'UNIT',        ar: 'الوحدة' },
-                { en: 'QTY',         ar: 'الكمية' },
-                { en: 'LM',          ar: 'م.خ' },
-                { en: 'UNIT PRICE',  ar: 'سعر الوحدة' },
-                { en: 'TOTAL (AED)', ar: 'الإجمالي' },
-              ].map(({ en, ar }, i) => (
+                { en: '#',           ar: '#',                  show: true },
+                { en: 'DESCRIPTION', ar: 'الوصف',              show: true },
+                { en: 'L/PC (cm)',   ar: 'الطول/قطعة (سم)',    show: hasLmItems },
+                { en: 'UNIT',        ar: 'الوحدة',             show: true },
+                { en: 'QTY',         ar: 'الكمية',             show: true },
+                { en: 'LM',          ar: 'م.خ',                show: hasLmItems },
+                { en: 'UNIT PRICE',  ar: 'سعر الوحدة',         show: true },
+                { en: 'TOTAL (AED)', ar: 'الإجمالي',           show: true },
+              ].filter(c => c.show).map(({ en, ar }, i, arr) => (
                 <th key={en} style={{
                   padding: '7px 7px',
-                  textAlign: i === 0 || i === 1 ? 'left' : i >= 6 ? 'right' : 'center',
+                  textAlign: i === 0 || i === 1 ? 'left' : i >= arr.length - 2 ? 'right' : 'center',
                   fontWeight: 700,
                   fontSize: 9,
                   whiteSpace: 'nowrap',
@@ -242,14 +243,18 @@ export default function QuotationPrintPage() {
                 <td style={{ padding: '8px 7px', fontWeight: 500 }}>
                   {cleanDescription(item.description, item.size)}
                 </td>
-                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>
-                  {item.unit === 'LM' && item.length != null ? item.length.toFixed(2) : (item.size || '—')}
-                </td>
-                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>{item.unit || '—'}</td>
+                {hasLmItems && (
+                  <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>
+                    {item.unit === 'LM' && item.length != null ? item.length.toFixed(2) : (item.size || '—')}
+                  </td>
+                )}
+                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>{item.unit || 'pc'}</td>
                 <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>{item.quantity}</td>
-                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>
-                  {item.unit === 'LM' && item.linearMeters ? item.linearMeters.toFixed(2) : '—'}
-                </td>
+                {hasLmItems && (
+                  <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>
+                    {item.unit === 'LM' && item.linearMeters ? item.linearMeters.toFixed(2) : '—'}
+                  </td>
+                )}
                 <td style={{ padding: '8px 7px', textAlign: 'right', color: '#64748b' }}>{fmt(item.unitPrice)}</td>
                 <td style={{ padding: '8px 7px', textAlign: 'right', fontWeight: 700 }}>{fmt(item.total)}</td>
               </tr>
@@ -259,7 +264,7 @@ export default function QuotationPrintPage() {
           {/* ── TOTALS SUMMARY ROW ── */}
           <tfoot>
             <tr style={{ background: BRAND_LIGHT, borderTop: `2px solid ${BRAND}` }}>
-              <td colSpan={3} style={{ padding: '7px 9px' }}>
+              <td colSpan={hasLmItems ? 3 : 2} style={{ padding: '7px 9px' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: BRAND }}>TOTAL SUMMARY</div>
                 <div className="ar" style={{ fontSize: 9, color: '#3b82f6', marginTop: 1 }}>ملخص الإجمالي</div>
               </td>
@@ -270,10 +275,12 @@ export default function QuotationPrintPage() {
                 <div style={{ fontSize: 13, fontWeight: 800, color: BRAND }}>{totalPieces}</div>
                 <div style={{ fontSize: 8, color: '#64748b' }}>pcs / قطعة</div>
               </td>
-              <td style={{ padding: '7px 7px', textAlign: 'center' }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: BRAND }}>{totalLM > 0 ? totalLM.toFixed(2) : '—'}</div>
-                <div style={{ fontSize: 8, color: '#64748b' }}>m / متر</div>
-              </td>
+              {hasLmItems && (
+                <td style={{ padding: '7px 7px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: BRAND }}>{totalLM > 0 ? totalLM.toFixed(2) : '—'}</div>
+                  <div style={{ fontSize: 8, color: '#64748b' }}>m / متر</div>
+                </td>
+              )}
               <td colSpan={2} />
             </tr>
           </tfoot>

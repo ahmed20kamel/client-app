@@ -386,6 +386,7 @@ export default function QuotationDetailsPage() {
   const hasTaxInvoices  = (quotation.taxInvoices?.length ?? 0) > 0;
   const hasDeliveryNotes = (quotation.deliveryNotes?.length ?? 0) > 0;
   const hasWorkOrders   = (quotation.workOrders?.length ?? 0) > 0;
+  const hasLmItems      = quotation.items.some(it => it.unit === 'LM');
 
   // ── Timeline events ───────────────────────────────────────────────────────
   const timelineEvents = [
@@ -639,14 +640,14 @@ export default function QuotationDetailsPage() {
                   <thead>
                     <tr className="bg-muted/30 border-b border-border/40">
                       {[
-                        { label: t('quotations.description'), align: 'text-start ps-4' },
-                        { label: 'L/PC (cm)',                 align: 'text-center' },
-                        { label: t('quotations.unit'),        align: 'text-center' },
-                        { label: t('quotations.qty'),         align: 'text-center' },
-                        { label: t('quotations.tableLM'),     align: 'text-center' },
-                        { label: t('quotations.unitPrice'),   align: 'text-center' },
-                        { label: t('quotations.total'),       align: 'text-end pe-4' },
-                      ].map(({ label, align }) => (
+                        { label: t('quotations.description'), align: 'text-start ps-4', show: true },
+                        { label: 'L/PC (cm)',                 align: 'text-center',     show: hasLmItems },
+                        { label: t('quotations.unit'),        align: 'text-center',     show: true },
+                        { label: t('quotations.qty'),         align: 'text-center',     show: true },
+                        { label: t('quotations.tableLM'),     align: 'text-center',     show: hasLmItems },
+                        { label: t('quotations.unitPrice'),   align: 'text-center',     show: true },
+                        { label: t('quotations.total'),       align: 'text-end pe-4',   show: true },
+                      ].filter(c => c.show).map(({ label, align }) => (
                         <th key={label} className={`px-3 py-2.5 text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider ${align}`}>{label}</th>
                       ))}
                     </tr>
@@ -655,14 +656,18 @@ export default function QuotationDetailsPage() {
                     {quotation.items.map((item, i) => (
                       <tr key={item.id} className={i % 2 === 1 ? 'bg-muted/5' : ''}>
                         <td className="ps-4 pe-3 py-2.5 font-medium">{cleanDescription(item.description, item.size)}</td>
-                        <td className="px-3 py-2.5 text-center text-muted-foreground">
-                          {item.unit === 'LM' && item.length != null ? item.length.toFixed(2) : (item.size || '—')}
-                        </td>
-                        <td className="px-3 py-2.5 text-center text-muted-foreground">{item.unit || 'LM'}</td>
+                        {hasLmItems && (
+                          <td className="px-3 py-2.5 text-center text-muted-foreground">
+                            {item.unit === 'LM' && item.length != null ? item.length.toFixed(2) : (item.size || '—')}
+                          </td>
+                        )}
+                        <td className="px-3 py-2.5 text-center text-muted-foreground">{item.unit || 'pc'}</td>
                         <td className="px-3 py-2.5 text-center tabular-nums">{item.quantity}</td>
-                        <td className="px-3 py-2.5 text-center tabular-nums font-semibold text-emerald-600">
-                          {item.linearMeters ? item.linearMeters.toFixed(2) : '—'}
-                        </td>
+                        {hasLmItems && (
+                          <td className="px-3 py-2.5 text-center tabular-nums font-semibold text-emerald-600">
+                            {item.linearMeters ? item.linearMeters.toFixed(2) : '—'}
+                          </td>
+                        )}
                         <td className="px-3 py-2.5 text-center tabular-nums">{fmt(item.unitPrice)}</td>
                         <td className="ps-3 pe-4 py-2.5 text-end tabular-nums font-bold">{fmt(item.total)}</td>
                       </tr>
@@ -676,10 +681,10 @@ export default function QuotationDetailsPage() {
                       <tfoot>
                         <tr className="bg-blue-50/60 border-t-2 border-blue-200">
                           <td className="ps-4 pe-3 py-2 text-xs font-bold text-blue-800 uppercase tracking-wide">Total Summary</td>
-                          <td className="px-3 py-2 text-center text-xs text-muted-foreground">—</td>
+                          {hasLmItems && <td className="px-3 py-2 text-center text-xs text-muted-foreground">—</td>}
                           <td className="px-3 py-2 text-center text-xs text-muted-foreground">—</td>
                           <td className="px-3 py-2 text-center tabular-nums font-extrabold text-blue-700">{totalPcs}</td>
-                          <td className="px-3 py-2 text-center tabular-nums font-extrabold text-emerald-700">{totalLM > 0 ? totalLM.toFixed(2) : '—'}</td>
+                          {hasLmItems && <td className="px-3 py-2 text-center tabular-nums font-extrabold text-emerald-700">{totalLM > 0 ? totalLM.toFixed(2) : '—'}</td>}
                           <td className="px-3 py-2 text-center text-xs text-muted-foreground">—</td>
                           <td className="ps-3 pe-4 py-2 text-end text-xs text-muted-foreground">—</td>
                         </tr>
