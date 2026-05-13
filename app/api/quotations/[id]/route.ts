@@ -15,7 +15,7 @@ const QUOTATION_INCLUDE = {
   createdBy: { select: { id: true, fullName: true, phone: true } },
   confirmedBy: { select: { id: true, fullName: true } },
   clientApprovedBy: { select: { id: true, fullName: true } },
-  items: { orderBy: { sortOrder: 'asc' as const } },
+  items: { orderBy: { sortOrder: 'asc' as const }, include: { product: { include: { category: true } } } },
   taxInvoices: { select: { id: true, invoiceNumber: true, status: true, createdAt: true } },
   deliveryNotes: { select: { id: true, dnNumber: true, status: true, createdAt: true } },
   workOrders: { select: { id: true, woNumber: true, status: true, createdAt: true } },

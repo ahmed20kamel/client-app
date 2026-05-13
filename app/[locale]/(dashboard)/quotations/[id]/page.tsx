@@ -386,7 +386,7 @@ export default function QuotationDetailsPage() {
   const hasTaxInvoices  = (quotation.taxInvoices?.length ?? 0) > 0;
   const hasDeliveryNotes = (quotation.deliveryNotes?.length ?? 0) > 0;
   const hasWorkOrders   = (quotation.workOrders?.length ?? 0) > 0;
-  const hasLmItems      = quotation.items.some(it => it.unit === 'LM');
+  const hasLmItems      = quotation.items.some(it => (it as any).product?.category?.name !== 'LitPAD');
 
   // ── Timeline events ───────────────────────────────────────────────────────
   const timelineEvents = [

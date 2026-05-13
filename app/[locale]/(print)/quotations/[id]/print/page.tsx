@@ -18,6 +18,7 @@ interface QuotationItem {
   unitPrice: number;
   discount: number;
   total: number;
+  product: { category: { name: string } | null } | null;
 }
 
 interface Quotation {
@@ -85,7 +86,7 @@ export default function QuotationPrintPage() {
   const tel         = quotation.engineer?.mobile || quotation.mobileNumber;
   const totalPieces = quotation.items.reduce((s, it) => s + it.quantity, 0);
   const totalLM     = quotation.items.reduce((s, it) => s + (it.linearMeters ?? 0), 0);
-  const hasLmItems  = quotation.items.some(it => it.unit === 'LM');
+  const hasLmItems  = quotation.items.some(it => it.product?.category?.name !== 'LitPAD');
 
   return (
     <>
