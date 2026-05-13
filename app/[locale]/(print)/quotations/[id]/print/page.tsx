@@ -86,7 +86,8 @@ export default function QuotationPrintPage() {
   const tel         = quotation.engineer?.mobile || quotation.mobileNumber;
   const totalPieces = quotation.items.reduce((s, it) => s + it.quantity, 0);
   const totalLM     = quotation.items.reduce((s, it) => s + (it.linearMeters ?? 0), 0);
-  const hasLmItems  = quotation.items.some(it => it.product?.category?.name !== 'LitPAD');
+  const isLitPAD   = (it: QuotationItem) => it.product?.category?.name === 'LitPAD' || /litpad/i.test(it.description);
+  const hasLmItems  = quotation.items.some(it => !isLitPAD(it));
 
   return (
     <>
@@ -249,7 +250,7 @@ export default function QuotationPrintPage() {
                     {item.unit === 'LM' && item.length != null ? item.length.toFixed(2) : (item.size || '—')}
                   </td>
                 )}
-                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>{item.unit || 'pc'}</td>
+                <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>{isLitPAD(item) ? 'pc' : (item.unit || 'pc')}</td>
                 <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>{item.quantity}</td>
                 {hasLmItems && (
                   <td style={{ padding: '8px 7px', textAlign: 'center', color: '#64748b' }}>

@@ -37,7 +37,7 @@ interface QuotationItem {
   unitPrice: number;
   discount: number;
   total: number;
-  product: { id: string; name: string } | null;
+  product: { id: string; name: string; category: { name: string } | null } | null;
 }
 
 interface LinkedDoc {
@@ -386,7 +386,8 @@ export default function QuotationDetailsPage() {
   const hasTaxInvoices  = (quotation.taxInvoices?.length ?? 0) > 0;
   const hasDeliveryNotes = (quotation.deliveryNotes?.length ?? 0) > 0;
   const hasWorkOrders   = (quotation.workOrders?.length ?? 0) > 0;
-  const hasLmItems      = quotation.items.some(it => (it as any).product?.category?.name !== 'LitPAD');
+  const isLitPAD        = (it: QuotationItem) => it.product?.category?.name === 'LitPAD' || /litpad/i.test(it.description);
+  const hasLmItems      = quotation.items.some(it => !isLitPAD(it));
 
   // ── Timeline events ───────────────────────────────────────────────────────
   const timelineEvents = [
@@ -661,7 +662,7 @@ export default function QuotationDetailsPage() {
                             {item.unit === 'LM' && item.length != null ? item.length.toFixed(2) : (item.size || '—')}
                           </td>
                         )}
-                        <td className="px-3 py-2.5 text-center text-muted-foreground">{item.unit || 'pc'}</td>
+                        <td className="px-3 py-2.5 text-center text-muted-foreground">{isLitPAD(item) ? 'pc' : (item.unit || 'pc')}</td>
                         <td className="px-3 py-2.5 text-center tabular-nums">{item.quantity}</td>
                         {hasLmItems && (
                           <td className="px-3 py-2.5 text-center tabular-nums font-semibold text-emerald-600">
