@@ -341,24 +341,29 @@ export default function TimesheetPage() {
     return m;
   }, [projects]);
 
-  // Daily site project summary (only Present days) — includes per-employee breakdown
+  // Daily site project summary (only Present days) — cost based on actual hours × hourly rate
   const dailyProjectSummary = useMemo(() => {
-    const map: Record<string, { project: Project; empDays: number; cost: number; employees: { emp: Employee; days: number; cost: number }[] }> = {};
+    const map: Record<string, { project: Project; empDays: number; empHours: number; cost: number; employees: { emp: Employee; days: number; hours: number; cost: number }[] }> = {};
     for (const emp of employees) {
-      const dailyRate = (emp.totalSalary || (emp.basicSalary + emp.allowances)) / calDays;
-      const projDays: Record<string, number> = {};
+      const salary     = emp.totalSalary || (emp.basicSalary + emp.allowances);
+      const hpd        = emp.hoursPerDay || 8;
+      const hourlyRate = salary / calDays / hpd;
+      const projAgg: Record<string, { days: number; hours: number }> = {};
       for (const entry of Object.values(dailyData[emp.id] || {})) {
         if (entry.status !== 'P' || !entry.projectId) continue;
-        projDays[entry.projectId] = (projDays[entry.projectId] || 0) + 1;
+        if (!projAgg[entry.projectId]) projAgg[entry.projectId] = { days: 0, hours: 0 };
+        projAgg[entry.projectId].days++;
+        projAgg[entry.projectId].hours += entry.hours;
       }
-      for (const [projId, days] of Object.entries(projDays)) {
+      for (const [projId, { days, hours }] of Object.entries(projAgg)) {
         const proj = projects.find(p => p.id === projId);
         if (!proj) continue;
-        if (!map[projId]) map[projId] = { project: proj, empDays: 0, cost: 0, employees: [] };
-        const cost = dailyRate * days;
-        map[projId].empDays += days;
-        map[projId].cost    += cost;
-        map[projId].employees.push({ emp, days, cost });
+        if (!map[projId]) map[projId] = { project: proj, empDays: 0, empHours: 0, cost: 0, employees: [] };
+        const cost = hourlyRate * hours;
+        map[projId].empDays  += days;
+        map[projId].empHours += hours;
+        map[projId].cost     += cost;
+        map[projId].employees.push({ emp, days, hours, cost });
       }
     }
     return Object.values(map).sort((a, b) => b.cost - a.cost);
@@ -386,11 +391,13 @@ export default function TimesheetPage() {
       if (!entry || entry.status !== 'P' || !entry.projectId) continue;
       const proj = projects.find(p => p.id === entry.projectId);
       if (!proj) continue;
-      const dailyRate = (emp.totalSalary || (emp.basicSalary + emp.allowances)) / calDays;
+      const salary     = emp.totalSalary || (emp.basicSalary + emp.allowances);
+      const hpd        = emp.hoursPerDay || 8;
+      const hourlyRate = salary / calDays / hpd;
       if (!map[entry.projectId]) map[entry.projectId] = { project: proj, headCount: 0, totalHours: 0, cost: 0 };
       map[entry.projectId].headCount++;
       map[entry.projectId].totalHours += entry.hours;
-      map[entry.projectId].cost += dailyRate;
+      map[entry.projectId].cost += hourlyRate * entry.hours;
     }
     return Object.values(map).sort((a, b) => b.cost - a.cost);
   }, [dailyData, employees, projects, calDays, todayCalDay]);
@@ -912,14 +919,14 @@ export default function TimesheetPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
-                  {dailyProjectSummary.map(({ project, empDays, cost }) => (
+                  {dailyProjectSummary.map(({ project, empDays, empHours, cost }) => (
                     <tr key={project.id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-2.5 flex items-center gap-2">
                         <span className="w-3 h-3 rounded-sm inline-block shrink-0" style={{ background: projColorMap[project.id] }} />
                         <span className="font-mono text-[12px] font-semibold text-primary">{project.projectCode}</span>
                         <span className="text-[11px] text-muted-foreground">{project.projectName}</span>
                       </td>
-                      <td className="px-4 py-2.5 text-center font-semibold tabular-nums">{empDays}</td>
+                      <td className="px-4 py-2.5 text-center font-semibold tabular-nums">{empDays}d · {empHours}h</td>
                       <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-primary">{fmt(cost)}</td>
                     </tr>
                   ))}
@@ -927,7 +934,9 @@ export default function TimesheetPage() {
                 <tfoot>
                   <tr className="border-t-2 border-border bg-muted/20">
                     <td className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase">Total</td>
-                    <td className="px-4 py-2.5 text-center font-bold tabular-nums">{dailyProjectSummary.reduce((s, p) => s + p.empDays, 0)}</td>
+                    <td className="px-4 py-2.5 text-center font-bold tabular-nums">
+                      {dailyProjectSummary.reduce((s, p) => s + p.empDays, 0)}d · {dailyProjectSummary.reduce((s, p) => s + p.empHours, 0)}h
+                    </td>
                     <td className="px-4 py-2.5 text-right font-bold tabular-nums text-primary">{fmt(dailyProjectSummary.reduce((s, p) => s + p.cost, 0))} AED</td>
                   </tr>
                 </tfoot>
@@ -1044,7 +1053,7 @@ export default function TimesheetPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
-                  {dailyProjectSummary.map(({ project, empDays, cost, employees: empList }) => (
+                  {dailyProjectSummary.map(({ project, empDays, empHours, cost, employees: empList }) => (
                     <tr key={project.id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
@@ -1054,7 +1063,7 @@ export default function TimesheetPage() {
                         </div>
                       </td>
                       <td className="px-5 py-3.5 text-center text-[13px] font-semibold tabular-nums">{empList.length}</td>
-                      <td className="px-5 py-3.5 text-center text-[13px] font-bold tabular-nums">{empDays}</td>
+                      <td className="px-5 py-3.5 text-center text-[13px] font-bold tabular-nums">{empDays}d · {empHours}h</td>
                       <td className="px-5 py-3.5 text-right text-[14px] font-bold tabular-nums text-primary">{fmt(cost)}</td>
                     </tr>
                   ))}
@@ -1066,7 +1075,7 @@ export default function TimesheetPage() {
                       {new Set(dailyProjectSummary.flatMap(p => p.employees.map(e => e.emp.id))).size}
                     </td>
                     <td className="px-5 py-3 text-center text-[13px] font-bold tabular-nums">
-                      {dailyProjectSummary.reduce((s, p) => s + p.empDays, 0)}
+                      {dailyProjectSummary.reduce((s, p) => s + p.empDays, 0)}d · {dailyProjectSummary.reduce((s, p) => s + p.empHours, 0)}h
                     </td>
                     <td className="px-5 py-3 text-right text-[15px] font-bold tabular-nums text-primary">
                       {fmt(dailyProjectSummary.reduce((s, p) => s + p.cost, 0))}

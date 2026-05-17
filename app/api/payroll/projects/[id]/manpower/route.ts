@@ -28,13 +28,13 @@ export async function GET(
         employee: {
           select: {
             id: true, name: true, empCode: true, costCenter: true,
-            totalSalary: true, basicSalary: true, allowances: true,
+            totalSalary: true, basicSalary: true, allowances: true, hoursPerDay: true,
           },
         },
       },
     });
 
-    type EmpRow = { employee: { id: string; name: string; empCode: string; costCenter: string; totalSalary: number; basicSalary: number; allowances: number }; days: number; hours: number; cost: number };
+    type EmpRow = { employee: { id: string; name: string; empCode: string; costCenter: string; totalSalary: number; basicSalary: number; allowances: number; hoursPerDay: number }; days: number; hours: number; cost: number };
     type DayEmpEntry = { id: string; name: string; empCode: string; hours: number; cost: number };
     type DayRow = { calDay: number; headCount: number; totalHours: number; totalCost: number; employees: DayEmpEntry[] };
     type MonthRow = { year: number; month: number; employees: Record<string, EmpRow>; days: Record<number, DayRow> };
@@ -46,9 +46,11 @@ export async function GET(
       const key = `${year}-${String(month).padStart(2, '0')}`;
       if (!monthMap[key]) monthMap[key] = { year, month, employees: {}, days: {} };
 
-      const calDays = new Date(year, month, 0).getDate();
-      const salary  = e.employee.totalSalary || (e.employee.basicSalary + e.employee.allowances);
-      const dayRate = calDays > 0 ? salary / calDays : 0;
+      const calDays    = new Date(year, month, 0).getDate();
+      const salary     = e.employee.totalSalary || (e.employee.basicSalary + e.employee.allowances);
+      const hpd        = e.employee.hoursPerDay || 8;
+      const hourlyRate = calDays > 0 ? salary / calDays / hpd : 0;
+      const dayRate    = hourlyRate * hours; // actual hours worked × hourly rate
       const calDay  = e.day - 300;
       const hours   = e.hours ?? 8;
 
