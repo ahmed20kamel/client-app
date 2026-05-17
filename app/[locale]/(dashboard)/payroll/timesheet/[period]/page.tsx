@@ -706,8 +706,9 @@ export default function TimesheetPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/30">
-                    {emps.map(emp => {
-                      const empDays = dailyData[emp.id] || {};
+                    {emps.map((emp, empIdx) => {
+                      const empDays    = dailyData[emp.id] || {};
+                      const isLastRows = empIdx >= emps.length - 2;
                       const presentCount = Object.values(empDays).filter(e => e.status === 'P').length;
                       const absentCount  = Object.values(empDays).filter(e => e.status === 'A').length;
                       const leaveCount   = Object.values(empDays).filter(e => e.status === 'AL' || e.status === 'SICK' || e.status === 'PH').length;
@@ -727,7 +728,7 @@ export default function TimesheetPage() {
                                   Fill all ▾
                                 </button>
                                 {activeCell === `fill-${emp.id}` && (
-                                  <div className="absolute top-full left-0 z-50 bg-card border border-border rounded-lg shadow-xl p-1 min-w-40 mt-0.5">
+                                  <div className={cn("absolute left-0 z-50 bg-card border border-border rounded-lg shadow-xl p-1 min-w-40", isLastRows ? "bottom-full mb-0.5" : "top-full mt-0.5")}>
                                     {projects.map(p => (
                                       <button key={p.id} onClick={() => fillAll(emp.id, p.id)}
                                         className="flex items-center gap-2 w-full text-left px-2 py-1.5 text-[11px] hover:bg-muted/60 rounded transition-colors">
@@ -799,13 +800,13 @@ export default function TimesheetPage() {
                                   style={{ background: cellBg, color: cellTextColor }}
                                   title={entry ? `${entry.status}${entry.status === 'P' && entry.projectId ? ' · ' + projects.find(p=>p.id===entry.projectId)?.projectCode : ''} · ${entry.hours}h` : 'Click to assign'}>
                                   <span className="text-[9px] font-bold leading-none">{cellLabel}</span>
-                                  {entry?.status === 'P' && entry.hours !== 8 && (
+                                  {entry?.status === 'P' && (
                                     <span className="text-[8px] leading-none opacity-80">{entry.hours}h</span>
                                   )}
                                 </button>
 
                                 {isActive && (
-                                  <div className="absolute top-full left-0 z-50 bg-card border border-border rounded-xl shadow-2xl p-2.5 w-52 mt-1 space-y-2.5" style={{ minWidth: 208 }}>
+                                  <div className={cn("absolute left-0 z-50 bg-card border border-border rounded-xl shadow-2xl p-2.5 w-52 space-y-2.5", isLastRows ? "bottom-full mb-1" : "top-full mt-1")} style={{ minWidth: 208 }}>
                                     <p className="text-[10px] font-semibold text-muted-foreground">{dayLabel(year, month, day)}</p>
 
                                     {/* Status buttons */}
