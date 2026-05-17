@@ -3,6 +3,36 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logError } from '@/lib/logger';
 
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { id } = await params;
+    const loan = await prisma.payrollLoan.findUnique({
+      where: { id },
+      include: {
+        employee: {
+          select: {
+            id: true, empCode: true, name: true, costCenter: true,
+            basicSalary: true, allowances: true, totalSalary: true,
+            status: true, startDate: true, wpsEntity: true, paymentMethod: true,
+          },
+        },
+        deductions: { orderBy: [{ year: 'asc' }, { month: 'asc' }] },
+      },
+    });
+    if (!loan) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    return NextResponse.json({ data: loan });
+  } catch (error) {
+    logError('Get loan error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

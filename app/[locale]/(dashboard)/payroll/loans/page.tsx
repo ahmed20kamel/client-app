@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Plus, Loader2, CreditCard, ChevronDown, ChevronUp, AlertCircle, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -41,18 +41,23 @@ const STATUS_CLS: Record<string, string> = {
   CANCELLED: 'bg-red-50 text-red-600 ring-1 ring-red-200',
 };
 
-function LoanRow({ loan, onCancel, onDelete }: {
+function LoanRow({ loan, onCancel, onDelete, locale }: {
   loan: Loan;
   onCancel: (id: string) => void;
   onDelete: (id: string) => void;
+  locale: string;
 }) {
+  const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const remaining       = Math.max(0, loan.totalAmount - loan.paidAmount);
   const pct             = loan.totalAmount > 0 ? Math.min(100, (loan.paidAmount / loan.totalAmount) * 100) : 0;
   const installmentsLeft = loan.installmentAmount > 0 ? Math.ceil(remaining / loan.installmentAmount) : 0;
 
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
+    <div
+      className="rounded-xl border border-border bg-card overflow-hidden cursor-pointer hover:border-blue-200 hover:shadow-sm transition-all"
+      onClick={() => router.push(`/${locale}/payroll/loans/${loan.id}`)}
+    >
       <div className="px-4 py-3 flex items-start gap-3">
         {/* Icon */}
         <div className="mt-0.5 size-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
@@ -103,7 +108,7 @@ function LoanRow({ loan, onCancel, onDelete }: {
         <div className="flex items-center gap-1 shrink-0">
           {loan.status === 'ACTIVE' && (
             <button
-              onClick={() => onCancel(loan.id)}
+              onClick={e => { e.stopPropagation(); onCancel(loan.id); }}
               className="h-7 px-2.5 text-[11px] rounded-md border border-red-200 text-red-600 hover:bg-red-50 transition-colors font-medium"
             >
               Cancel
@@ -111,14 +116,14 @@ function LoanRow({ loan, onCancel, onDelete }: {
           )}
           {loan.status !== 'ACTIVE' && (
             <button
-              onClick={() => onDelete(loan.id)}
+              onClick={e => { e.stopPropagation(); onDelete(loan.id); }}
               className="h-7 px-2.5 text-[11px] rounded-md border border-border text-muted-foreground hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors"
             >
               Delete
             </button>
           )}
           <button
-            onClick={() => setExpanded(e => !e)}
+            onClick={e => { e.stopPropagation(); setExpanded(v => !v); }}
             className="p-1.5 rounded-md text-muted-foreground hover:bg-muted transition-colors"
           >
             {expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
@@ -436,7 +441,7 @@ export default function LoansPage() {
       ) : (
         <div className="space-y-2.5">
           {filtered.map(loan => (
-            <LoanRow key={loan.id} loan={loan} onCancel={handleCancel} onDelete={handleDelete} />
+            <LoanRow key={loan.id} loan={loan} onCancel={handleCancel} onDelete={handleDelete} locale={locale} />
           ))}
         </div>
       )}
