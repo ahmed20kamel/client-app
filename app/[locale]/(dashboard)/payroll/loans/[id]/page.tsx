@@ -155,7 +155,7 @@ export default function LoanDetailPage() {
   ] as const;
 
   return (
-    <div className="space-y-5 max-w-4xl mx-auto">
+    <div className="space-y-5 max-w-5xl mx-auto">
       {/* Back */}
       <button
         onClick={() => router.push(`/${locale}/payroll/loans`)}
@@ -176,7 +176,7 @@ export default function LoanDetailPage() {
               <h1 className="text-[18px] font-bold text-white leading-tight">
                 {loan.description || 'Loan / Advance'}
               </h1>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${STATUS_CLS[loan.status]}`}>
+              <span className={`text-[11px] px-2 py-0.5 rounded-md font-medium ${STATUS_CLS[loan.status]}`}>
                 {loan.status}
               </span>
             </div>

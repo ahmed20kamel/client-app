@@ -6,7 +6,7 @@ import {
   ArrowLeft, Loader2, Save, ChevronDown, ChevronUp,
   FolderOpen, Users, TrendingUp, Banknote, HardHat,
 } from 'lucide-react';
-import Link from 'next/link';
+
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -205,33 +205,41 @@ export default function ProjectDetailPage() {
   );
 
   return (
-    <div className="max-w-2xl space-y-4">
+    <div className="max-w-5xl space-y-4">
 
-      {/* ── Header ── */}
-      <div className="flex items-start gap-2.5">
-        <Link href={`/${locale}/payroll/projects`}>
-          <button className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors mt-0.5">
-            <ArrowLeft className="size-4" />
-          </button>
-        </Link>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-xl font-semibold tracking-tight truncate">{form.projectName}</h1>
-            {form.status && (
-              <span className={cn('text-[11px] px-2 py-0.5 rounded-md font-medium shrink-0', STATUS_CLS[form.status])}>
-                {STATUS_LABEL[form.status] ?? form.status}
-              </span>
-            )}
-          </div>
-          <p className="text-[13px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
-            <span className="font-mono text-primary text-[12px] font-semibold">{form.projectCode}</span>
-            {form.location && <><span className="text-border">·</span><span>{form.location}</span></>}
-          </p>
-        </div>
-      </div>
+      {/* ── Back ── */}
+      <button
+        onClick={() => router.push(`/${locale}/payroll/projects`)}
+        className="flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="size-3.5" />
+        Projects
+      </button>
 
-      {/* ── Stats strip ── */}
+      {/* ── Hero card ── */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
+        {/* Gradient header */}
+        <div className="bg-gradient-to-r from-emerald-700 to-emerald-600 px-6 py-5 flex items-start gap-4">
+          <div className="size-14 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center shrink-0">
+            <FolderOpen className="size-7 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-[18px] font-bold text-white leading-tight truncate">{form.projectName}</h1>
+              {form.status && (
+                <span className={cn('text-[11px] px-2 py-0.5 rounded-md font-medium shrink-0', STATUS_CLS[form.status])}>
+                  {STATUS_LABEL[form.status] ?? form.status}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-[13px] text-emerald-100">
+              <span className="font-mono font-semibold text-white">{form.projectCode}</span>
+              {form.location && <><span className="mx-1.5 text-emerald-200/60">·</span><span>{form.location}</span></>}
+            </p>
+          </div>
+        </div>
+
+        {/* KPI strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-border">
           <div className="px-4 py-3 flex items-center gap-3">
             <div className="size-8 rounded-lg bg-primary/8 flex items-center justify-center shrink-0">
@@ -239,9 +247,7 @@ export default function ProjectDetailPage() {
             </div>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Progress</p>
-              <p className="text-[15px] font-bold tabular-nums mt-0.5">
-                {pct > 0 ? `${pct}%` : '—'}
-              </p>
+              <p className="text-[15px] font-bold tabular-nums mt-0.5">{pct > 0 ? `${pct}%` : '—'}</p>
             </div>
           </div>
           <div className="px-4 py-3 flex items-center gap-3">
@@ -271,51 +277,49 @@ export default function ProjectDetailPage() {
             </div>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Man-Days</p>
-              <p className="text-[15px] font-bold tabular-nums mt-0.5">
-                {manpower ? manpower.grandTotalDays : '—'}
-              </p>
+              <p className="text-[15px] font-bold tabular-nums mt-0.5">{manpower ? manpower.grandTotalDays : '—'}</p>
             </div>
           </div>
         </div>
 
         {/* Progress bar */}
         {pct > 0 && (
-          <div className="px-4 pb-3 -mt-1">
-            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full rounded-full bg-primary transition-all"
-                style={{ width: `${Math.min(pct, 100)}%` }}
-              />
+          <div className="px-4 pb-4">
+            <div className="flex justify-between text-[11px] mb-1.5">
+              <span className="text-muted-foreground">{pct}% complete</span>
+            </div>
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${Math.min(pct, 100)}%` }} />
             </div>
           </div>
         )}
       </div>
 
       {/* ── Tabs ── */}
-      <div className="flex gap-1 border-b border-border">
-        {(['info', 'manpower'] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={cn(
-              'px-3 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors',
-              activeTab === tab
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {tab === 'info' ? 'Project Info' : (
-              <span className="flex items-center gap-1.5">
-                Manpower
-                {manpower && manpower.grandTotalDays > 0 && (
-                  <span className="px-1.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold tabular-nums">
-                    {manpower.grandTotalDays}d
-                  </span>
-                )}
-              </span>
-            )}
-          </button>
-        ))}
+      <div className="flex rounded-xl border border-border overflow-hidden bg-card">
+        <button
+          onClick={() => setActiveTab('info')}
+          className={`flex items-center gap-1.5 px-5 py-2.5 text-[12px] font-medium transition-colors flex-1 justify-center border-r border-border ${
+            activeTab === 'info' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          }`}
+        >
+          <FolderOpen className="size-3.5" />
+          Project Info
+        </button>
+        <button
+          onClick={() => setActiveTab('manpower')}
+          className={`flex items-center gap-1.5 px-5 py-2.5 text-[12px] font-medium transition-colors flex-1 justify-center ${
+            activeTab === 'manpower' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          }`}
+        >
+          <Users className="size-3.5" />
+          Manpower
+          {manpower && manpower.grandTotalDays > 0 && (
+            <span className={`ml-1 px-1.5 rounded-full text-[10px] font-bold ${
+              activeTab === 'manpower' ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'
+            }`}>{manpower.grandTotalDays}d</span>
+          )}
+        </button>
       </div>
 
       {/* ══ INFO TAB ══ */}
@@ -397,9 +401,6 @@ export default function ProjectDetailPage() {
               {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
               {saving ? 'Saving…' : 'Save Changes'}
             </Button>
-            <Link href={`/${locale}/payroll/projects`}>
-              <Button type="button" variant="outline" size="sm">Cancel</Button>
-            </Link>
           </div>
         </form>
       )}

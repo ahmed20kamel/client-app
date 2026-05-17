@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronUp, AlertCircle, Calendar, Clock,
   Banknote, TrendingUp, Briefcase, UserCheck,
 } from 'lucide-react';
-import Link from 'next/link';
+
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -107,7 +107,7 @@ function LoanCard({ loan, onCancel, onDelete }: { loan: Loan; onCancel: (id: str
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[13px] font-semibold">{loan.description || 'Loan / Advance'}</span>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${LOAN_STATUS_CLS[loan.status]}`}>{loan.status}</span>
+            <span className={`text-[11px] px-2 py-0.5 rounded-md font-medium ${LOAN_STATUS_CLS[loan.status]}`}>{loan.status}</span>
           </div>
           <div className="mt-0.5 text-[12px] text-muted-foreground">
             {MONTH_NAMES[loan.startMonth - 1]} {loan.startYear}
@@ -339,59 +339,54 @@ export default function EmployeeProfilePage() {
   );
 
   return (
-    <div className="max-w-2xl space-y-4">
+    <div className="max-w-5xl space-y-4">
 
       {/* ── Back ── */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => router.push(`/${locale}/payroll/employees`)}
-          className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="size-4" />
-        </button>
-        <span className="text-[12px] text-muted-foreground">All Employees</span>
-      </div>
+      <button
+        onClick={() => router.push(`/${locale}/payroll/employees`)}
+        className="flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="size-3.5" />
+        All Employees
+      </button>
 
       {/* ── Hero card ── */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
 
-        {/* Header */}
-        <div className="px-5 py-4 flex items-start gap-4">
-          {/* Avatar */}
-          <div className={cn('size-14 rounded-2xl bg-gradient-to-br flex items-center justify-center shrink-0 shadow-sm', avatarGradient(form.name || 'E'))}>
+        {/* Gradient header */}
+        <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-6 py-5 flex items-start gap-4">
+          <div className={cn('size-14 rounded-2xl bg-gradient-to-br flex items-center justify-center shrink-0 ring-2 ring-white/20', avatarGradient(form.name || 'E'))}>
             <span className="text-white text-lg font-bold tracking-wide select-none">
               {initials(form.name || '?')}
             </span>
           </div>
-
-          {/* Identity */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-[18px] font-semibold tracking-tight">{form.name}</h1>
+              <h1 className="text-[18px] font-bold text-white leading-tight">{form.name}</h1>
               {form.status && (
-                <span className={cn('text-[11px] px-2 py-0.5 rounded-full font-medium', STATUS_CLS[form.status])}>
+                <span className={cn('text-[11px] px-2 py-0.5 rounded-md font-medium', STATUS_CLS[form.status])}>
                   {STATUS_LABEL[form.status]}
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 mt-0.5 flex-wrap text-[12px] text-muted-foreground">
-              <span className="font-mono text-primary font-semibold text-[12px]">{form.empCode}</span>
-              {form.costCenter && <><span className="text-border">·</span><span>{form.costCenter}</span></>}
-              {form.visaType   && <><span className="text-border">·</span><span>Visa: {form.visaType}</span></>}
-              {form.wpsEntity  && <><span className="text-border">·</span><span>WPS: {form.wpsEntity}</span></>}
+            <div className="flex items-center gap-2 mt-1 flex-wrap text-[12px] text-slate-300">
+              <span className="font-mono font-semibold text-white">{form.empCode}</span>
+              {form.costCenter && <><span className="text-slate-500">·</span><span>{form.costCenter}</span></>}
+              {form.visaType   && <><span className="text-slate-500">·</span><span>Visa: {form.visaType}</span></>}
+              {form.wpsEntity  && <><span className="text-slate-500">·</span><span>WPS: {form.wpsEntity}</span></>}
             </div>
             {form.startDate && (
-              <div className="flex items-center gap-1 mt-1 text-[11px] text-muted-foreground">
+              <div className="flex items-center gap-1 mt-1 text-[11px] text-slate-300">
                 <Calendar className="size-3" />
                 <span>Since {new Date(form.startDate).toLocaleDateString('en-AE', { month: 'short', year: 'numeric', day: 'numeric' })}</span>
-                <span className="text-primary font-medium ml-1">{serviceDuration(form.startDate)}</span>
+                <span className="text-white font-medium ml-1">{serviceDuration(form.startDate)}</span>
               </div>
             )}
           </div>
         </div>
 
         {/* KPI strip */}
-        <div className="grid grid-cols-4 divide-x divide-border border-t border-border">
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border">
           <div className="px-4 py-3">
             <div className="flex items-center gap-1.5 mb-1">
               <Banknote className="size-3 text-primary" />
@@ -435,35 +430,43 @@ export default function EmployeeProfilePage() {
       </div>
 
       {/* ── Tabs ── */}
-      <div className="flex gap-1 border-b border-border">
-        {(['profile', 'loans', 'attendance'] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={cn(
-              'px-3 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors',
-              activeTab === tab ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {tab === 'profile' ? (
-              <span className="flex items-center gap-1.5"><UserCheck className="size-3.5" />Profile</span>
-            ) : tab === 'loans' ? (
-              <span className="flex items-center gap-1.5">
-                <CreditCard className="size-3.5" />Loans & Advances
-                {activeLoans.length > 0 && (
-                  <span className="size-4 rounded-full bg-blue-500 text-white text-[10px] flex items-center justify-center font-bold">{activeLoans.length}</span>
-                )}
-              </span>
-            ) : (
-              <span className="flex items-center gap-1.5">
-                <Briefcase className="size-3.5" />Attendance
-                {attendance && attendance.periods.length > 0 && (
-                  <span className="px-1.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">{attendance.periods.length}mo</span>
-                )}
-              </span>
-            )}
-          </button>
-        ))}
+      <div className="flex rounded-xl border border-border overflow-hidden bg-card">
+        <button
+          onClick={() => setActiveTab('profile')}
+          className={`flex items-center gap-1.5 px-5 py-2.5 text-[12px] font-medium transition-colors flex-1 justify-center border-r border-border ${
+            activeTab === 'profile' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          }`}
+        >
+          <UserCheck className="size-3.5" />Profile
+        </button>
+        <button
+          onClick={() => setActiveTab('loans')}
+          className={`flex items-center gap-1.5 px-5 py-2.5 text-[12px] font-medium transition-colors flex-1 justify-center border-r border-border ${
+            activeTab === 'loans' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          }`}
+        >
+          <CreditCard className="size-3.5" />
+          Loans & Advances
+          {activeLoans.length > 0 && (
+            <span className={`ml-1 size-4 rounded-full text-[10px] flex items-center justify-center font-bold ${
+              activeTab === 'loans' ? 'bg-white/20 text-white' : 'bg-blue-500 text-white'
+            }`}>{activeLoans.length}</span>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('attendance')}
+          className={`flex items-center gap-1.5 px-5 py-2.5 text-[12px] font-medium transition-colors flex-1 justify-center ${
+            activeTab === 'attendance' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          }`}
+        >
+          <Briefcase className="size-3.5" />
+          Attendance
+          {attendance && attendance.periods.length > 0 && (
+            <span className={`ml-1 px-1.5 rounded-full text-[10px] font-bold ${
+              activeTab === 'attendance' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-700'
+            }`}>{attendance.periods.length}mo</span>
+          )}
+        </button>
       </div>
 
       {/* ══ PROFILE TAB ══ */}
@@ -532,9 +535,6 @@ export default function EmployeeProfilePage() {
               {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
               {saving ? 'Saving…' : 'Save Changes'}
             </Button>
-            <Link href={`/${locale}/payroll/employees`}>
-              <Button type="button" variant="outline" size="sm">Back to List</Button>
-            </Link>
           </div>
         </form>
       )}

@@ -68,7 +68,7 @@ function LoanRow({ loan, onCancel, onDelete, locale }: {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[13px] font-semibold">{loan.description || 'Loan / Advance'}</span>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${STATUS_CLS[loan.status]}`}>
+            <span className={`text-[11px] px-2 py-0.5 rounded-md font-medium ${STATUS_CLS[loan.status]}`}>
               {loan.status}
             </span>
           </div>
