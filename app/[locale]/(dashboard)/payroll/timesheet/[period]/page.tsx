@@ -359,6 +359,19 @@ export default function TimesheetPage() {
     return Object.values(map).sort((a, b) => b.cost - a.cost);
   }, [dailyData, employees, projects, workDays]);
 
+  const fmt = (n: number) => n.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtHour = (h: number) => `${String(h).padStart(2, '0')}:00`;
+
+  // Attendance window derived values
+  const windowStartMin     = attSettings.checkInStart * 60;
+  const windowEndMin       = attSettings.checkInEnd   * 60 + (attSettings.graceMinutes ?? 0);
+  const currentMin         = nowDubai.hour * 60 + nowDubai.minute;
+  const windowOpen         = currentMin >= windowStartMin && currentMin <= windowEndMin;
+  const isTodayInPeriod    = nowDubai.year === year && nowDubai.month === month;
+  const todayCalDay        = isTodayInPeriod ? nowDubai.day : -1;
+  const minsUntilClose     = windowOpen ? windowEndMin - currentMin : 0;
+  const minsUntilOpen      = !windowOpen && currentMin < windowStartMin ? windowStartMin - currentMin : 0;
+
   // Today's project cost — filters dailyData for todayCalDay
   const todayProjectCost = useMemo(() => {
     if (todayCalDay < 1) return [];
@@ -376,19 +389,6 @@ export default function TimesheetPage() {
     }
     return Object.values(map).sort((a, b) => b.cost - a.cost);
   }, [dailyData, employees, projects, workDays, todayCalDay]);
-
-  const fmt = (n: number) => n.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const fmtHour = (h: number) => `${String(h).padStart(2, '0')}:00`;
-
-  // Attendance window derived values
-  const windowStartMin     = attSettings.checkInStart * 60;
-  const windowEndMin       = attSettings.checkInEnd   * 60 + (attSettings.graceMinutes ?? 0);
-  const currentMin         = nowDubai.hour * 60 + nowDubai.minute;
-  const windowOpen         = currentMin >= windowStartMin && currentMin <= windowEndMin;
-  const isTodayInPeriod    = nowDubai.year === year && nowDubai.month === month;
-  const todayCalDay        = isTodayInPeriod ? nowDubai.day : -1;
-  const minsUntilClose     = windowOpen ? windowEndMin - currentMin : 0;
-  const minsUntilOpen      = !windowOpen && currentMin < windowStartMin ? windowStartMin - currentMin : 0;
 
   const saveAttSettings = async () => {
     setSavingSettings(true);
