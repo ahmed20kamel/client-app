@@ -75,8 +75,13 @@ function MonthRow({ m }: { m: MonthData }) {
               <span className="font-medium text-foreground">{m.totalDays}</span> man-days
             </span>
             <span className="text-[11px] text-muted-foreground">
-              <span className="font-semibold text-primary">{fmtDec(m.totalCost)}</span> AED
+              <span className="font-semibold text-primary">{fmtDec(m.totalCost)}</span> AED total
             </span>
+            {m.totalDays > 0 && (
+              <span className="text-[11px] px-1.5 py-0.5 rounded bg-orange-50 text-orange-700 font-semibold tabular-nums">
+                {fmtDec(m.totalCost / m.totalDays)} AED/day
+              </span>
+            )}
           </div>
         </div>
         {open ? <ChevronUp className="size-4 text-muted-foreground shrink-0" /> : <ChevronDown className="size-4 text-muted-foreground shrink-0" />}
@@ -92,6 +97,7 @@ function MonthRow({ m }: { m: MonthData }) {
                 <th className="px-4 h-8 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Cost Center</th>
                 <th className="px-4 h-8 text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Days</th>
                 <th className="px-4 h-8 text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Hours</th>
+                <th className="px-4 h-8 text-right text-[10px] font-semibold text-orange-600 uppercase tracking-wide">Rate/Day</th>
                 <th className="px-4 h-8 text-right text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Cost (AED)</th>
               </tr>
             </thead>
@@ -103,6 +109,9 @@ function MonthRow({ m }: { m: MonthData }) {
                   <td className="px-4 py-2 text-muted-foreground">{e.costCenter}</td>
                   <td className="px-4 py-2 text-center tabular-nums font-semibold">{days}</td>
                   <td className="px-4 py-2 text-center tabular-nums text-muted-foreground">{hours.toFixed(1)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums font-semibold text-orange-600">
+                    {days > 0 ? fmtDec(cost / days) : '—'}
+                  </td>
                   <td className="px-4 py-2 text-right tabular-nums font-semibold text-primary">{fmtDec(cost)}</td>
                 </tr>
               ))}
@@ -112,6 +121,9 @@ function MonthRow({ m }: { m: MonthData }) {
                 <td colSpan={3} className="px-4 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Subtotal</td>
                 <td className="px-4 py-2 text-center font-bold tabular-nums">{m.totalDays}</td>
                 <td className="px-4 py-2 text-center font-bold tabular-nums text-muted-foreground">{m.totalHours.toFixed(1)}</td>
+                <td className="px-4 py-2 text-right font-bold tabular-nums text-orange-600">
+                  {m.totalDays > 0 ? fmtDec(m.totalCost / m.totalDays) : '—'}
+                </td>
                 <td className="px-4 py-2 text-right font-bold tabular-nums text-primary">{fmtDec(m.totalCost)}</td>
               </tr>
             </tfoot>
@@ -423,7 +435,7 @@ export default function ProjectDetailPage() {
           ) : (
             <>
               {/* Summary banner */}
-              <div className="rounded-xl border border-primary/20 bg-primary/5 px-5 py-4 grid grid-cols-3 gap-4">
+              <div className="rounded-xl border border-primary/20 bg-primary/5 px-5 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="text-center">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Man-Days</p>
                   <p className="text-2xl font-bold tabular-nums mt-1 text-primary">{manpower.grandTotalDays}</p>
@@ -438,6 +450,13 @@ export default function ProjectDetailPage() {
                     {fmtDec(manpower.grandTotalCost)}
                     <span className="text-xs font-normal text-muted-foreground ml-1">AED</span>
                   </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-orange-600">Avg Cost / Day</p>
+                  <p className="text-2xl font-bold tabular-nums mt-1 text-orange-600">
+                    {manpower.grandTotalDays > 0 ? fmtDec(manpower.grandTotalCost / manpower.grandTotalDays) : '—'}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">AED / man-day</p>
                 </div>
               </div>
 
