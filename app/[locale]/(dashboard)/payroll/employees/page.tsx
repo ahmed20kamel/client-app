@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   Plus, Search, Pencil, Trash2, Loader2,
   ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown,
@@ -95,6 +95,7 @@ function SkeletonRows({ cols }: { cols: number }) {
 
 export default function EmployeesPage() {
   const { locale } = useParams() as { locale: string };
+  const router = useRouter();
 
   // ── Data ──
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -334,11 +335,12 @@ export default function EmployeesPage() {
                 const isSelected = selected.has(emp.id);
                 return (
                   <tr key={emp.id}
-                    className={`hover:bg-muted/25 transition-colors ${isSelected ? 'bg-primary/5' : ''}`}
-                    onClick={e => { if ((e.target as HTMLElement).tagName !== 'A' && (e.target as HTMLElement).tagName !== 'BUTTON') toggleOne(emp.id); }}
+                    className={`cursor-pointer hover:bg-muted/25 transition-colors ${isSelected ? 'bg-primary/5' : ''}`}
+                    onClick={() => router.push(`/${locale}/payroll/employees/${emp.id}`)}
                   >
-                    <td className="px-4 py-2.5" onClick={e => e.stopPropagation()}>
-                      <input type="checkbox" checked={isSelected} onChange={() => toggleOne(emp.id)}
+                    <td className="px-4 py-2.5" onClick={e => { e.stopPropagation(); toggleOne(emp.id); }}>
+                      <input type="checkbox" checked={isSelected} onChange={() => {}}
+                        onClick={e => e.stopPropagation()}
                         className="rounded border-border text-primary focus:ring-primary/25 cursor-pointer" />
                     </td>
                     <td className="px-4 py-2.5 font-mono text-[12px] font-semibold text-primary whitespace-nowrap">{emp.empCode}</td>
