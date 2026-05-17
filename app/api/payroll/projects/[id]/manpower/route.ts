@@ -46,9 +46,9 @@ export async function GET(
       const key = `${year}-${String(month).padStart(2, '0')}`;
       if (!monthMap[key]) monthMap[key] = { year, month, employees: {}, days: {} };
 
-      const wd      = workingDays(year, month);
+      const calDays = new Date(year, month, 0).getDate();
       const salary  = e.employee.totalSalary || (e.employee.basicSalary + e.employee.allowances);
-      const dayRate = wd > 0 ? salary / wd : 0;
+      const dayRate = calDays > 0 ? salary / calDays : 0;
       const calDay  = e.day - 300;
       const hours   = e.hours ?? 8;
 

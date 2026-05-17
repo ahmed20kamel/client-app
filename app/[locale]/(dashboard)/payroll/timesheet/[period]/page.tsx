@@ -61,6 +61,7 @@ export default function TimesheetPage() {
   const router = useRouter();
   const [year, month] = period.split('-').map(Number);
   const workDays = useMemo(() => workingDaysInMonth(year, month), [year, month]);
+  const calDays  = useMemo(() => new Date(year, month, 0).getDate(), [year, month]);
   const calendarDays = useMemo(() => {
     const n = new Date(year, month, 0).getDate();
     return Array.from({ length: n }, (_, i) => ({ day: i + 1, dow: new Date(year, month - 1, i + 1).getDay() }));
@@ -317,7 +318,7 @@ export default function TimesheetPage() {
     const map: Record<string, { project: Project; totalDays: number; totalCost: number; employees: {emp: Employee; days: number; cost: number; fromDay: number; toDay: number}[] }> = {};
     for (const emp of employees) {
       const empAllocs  = allocs[emp.id] || [];
-      const dailyRate  = (emp.totalSalary || (emp.basicSalary + emp.allowances)) / workDays;
+      const dailyRate  = (emp.totalSalary || (emp.basicSalary + emp.allowances)) / calDays;
       for (const a of empAllocs) {
         if (!a.projectId || !a.days) continue;
         const proj = projects.find(p => p.id === a.projectId);
@@ -330,7 +331,7 @@ export default function TimesheetPage() {
       }
     }
     return Object.values(map).sort((a, b) => b.totalCost - a.totalCost);
-  }, [allocs, employees, projects, workDays]);
+  }, [allocs, employees, projects, calDays]);
 
   // Project colors for daily grid
   const PROJ_COLORS = ['#bfdbfe','#a7f3d0','#fde68a','#fbcfe8','#ddd6fe','#fed7aa','#bae6fd','#bbf7d0','#fecaca','#e0f2fe'];
@@ -344,7 +345,7 @@ export default function TimesheetPage() {
   const dailyProjectSummary = useMemo(() => {
     const map: Record<string, { project: Project; empDays: number; cost: number; employees: { emp: Employee; days: number; cost: number }[] }> = {};
     for (const emp of employees) {
-      const dailyRate = (emp.totalSalary || (emp.basicSalary + emp.allowances)) / workDays;
+      const dailyRate = (emp.totalSalary || (emp.basicSalary + emp.allowances)) / calDays;
       const projDays: Record<string, number> = {};
       for (const entry of Object.values(dailyData[emp.id] || {})) {
         if (entry.status !== 'P' || !entry.projectId) continue;
@@ -361,7 +362,7 @@ export default function TimesheetPage() {
       }
     }
     return Object.values(map).sort((a, b) => b.cost - a.cost);
-  }, [dailyData, employees, projects, workDays]);
+  }, [dailyData, employees, projects, calDays]);
 
   const fmt = (n: number) => n.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtHour = (h: number) => `${String(h).padStart(2, '0')}:00`;
@@ -385,14 +386,14 @@ export default function TimesheetPage() {
       if (!entry || entry.status !== 'P' || !entry.projectId) continue;
       const proj = projects.find(p => p.id === entry.projectId);
       if (!proj) continue;
-      const dailyRate = (emp.totalSalary || (emp.basicSalary + emp.allowances)) / workDays;
+      const dailyRate = (emp.totalSalary || (emp.basicSalary + emp.allowances)) / calDays;
       if (!map[entry.projectId]) map[entry.projectId] = { project: proj, headCount: 0, totalHours: 0, cost: 0 };
       map[entry.projectId].headCount++;
       map[entry.projectId].totalHours += entry.hours;
       map[entry.projectId].cost += dailyRate;
     }
     return Object.values(map).sort((a, b) => b.cost - a.cost);
-  }, [dailyData, employees, projects, workDays, todayCalDay]);
+  }, [dailyData, employees, projects, calDays, todayCalDay]);
 
   const saveAttSettings = async () => {
     setSavingSettings(true);

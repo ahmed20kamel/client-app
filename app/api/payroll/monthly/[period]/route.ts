@@ -37,11 +37,12 @@ function calcEntry(emp: any, entries: any[], year: number, month: number, loanDe
     }
   }
 
-  // Absent deduction: (totalSalary / workDays) × absentDays
-  const dailyRate       = emp.totalSalary / workDays;
+  // Absent deduction: (totalSalary / calDays) × absentDays
+  const calDays         = new Date(year, month, 0).getDate();
+  const dailyRate       = emp.totalSalary / calDays;
   const absentDeduction = dailyRate * absentDays;
 
-  const otHourlyRate = emp.basicSalary / workDays / hpd;
+  const otHourlyRate = emp.basicSalary / calDays / hpd;
   const otAmount     = otHourlyRate * otHours;
 
   const grossSalary  = emp.totalSalary + emp.otherAllowance - absentDeduction + otAmount;
