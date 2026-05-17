@@ -233,12 +233,14 @@ export default function TimesheetPage() {
       delete empData[day];
       return { ...s, [empId]: empData };
     });
-  const fillAll = (empId: string, projectId: string) => {
+  const [fillHours, setFillHours] = useState(8);
+
+  const fillAll = (empId: string, projectId: string, hours: number = fillHours) => {
     if (!projectId) {
       setDailyData(s => ({ ...s, [empId]: {} }));
     } else {
       const updates: Record<number, DayEntry> = {};
-      for (const { day, dow } of calendarDays) if (dow !== 5) updates[day] = { status: 'P', hours: 8, projectId };
+      for (const { day, dow } of calendarDays) if (dow !== 5) updates[day] = { status: 'P', hours, projectId };
       setDailyData(s => ({ ...s, [empId]: { ...(s[empId] || {}), ...updates } }));
     }
     setActiveCell(null);
@@ -728,7 +730,17 @@ export default function TimesheetPage() {
                                   Fill all ▾
                                 </button>
                                 {activeCell === `fill-${emp.id}` && (
-                                  <div className={cn("absolute left-0 z-50 bg-card border border-border rounded-lg shadow-xl p-1 min-w-40", isLastRows ? "bottom-full mb-0.5" : "top-full mt-0.5")}>
+                                  <div className={cn("absolute left-0 z-50 bg-card border border-border rounded-lg shadow-xl p-1 min-w-44", isLastRows ? "bottom-full mb-0.5" : "top-full mt-0.5")}>
+                                    {/* Hours per day input */}
+                                    <div className="flex items-center gap-2 px-2 py-1.5 mb-1 border-b border-border" onClick={e => e.stopPropagation()}>
+                                      <span className="text-[10px] text-muted-foreground whitespace-nowrap flex-1">Hours / day</span>
+                                      <input
+                                        type="number" min="1" max="24" step="0.5"
+                                        value={fillHours}
+                                        onChange={e => setFillHours(parseFloat(e.target.value) || 8)}
+                                        className="w-14 h-6 text-center text-[12px] font-bold border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-primary/30 tabular-nums"
+                                      />
+                                    </div>
                                     {projects.map(p => (
                                       <button key={p.id} onClick={() => fillAll(emp.id, p.id)}
                                         className="flex items-center gap-2 w-full text-left px-2 py-1.5 text-[11px] hover:bg-muted/60 rounded transition-colors">
