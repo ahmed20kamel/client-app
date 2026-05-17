@@ -75,6 +75,7 @@ export default function TimesheetPage() {
   const [tab,       setTab]       = useState<'attendance'|'projects'|'daily'>('attendance');
   const [dailyData, setDailyData] = useState<Record<string, Record<number, DayEntry>>>({});
   const [activeCell, setActiveCell] = useState<string | null>(null);
+  const [fillMenu,   setFillMenu]   = useState<{ empId: string; x: number; y: number; above: boolean } | null>(null);
 
   // Attendance window
   const [attSettings, setAttSettings]     = useState<AttendanceSetting>({ checkInStart: 6, checkInEnd: 8, graceMinutes: 0, timezone: 'Asia/Dubai' });
@@ -631,7 +632,7 @@ export default function TimesheetPage() {
       ) : tab === 'daily' ? (
 
         /* ══ DAILY SITE LOG TAB ══ */
-        <div className="space-y-3" onClick={() => setActiveCell(null)}>
+        <div className="space-y-3" onClick={() => { setActiveCell(null); setFillMenu(null); }}>
 
           {/* Attendance Window Status Banner */}
           <div className={cn('rounded-xl border px-4 py-3 flex items-center justify-between gap-3 flex-wrap',
@@ -723,38 +724,17 @@ export default function TimesheetPage() {
                                 <span className="text-[11px] text-foreground">{emp.name}</span>
                               </div>
                               {/* Fill all button */}
-                              <div className="relative shrink-0" onClick={e => e.stopPropagation()}>
+                              <div className="shrink-0" onClick={e => e.stopPropagation()}>
                                 <button
-                                  onClick={() => setActiveCell(activeCell === `fill-${emp.id}` ? null : `fill-${emp.id}`)}
+                                  onClick={(e) => {
+                                    if (fillMenu?.empId === emp.id) { setFillMenu(null); return; }
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    const above = window.innerHeight - rect.bottom < 320;
+                                    setFillMenu({ empId: emp.id, x: rect.left, y: above ? rect.top : rect.bottom + 4, above });
+                                  }}
                                   className="text-[10px] text-primary hover:text-primary/70 border border-primary/30 rounded px-1.5 py-0.5 bg-primary/5 hover:bg-primary/10 transition-colors whitespace-nowrap">
                                   Fill all ▾
                                 </button>
-                                {activeCell === `fill-${emp.id}` && (
-                                  <div className={cn("absolute left-0 z-50 bg-card border border-border rounded-lg shadow-xl p-1 min-w-44", isLastRows ? "bottom-full mb-0.5" : "top-full mt-0.5")}>
-                                    {/* Hours per day input */}
-                                    <div className="flex items-center gap-2 px-2 py-1.5 mb-1 border-b border-border" onClick={e => e.stopPropagation()}>
-                                      <span className="text-[10px] text-muted-foreground whitespace-nowrap flex-1">Hours / day</span>
-                                      <input
-                                        type="number" min="1" max="24" step="0.5"
-                                        value={fillHours}
-                                        onChange={e => setFillHours(parseFloat(e.target.value) || 8)}
-                                        className="w-14 h-6 text-center text-[12px] font-bold border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-primary/30 tabular-nums"
-                                      />
-                                    </div>
-                                    {projects.map(p => (
-                                      <button key={p.id} onClick={() => fillAll(emp.id, p.id)}
-                                        className="flex items-center gap-2 w-full text-left px-2 py-1.5 text-[11px] hover:bg-muted/60 rounded transition-colors">
-                                        <span className="w-3 h-3 rounded-sm inline-block shrink-0" style={{ background: projColorMap[p.id] }} />
-                                        <span className="font-mono font-semibold text-primary">{p.projectCode}</span>
-                                        <span className="text-muted-foreground truncate">{p.projectName}</span>
-                                      </button>
-                                    ))}
-                                    <button onClick={() => fillAll(emp.id, '')}
-                                      className="flex items-center gap-2 w-full text-left px-2 py-1.5 text-[11px] text-muted-foreground hover:bg-muted/60 rounded transition-colors border-t border-border mt-1 pt-1">
-                                      Clear all
-                                    </button>
-                                  </div>
-                                )}
                               </div>
                             </div>
                             {/* Summary badges */}
@@ -1100,6 +1080,47 @@ export default function TimesheetPage() {
             Data auto-synced from Daily Site Log ·{' '}
             <button onClick={() => setTab('daily')} className="text-primary underline">Edit in Daily Site Log</button>
           </p>
+        </div>
+      )}
+
+      {/* ── Fill all fixed dropdown (escapes overflow containers) ── */}
+      {fillMenu && (
+        <div
+          style={{
+            position: 'fixed',
+            left:  fillMenu.x,
+            top:   fillMenu.y,
+            transform: fillMenu.above ? 'translateY(-100%)' : undefined,
+            zIndex: 9999,
+          }}
+          className="bg-card border border-border rounded-lg shadow-2xl p-1 min-w-48 max-h-80 overflow-y-auto"
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Hours per day */}
+          <div className="flex items-center gap-2 px-2 py-1.5 mb-1 border-b border-border sticky top-0 bg-card">
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap flex-1">Hours / day</span>
+            <input
+              type="number" min="1" max="24" step="0.5"
+              value={fillHours}
+              onChange={e => setFillHours(parseFloat(e.target.value) || 8)}
+              onClick={e => e.stopPropagation()}
+              className="w-14 h-6 text-center text-[12px] font-bold border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-primary/30 tabular-nums"
+            />
+          </div>
+          {projects.map(p => (
+            <button key={p.id}
+              onClick={() => { fillAll(fillMenu.empId, p.id); setFillMenu(null); }}
+              className="flex items-center gap-2 w-full text-left px-2 py-1.5 text-[11px] hover:bg-muted/60 rounded transition-colors">
+              <span className="w-3 h-3 rounded-sm inline-block shrink-0" style={{ background: projColorMap[p.id] }} />
+              <span className="font-mono font-semibold text-primary">{p.projectCode}</span>
+              <span className="text-muted-foreground truncate">{p.projectName}</span>
+            </button>
+          ))}
+          <button
+            onClick={() => { fillAll(fillMenu.empId, ''); setFillMenu(null); }}
+            className="flex items-center gap-2 w-full text-left px-2 py-1.5 text-[11px] text-muted-foreground hover:bg-muted/60 rounded transition-colors border-t border-border mt-1 pt-1">
+            Clear all
+          </button>
         </div>
       )}
     </div>
