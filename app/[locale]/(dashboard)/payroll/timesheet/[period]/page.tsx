@@ -359,6 +359,24 @@ export default function TimesheetPage() {
     return Object.values(map).sort((a, b) => b.cost - a.cost);
   }, [dailyData, employees, projects, workDays]);
 
+  // Today's project cost — filters dailyData for todayCalDay
+  const todayProjectCost = useMemo(() => {
+    if (todayCalDay < 1) return [];
+    const map: Record<string, { project: Project; headCount: number; totalHours: number; cost: number }> = {};
+    for (const emp of employees) {
+      const entry = dailyData[emp.id]?.[todayCalDay];
+      if (!entry || entry.status !== 'P' || !entry.projectId) continue;
+      const proj = projects.find(p => p.id === entry.projectId);
+      if (!proj) continue;
+      const dailyRate = (emp.totalSalary || (emp.basicSalary + emp.allowances)) / workDays;
+      if (!map[entry.projectId]) map[entry.projectId] = { project: proj, headCount: 0, totalHours: 0, cost: 0 };
+      map[entry.projectId].headCount++;
+      map[entry.projectId].totalHours += entry.hours;
+      map[entry.projectId].cost += dailyRate;
+    }
+    return Object.values(map).sort((a, b) => b.cost - a.cost);
+  }, [dailyData, employees, projects, workDays, todayCalDay]);
+
   const fmt = (n: number) => n.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtHour = (h: number) => `${String(h).padStart(2, '0')}:00`;
 
@@ -925,168 +943,150 @@ export default function TimesheetPage() {
 
       ) : (
 
-        /* ══ ALLOCATION SUMMARY TAB — Auto-computed from Daily Site Log ══ */
-        <div className="space-y-3">
+        /* ══ ALLOCATION SUMMARY TAB ══ */
+        <div className="space-y-4">
 
-          {/* Auto-sync notice */}
-          <div className="rounded-xl border border-blue-200 bg-blue-50/60 px-5 py-4 flex items-start gap-3">
-            <div className="mt-0.5 p-1.5 rounded-lg bg-blue-100 shrink-0">
-              <FolderOpen className="size-4 text-blue-600" />
+          {/* ── TODAY'S PROJECT COST ── */}
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                {isTodayInPeriod && (
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                )}
+                <div>
+                  <h2 className="text-[15px] font-bold">
+                    {isTodayInPeriod
+                      ? `Today — ${todayCalDay} ${MONTHS[month]} ${year}`
+                      : `${MONTHS[month]} ${year} — Daily Log`}
+                  </h2>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {isTodayInPeriod ? "Labor cost charged to projects today" : "No 'today' data — viewing a past period"}
+                  </p>
+                </div>
+              </div>
+              {todayProjectCost.length > 0 && (
+                <div className="text-right">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Total Today</p>
+                  <p className="text-[20px] font-bold tabular-nums text-primary leading-tight">
+                    {fmt(todayProjectCost.reduce((s, p) => s + p.cost, 0))}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">AED</p>
+                </div>
+              )}
             </div>
-            <div>
-              <p className="text-[13px] font-semibold text-blue-900">Auto-computed from Daily Site Log</p>
-              <p className="text-[12px] text-blue-700 mt-0.5">
-                This summary is automatically derived from your Daily Site Log entries — no manual input needed.
-                To update allocations, go to the{' '}
-                <button onClick={() => setTab('daily')} className="underline font-semibold hover:text-blue-900">Daily Site Log</button>{' '}
-                tab and assign each employee's days to the correct site.
-              </p>
-            </div>
+
+            {!isTodayInPeriod || todayProjectCost.length === 0 ? (
+              <div className="px-5 py-8 text-center">
+                <FolderOpen className="size-8 text-muted-foreground/20 mx-auto mb-2" />
+                <p className="text-[13px] text-muted-foreground">
+                  {isTodayInPeriod
+                    ? "No project entries for today yet."
+                    : "Today's data is only available for the current month."}
+                </p>
+                {isTodayInPeriod && (
+                  <button onClick={() => setTab('daily')}
+                    className="mt-2 text-[12px] text-primary underline">
+                    Go to Daily Site Log to assign today's entries
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 divide-x divide-y divide-border">
+                {todayProjectCost.map(({ project, headCount, totalHours, cost }) => (
+                  <div key={project.id} className="px-5 py-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="w-3 h-3 rounded-sm shrink-0" style={{ background: projColorMap[project.id] }} />
+                      <span className="font-mono text-[13px] font-bold text-primary">{project.projectCode}</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate mb-3">{project.projectName}</p>
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center text-[12px]">
+                        <span className="text-muted-foreground">Workers</span>
+                        <span className="font-bold text-foreground tabular-nums">{headCount}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[12px]">
+                        <span className="text-muted-foreground">Hours</span>
+                        <span className="font-semibold tabular-nums">{totalHours}h</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-2 mt-1 border-t border-border/60">
+                        <span className="text-[11px] text-muted-foreground">Cost</span>
+                        <span className="text-[15px] font-bold tabular-nums text-primary">{fmt(cost)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
+          {/* ── MONTHLY PROJECT SUMMARY ── */}
           {dailyProjectSummary.length === 0 ? (
-            <div className="rounded-xl border border-border bg-card px-5 py-12 text-center">
-              <FolderOpen className="size-8 text-muted-foreground/20 mx-auto mb-3" />
-              <p className="text-[13px] font-medium text-muted-foreground">No project allocations yet</p>
-              <p className="text-[12px] text-muted-foreground mt-1">
-                Assign employees to sites in the{' '}
-                <button onClick={() => setTab('daily')} className="text-primary underline">Daily Site Log</button>{' '}
-                tab and this summary will populate automatically.
-              </p>
+            <div className="rounded-xl border border-border bg-card px-5 py-10 text-center">
+              <FolderOpen className="size-8 text-muted-foreground/20 mx-auto mb-2" />
+              <p className="text-[13px] text-muted-foreground">No project allocations this month.</p>
+              <button onClick={() => setTab('daily')} className="mt-1.5 text-[12px] text-primary underline">
+                Assign employees to sites in Daily Site Log
+              </button>
             </div>
           ) : (
-            <>
-              {/* Per-employee allocation view grouped by cost center */}
-              {Object.entries(grouped).map(([cc, emps]) => {
-                const ccRows = emps.map(emp => {
-                  const empDays = dailyData[emp.id] || {};
-                  const projDays: Record<string, number> = {};
-                  let unassigned = 0;
-                  for (const entry of Object.values(empDays)) {
-                    if (entry.status !== 'P') continue;
-                    if (entry.projectId) projDays[entry.projectId] = (projDays[entry.projectId] || 0) + 1;
-                    else unassigned++;
-                  }
-                  const totalPresent = Object.values(projDays).reduce((s, d) => s + d, 0) + unassigned;
-                  return { emp, projDays, unassigned, totalPresent };
-                }).filter(r => r.totalPresent > 0);
-                if (ccRows.length === 0) return null;
-                return (
-                  <div key={cc} className="rounded-xl border border-border bg-card overflow-hidden">
-                    <div className="px-4 py-2.5 bg-muted/40 border-b border-border">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.12em]">{cc}</span>
-                    </div>
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border bg-muted/10">
-                          <th className="px-4 h-9 text-left text-[11px] font-medium text-muted-foreground">Employee</th>
-                          <th className="px-4 h-9 text-left text-[11px] font-medium text-muted-foreground">Project Breakdown</th>
-                          <th className="px-4 h-9 text-center text-[11px] font-medium text-amber-600">Unassigned</th>
-                          <th className="px-4 h-9 text-center text-[11px] font-medium text-emerald-700">Present Days</th>
-                          <th className="px-4 h-9 text-right text-[11px] font-medium text-muted-foreground">Est. Cost (AED)</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/40">
-                        {ccRows.map(({ emp, projDays, unassigned, totalPresent }) => {
-                          const dailyRate = (emp.totalSalary || (emp.basicSalary + emp.allowances)) / workDays;
-                          const totalCost = totalPresent * dailyRate;
-                          return (
-                            <tr key={emp.id} className="hover:bg-muted/20 transition-colors">
-                              <td className="px-4 py-2.5">
-                                <span className="font-mono text-[12px] font-semibold text-primary mr-2">{emp.empCode}</span>
-                                <span className="text-[12px]">{emp.name}</span>
-                              </td>
-                              <td className="px-4 py-2.5">
-                                <div className="flex items-center gap-1 flex-wrap">
-                                  {Object.entries(projDays).map(([pid, days]) => {
-                                    const proj = projects.find(p => p.id === pid);
-                                    return (
-                                      <span key={pid} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold"
-                                        style={{ background: projColorMap[pid] || '#e2e8f0' }}>
-                                        {proj?.projectCode} · {days}d
-                                      </span>
-                                    );
-                                  })}
-                                  {Object.keys(projDays).length === 0 && (
-                                    <span className="text-[11px] text-muted-foreground italic">All unassigned</span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-4 py-2.5 text-center">
-                                {unassigned > 0
-                                  ? <span className="text-[12px] font-semibold tabular-nums text-amber-600">{unassigned}</span>
-                                  : <span className="text-[11px] text-muted-foreground">—</span>}
-                              </td>
-                              <td className="px-4 py-2.5 text-center text-[13px] font-semibold tabular-nums text-emerald-700">{totalPresent}</td>
-                              <td className="px-4 py-2.5 text-right text-[12px] font-semibold tabular-nums text-primary">{fmt(totalCost)}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                );
-              })}
-
-              {/* Project Cost Summary */}
-              <div className="rounded-xl border border-border bg-card overflow-hidden">
-                <div className="px-4 py-2.5 bg-muted/40 border-b border-border flex items-center gap-2">
-                  <FolderOpen className="size-3.5 text-muted-foreground" />
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.12em]">Project Cost Summary — {MONTHS[month]} {year}</span>
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-border bg-muted/20 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FolderOpen className="size-4 text-muted-foreground" />
+                  <span className="text-[13px] font-semibold">{MONTHS[month]} {year} — Monthly Project Cost</span>
                 </div>
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/10">
-                      <th className="px-4 h-9 text-left text-[11px] font-medium text-muted-foreground">Project</th>
-                      <th className="px-4 h-9 text-center text-[11px] font-medium text-muted-foreground">Employees</th>
-                      <th className="px-4 h-9 text-center text-[11px] font-medium text-muted-foreground">Man-Days</th>
-                      <th className="px-4 h-9 text-right text-[11px] font-medium text-muted-foreground">Labor Cost (AED)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/40">
-                    {dailyProjectSummary.map(({ project, empDays, cost, employees: empList }) => (
-                      <>
-                        <tr key={project.id} className="bg-muted/10">
-                          <td className="px-4 py-2.5">
-                            <div className="flex items-center gap-2">
-                              <span className="w-3 h-3 rounded-sm inline-block shrink-0" style={{ background: projColorMap[project.id] }} />
-                              <span className="font-mono text-[12px] font-semibold text-primary">{project.projectCode}</span>
-                              <span className="text-[11px] text-muted-foreground">{project.projectName}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-2.5 text-center text-[12px] font-semibold tabular-nums">{empList.length}</td>
-                          <td className="px-4 py-2.5 text-center text-[12px] font-bold tabular-nums">{empDays}</td>
-                          <td className="px-4 py-2.5 text-right text-[13px] font-bold tabular-nums text-primary">{fmt(cost)} AED</td>
-                        </tr>
-                        {empList.map(({ emp, days, cost: empCost }) => (
-                          <tr key={emp.id} className="hover:bg-muted/20 transition-colors">
-                            <td className="pl-8 pr-4 py-2 border-l-2 border-primary/20">
-                              <span className="font-mono text-[11px] text-primary/70 mr-2">{emp.empCode}</span>
-                              <span className="text-[12px]">{emp.name}</span>
-                            </td>
-                            <td className="px-4 py-2 text-center" />
-                            <td className="px-4 py-2 text-center text-[11px] tabular-nums text-muted-foreground">{days} days</td>
-                            <td className="px-4 py-2 text-right text-[12px] tabular-nums text-muted-foreground">{fmt(empCost)}</td>
-                          </tr>
-                        ))}
-                      </>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 border-border bg-muted/20">
-                      <td colSpan={2} className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase">Total</td>
-                      <td className="px-4 py-2.5 text-center text-[12px] font-bold tabular-nums">
-                        {dailyProjectSummary.reduce((s, p) => s + p.empDays, 0)}
-                      </td>
-                      <td className="px-4 py-2.5 text-right text-[13px] font-bold tabular-nums text-primary">
-                        {fmt(dailyProjectSummary.reduce((s, p) => s + p.cost, 0))} AED
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
+                <span className="text-[11px] text-muted-foreground">
+                  {dailyProjectSummary.length} project{dailyProjectSummary.length !== 1 ? 's' : ''}
+                </span>
               </div>
-            </>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border bg-muted/10">
+                    <th className="px-5 h-10 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Project</th>
+                    <th className="px-5 h-10 text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Employees</th>
+                    <th className="px-5 h-10 text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Man-Days</th>
+                    <th className="px-5 h-10 text-right text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Monthly Cost (AED)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {dailyProjectSummary.map(({ project, empDays, cost, employees: empList }) => (
+                    <tr key={project.id} className="hover:bg-muted/20 transition-colors">
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-sm shrink-0" style={{ background: projColorMap[project.id] }} />
+                          <span className="font-mono text-[13px] font-bold text-primary">{project.projectCode}</span>
+                          <span className="text-[12px] text-muted-foreground">{project.projectName}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-center text-[13px] font-semibold tabular-nums">{empList.length}</td>
+                      <td className="px-5 py-3.5 text-center text-[13px] font-bold tabular-nums">{empDays}</td>
+                      <td className="px-5 py-3.5 text-right text-[14px] font-bold tabular-nums text-primary">{fmt(cost)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-border bg-muted/20">
+                    <td className="px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase">Total</td>
+                    <td className="px-5 py-3 text-center text-[13px] font-bold tabular-nums">
+                      {new Set(dailyProjectSummary.flatMap(p => p.employees.map(e => e.emp.id))).size}
+                    </td>
+                    <td className="px-5 py-3 text-center text-[13px] font-bold tabular-nums">
+                      {dailyProjectSummary.reduce((s, p) => s + p.empDays, 0)}
+                    </td>
+                    <td className="px-5 py-3 text-right text-[15px] font-bold tabular-nums text-primary">
+                      {fmt(dailyProjectSummary.reduce((s, p) => s + p.cost, 0))}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           )}
+
+          {/* hint */}
+          <p className="text-[11px] text-muted-foreground text-center pb-1">
+            Data auto-synced from Daily Site Log ·{' '}
+            <button onClick={() => setTab('daily')} className="text-primary underline">Edit in Daily Site Log</button>
+          </p>
         </div>
       )}
     </div>
