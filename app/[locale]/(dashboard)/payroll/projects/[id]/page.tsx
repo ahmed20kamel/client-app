@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import {
   ArrowLeft, Loader2, Save, ChevronDown, ChevronUp,
-  FolderOpen, Users, TrendingUp, Banknote, HardHat,
+  FolderOpen, Users, TrendingUp, Banknote, HardHat, CalendarDays,
 } from 'lucide-react';
 
 import { toast } from 'sonner';
@@ -51,13 +51,19 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 interface EmpEntry { employee: { id: string; name: string; empCode: string; costCenter: string }; days: number; hours: number; cost: number }
-interface MonthData { key: string; year: number; month: number; uniqueEmployees: number; totalDays: number; totalHours: number; totalCost: number; employees: EmpEntry[] }
+interface DayBreakdown { calDay: number; headCount: number; totalHours: number; totalCost: number; employees: { id: string; name: string; empCode: string; hours: number; cost: number }[] }
+interface MonthData { key: string; year: number; month: number; uniqueEmployees: number; totalDays: number; totalHours: number; totalCost: number; employees: EmpEntry[]; dailyBreakdown: DayBreakdown[] }
 interface ManpowerData { months: MonthData[]; grandTotalDays: number; grandTotalHours: number; grandTotalCost: number }
 
 function MonthRow({ m }: { m: MonthData }) {
-  const [open, setOpen] = useState(false);
+  const [open,      setOpen]      = useState(false);
+  const [showDaily, setShowDaily] = useState(false);
+
+  const DOW = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
   return (
     <div className="rounded-lg border border-border bg-background overflow-hidden">
+      {/* Month header */}
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/20 transition-colors text-left"
@@ -88,47 +94,121 @@ function MonthRow({ m }: { m: MonthData }) {
       </button>
 
       {open && (
-        <div className="border-t border-border">
-          <table className="w-full text-[12px]">
-            <thead>
-              <tr className="border-b border-border/60 bg-muted/10">
-                <th className="px-4 h-8 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Code</th>
-                <th className="px-4 h-8 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Name</th>
-                <th className="px-4 h-8 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Cost Center</th>
-                <th className="px-4 h-8 text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Days</th>
-                <th className="px-4 h-8 text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Hours</th>
-                <th className="px-4 h-8 text-right text-[10px] font-semibold text-orange-600 uppercase tracking-wide">Rate/Day</th>
-                <th className="px-4 h-8 text-right text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Cost (AED)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/40">
-              {m.employees.map(({ employee: e, days, hours, cost }) => (
-                <tr key={e.id} className="hover:bg-muted/10 transition-colors">
-                  <td className="px-4 py-2 font-mono text-primary font-semibold">{e.empCode}</td>
-                  <td className="px-4 py-2 font-medium">{e.name}</td>
-                  <td className="px-4 py-2 text-muted-foreground">{e.costCenter}</td>
-                  <td className="px-4 py-2 text-center tabular-nums font-semibold">{days}</td>
-                  <td className="px-4 py-2 text-center tabular-nums text-muted-foreground">{hours.toFixed(1)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums font-semibold text-orange-600">
-                    {days > 0 ? fmtDec(cost / days) : '—'}
-                  </td>
-                  <td className="px-4 py-2 text-right tabular-nums font-semibold text-primary">{fmtDec(cost)}</td>
+        <>
+          {/* ── Employee summary table ── */}
+          <div className="border-t border-border">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="border-b border-border/60 bg-muted/10">
+                  <th className="px-4 h-8 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Code</th>
+                  <th className="px-4 h-8 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Name</th>
+                  <th className="px-4 h-8 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Cost Center</th>
+                  <th className="px-4 h-8 text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Days</th>
+                  <th className="px-4 h-8 text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Hours</th>
+                  <th className="px-4 h-8 text-right text-[10px] font-semibold text-orange-600 uppercase tracking-wide">Rate/Day</th>
+                  <th className="px-4 h-8 text-right text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Cost (AED)</th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="border-t border-border bg-muted/20">
-                <td colSpan={3} className="px-4 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Subtotal</td>
-                <td className="px-4 py-2 text-center font-bold tabular-nums">{m.totalDays}</td>
-                <td className="px-4 py-2 text-center font-bold tabular-nums text-muted-foreground">{m.totalHours.toFixed(1)}</td>
-                <td className="px-4 py-2 text-right font-bold tabular-nums text-orange-600">
-                  {m.totalDays > 0 ? fmtDec(m.totalCost / m.totalDays) : '—'}
-                </td>
-                <td className="px-4 py-2 text-right font-bold tabular-nums text-primary">{fmtDec(m.totalCost)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {m.employees.map(({ employee: e, days, hours, cost }) => (
+                  <tr key={e.id} className="hover:bg-muted/10 transition-colors">
+                    <td className="px-4 py-2 font-mono text-primary font-semibold">{e.empCode}</td>
+                    <td className="px-4 py-2 font-medium">{e.name}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{e.costCenter}</td>
+                    <td className="px-4 py-2 text-center tabular-nums font-semibold">{days}</td>
+                    <td className="px-4 py-2 text-center tabular-nums text-muted-foreground">{hours.toFixed(1)}</td>
+                    <td className="px-4 py-2 text-right tabular-nums font-semibold text-orange-600">
+                      {days > 0 ? fmtDec(cost / days) : '—'}
+                    </td>
+                    <td className="px-4 py-2 text-right tabular-nums font-semibold text-primary">{fmtDec(cost)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-border bg-muted/20">
+                  <td colSpan={3} className="px-4 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Subtotal</td>
+                  <td className="px-4 py-2 text-center font-bold tabular-nums">{m.totalDays}</td>
+                  <td className="px-4 py-2 text-center font-bold tabular-nums text-muted-foreground">{m.totalHours.toFixed(1)}</td>
+                  <td className="px-4 py-2 text-right font-bold tabular-nums text-orange-600">
+                    {m.totalDays > 0 ? fmtDec(m.totalCost / m.totalDays) : '—'}
+                  </td>
+                  <td className="px-4 py-2 text-right font-bold tabular-nums text-primary">{fmtDec(m.totalCost)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* ── Daily breakdown toggle ── */}
+          {m.dailyBreakdown?.length > 0 && (
+            <div className="border-t border-border/60">
+              <button
+                onClick={() => setShowDaily(d => !d)}
+                className="w-full px-4 py-2.5 flex items-center gap-2 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/10 transition-colors"
+              >
+                <CalendarDays className="size-3.5 shrink-0" />
+                <span>Daily Cost Breakdown</span>
+                <span className="ml-1 px-1.5 py-0 rounded-full bg-primary/8 text-primary text-[10px] font-bold tabular-nums">
+                  {m.dailyBreakdown.length} days
+                </span>
+                {showDaily
+                  ? <ChevronUp className="size-3.5 ml-auto shrink-0" />
+                  : <ChevronDown className="size-3.5 ml-auto shrink-0" />}
+              </button>
+
+              {showDaily && (
+                <div className="border-t border-border/40">
+                  <table className="w-full text-[12px]">
+                    <thead>
+                      <tr className="bg-muted/10 border-b border-border/60">
+                        <th className="px-4 h-8 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Date</th>
+                        <th className="px-4 h-8 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Crew</th>
+                        <th className="px-4 h-8 text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Workers</th>
+                        <th className="px-4 h-8 text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Hours</th>
+                        <th className="px-4 h-8 text-right text-[10px] font-semibold text-primary uppercase tracking-wide">Cost (AED)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/30">
+                      {m.dailyBreakdown.map(d => {
+                        const date = new Date(m.year, m.month - 1, d.calDay);
+                        return (
+                          <tr key={d.calDay} className="hover:bg-muted/10 transition-colors">
+                            <td className="px-4 py-2.5">
+                              <span className="font-bold tabular-nums text-foreground">{d.calDay}</span>
+                              <span className="text-muted-foreground ml-2 text-[11px]">
+                                {MONTHS[m.month]} · {DOW[date.getDay()]}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2.5">
+                              <div className="flex flex-wrap gap-1">
+                                {d.employees.map(emp => (
+                                  <span key={emp.id}
+                                    className="text-[10px] px-1.5 py-0.5 rounded bg-primary/8 text-primary font-mono font-semibold">
+                                    {emp.empCode}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="px-4 py-2.5 text-center tabular-nums font-semibold">{d.headCount}</td>
+                            <td className="px-4 py-2.5 text-center tabular-nums text-muted-foreground">{d.totalHours.toFixed(0)}h</td>
+                            <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-primary">{fmtDec(d.totalCost)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t border-border bg-muted/20">
+                        <td colSpan={2} className="px-4 py-2 text-[11px] font-semibold text-muted-foreground uppercase">Total</td>
+                        <td className="px-4 py-2 text-center font-bold tabular-nums">{m.totalDays}</td>
+                        <td className="px-4 py-2 text-center font-bold tabular-nums text-muted-foreground">{m.totalHours.toFixed(0)}h</td>
+                        <td className="px-4 py-2 text-right font-bold tabular-nums text-primary">{fmtDec(m.totalCost)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -35,38 +35,54 @@ export async function GET(
     });
 
     type EmpRow = { employee: { id: string; name: string; empCode: string; costCenter: string; totalSalary: number; basicSalary: number; allowances: number }; days: number; hours: number; cost: number };
-    type MonthRow = { year: number; month: number; employees: Record<string, EmpRow> };
+    type DayEmpEntry = { id: string; name: string; empCode: string; hours: number; cost: number };
+    type DayRow = { calDay: number; headCount: number; totalHours: number; totalCost: number; employees: DayEmpEntry[] };
+    type MonthRow = { year: number; month: number; employees: Record<string, EmpRow>; days: Record<number, DayRow> };
 
     const monthMap: Record<string, MonthRow> = {};
 
     for (const e of entries) {
       const { year, month } = e.timesheet;
       const key = `${year}-${String(month).padStart(2, '0')}`;
-      if (!monthMap[key]) monthMap[key] = { year, month, employees: {} };
+      if (!monthMap[key]) monthMap[key] = { year, month, employees: {}, days: {} };
 
       const wd      = workingDays(year, month);
       const salary  = e.employee.totalSalary || (e.employee.basicSalary + e.employee.allowances);
       const dayRate = wd > 0 ? salary / wd : 0;
+      const calDay  = e.day - 300;
+      const hours   = e.hours ?? 8;
 
+      // Per-employee aggregation
       if (!monthMap[key].employees[e.employeeId]) {
         monthMap[key].employees[e.employeeId] = { employee: e.employee, days: 0, hours: 0, cost: 0 };
       }
       monthMap[key].employees[e.employeeId].days++;
-      monthMap[key].employees[e.employeeId].hours += e.hours ?? 8;
+      monthMap[key].employees[e.employeeId].hours += hours;
       monthMap[key].employees[e.employeeId].cost  += dayRate;
+
+      // Per-day aggregation
+      if (!monthMap[key].days[calDay]) {
+        monthMap[key].days[calDay] = { calDay, headCount: 0, totalHours: 0, totalCost: 0, employees: [] };
+      }
+      monthMap[key].days[calDay].headCount++;
+      monthMap[key].days[calDay].totalHours += hours;
+      monthMap[key].days[calDay].totalCost  += dayRate;
+      monthMap[key].days[calDay].employees.push({ id: e.employeeId, name: e.employee.name, empCode: e.employee.empCode, hours, cost: dayRate });
     }
 
     const months = Object.entries(monthMap)
       .sort(([a], [b]) => b.localeCompare(a))
-      .map(([key, { year, month, employees }]) => {
-        const empList = Object.values(employees).sort((a, b) => b.days - a.days);
+      .map(([key, { year, month, employees, days }]) => {
+        const empList   = Object.values(employees).sort((a, b) => b.days - a.days);
+        const dailyBreakdown = Object.values(days).sort((a, b) => a.calDay - b.calDay);
         return {
           key, year, month,
           uniqueEmployees: empList.length,
-          totalDays: empList.reduce((s, e) => s + e.days, 0),
+          totalDays:  empList.reduce((s, e) => s + e.days,  0),
           totalHours: empList.reduce((s, e) => s + e.hours, 0),
-          totalCost: empList.reduce((s, e) => s + e.cost, 0),
+          totalCost:  empList.reduce((s, e) => s + e.cost,  0),
           employees: empList,
+          dailyBreakdown,
         };
       });
 
