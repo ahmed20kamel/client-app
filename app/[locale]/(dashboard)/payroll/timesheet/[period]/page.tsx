@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Save, Loader2, ChevronLeft, ChevronRight, Check, Plus, X, FolderOpen, Settings, Lock } from 'lucide-react';
+import { Save, Loader2, ChevronLeft, ChevronRight, Check, X, FolderOpen, Settings, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -336,18 +336,24 @@ export default function TimesheetPage() {
     return m;
   }, [projects]);
 
-  // Daily site project summary (only Present days)
+  // Daily site project summary (only Present days) — includes per-employee breakdown
   const dailyProjectSummary = useMemo(() => {
-    const map: Record<string, { project: Project; empDays: number; cost: number }> = {};
+    const map: Record<string, { project: Project; empDays: number; cost: number; employees: { emp: Employee; days: number; cost: number }[] }> = {};
     for (const emp of employees) {
       const dailyRate = (emp.totalSalary || (emp.basicSalary + emp.allowances)) / workDays;
+      const projDays: Record<string, number> = {};
       for (const entry of Object.values(dailyData[emp.id] || {})) {
         if (entry.status !== 'P' || !entry.projectId) continue;
-        const proj = projects.find(p => p.id === entry.projectId);
+        projDays[entry.projectId] = (projDays[entry.projectId] || 0) + 1;
+      }
+      for (const [projId, days] of Object.entries(projDays)) {
+        const proj = projects.find(p => p.id === projId);
         if (!proj) continue;
-        if (!map[entry.projectId]) map[entry.projectId] = { project: proj, empDays: 0, cost: 0 };
-        map[entry.projectId].empDays += 1;
-        map[entry.projectId].cost    += dailyRate;
+        if (!map[projId]) map[projId] = { project: proj, empDays: 0, cost: 0, employees: [] };
+        const cost = dailyRate * days;
+        map[projId].empDays += days;
+        map[projId].cost    += cost;
+        map[projId].employees.push({ emp, days, cost });
       }
     }
     return Object.values(map).sort((a, b) => b.cost - a.cost);
@@ -485,7 +491,7 @@ export default function TimesheetPage() {
             <button key={t} onClick={() => setTab(t)}
               className={cn('px-5 py-2.5 text-[12px] font-medium border-b-2 transition-colors',
                 tab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground')}>
-              {t === 'attendance' ? 'Attendance' : t === 'daily' ? 'Daily Site Log' : 'Monthly Allocation'}
+              {t === 'attendance' ? 'Attendance' : t === 'daily' ? 'Daily Site Log' : 'Allocation Summary'}
             </button>
           ))}
         </div>
@@ -919,188 +925,167 @@ export default function TimesheetPage() {
 
       ) : (
 
-        /* ══ PROJECT ALLOCATION TAB ══ */
+        /* ══ ALLOCATION SUMMARY TAB — Auto-computed from Daily Site Log ══ */
         <div className="space-y-3">
 
-          {/* Instructions */}
-          <div className="rounded-xl border border-border bg-card px-5 py-4">
-            <p className="text-[13px] font-medium">Assign each employee's work days to projects</p>
-            <p className="text-[12px] text-muted-foreground mt-1">
-              The total allocated days per employee should equal their net work days. This data is used to calculate each project's labor cost.
-            </p>
+          {/* Auto-sync notice */}
+          <div className="rounded-xl border border-blue-200 bg-blue-50/60 px-5 py-4 flex items-start gap-3">
+            <div className="mt-0.5 p-1.5 rounded-lg bg-blue-100 shrink-0">
+              <FolderOpen className="size-4 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-[13px] font-semibold text-blue-900">Auto-computed from Daily Site Log</p>
+              <p className="text-[12px] text-blue-700 mt-0.5">
+                This summary is automatically derived from your Daily Site Log entries — no manual input needed.
+                To update allocations, go to the{' '}
+                <button onClick={() => setTab('daily')} className="underline font-semibold hover:text-blue-900">Daily Site Log</button>{' '}
+                tab and assign each employee's days to the correct site.
+              </p>
+            </div>
           </div>
 
-          {/* Allocation table */}
-          {Object.entries(grouped).map(([cc, emps]) => (
-            <div key={cc} className="rounded-xl border border-border bg-card overflow-hidden">
-              <div className="px-4 py-2.5 bg-muted/40 border-b border-border">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.12em]">{cc}</span>
-              </div>
-              <div className="divide-y divide-border/40">
-                {emps.map((emp) => {
-                  const net        = Math.max(0, workDays - (rows[emp.id]?.absent??0) - (rows[emp.id]?.sick??0));
-                  const empAllocs  = allocs[emp.id] || [];
-                  const allocTotal = empAllocs.reduce((s, a) => s + (a.days || 0), 0);
-                  const diff       = net - allocTotal;
-                  return (
-                    <div key={emp.id} className="px-4 py-3 flex items-start gap-4">
-                      {/* Employee info */}
-                      <div className="w-48 shrink-0 pt-1">
-                        <div className="font-mono text-[12px] font-semibold text-primary">{emp.empCode}</div>
-                        <div className="text-[12px] text-foreground truncate">{emp.name}</div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5">Net days: <strong>{net}</strong></div>
-                      </div>
-
-                      {/* Allocations */}
-                      <div className="flex-1 space-y-2">
-                        {empAllocs.length === 0 && (
-                          <p className="text-[12px] text-muted-foreground italic">No projects assigned yet</p>
-                        )}
-                        {empAllocs.map((a, idx) => {
-                          const proj      = projects.find(p => p.id === a.projectId);
-                          const daysInMon = new Date(year, month, 0).getDate();
-                          const cost      = a.days > 0 ? ((emp.totalSalary || emp.basicSalary + emp.allowances) / workDays) * a.days : 0;
+          {dailyProjectSummary.length === 0 ? (
+            <div className="rounded-xl border border-border bg-card px-5 py-12 text-center">
+              <FolderOpen className="size-8 text-muted-foreground/20 mx-auto mb-3" />
+              <p className="text-[13px] font-medium text-muted-foreground">No project allocations yet</p>
+              <p className="text-[12px] text-muted-foreground mt-1">
+                Assign employees to sites in the{' '}
+                <button onClick={() => setTab('daily')} className="text-primary underline">Daily Site Log</button>{' '}
+                tab and this summary will populate automatically.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Per-employee allocation view grouped by cost center */}
+              {Object.entries(grouped).map(([cc, emps]) => {
+                const ccRows = emps.map(emp => {
+                  const empDays = dailyData[emp.id] || {};
+                  const projDays: Record<string, number> = {};
+                  let unassigned = 0;
+                  for (const entry of Object.values(empDays)) {
+                    if (entry.status !== 'P') continue;
+                    if (entry.projectId) projDays[entry.projectId] = (projDays[entry.projectId] || 0) + 1;
+                    else unassigned++;
+                  }
+                  const totalPresent = Object.values(projDays).reduce((s, d) => s + d, 0) + unassigned;
+                  return { emp, projDays, unassigned, totalPresent };
+                }).filter(r => r.totalPresent > 0);
+                if (ccRows.length === 0) return null;
+                return (
+                  <div key={cc} className="rounded-xl border border-border bg-card overflow-hidden">
+                    <div className="px-4 py-2.5 bg-muted/40 border-b border-border">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.12em]">{cc}</span>
+                    </div>
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/10">
+                          <th className="px-4 h-9 text-left text-[11px] font-medium text-muted-foreground">Employee</th>
+                          <th className="px-4 h-9 text-left text-[11px] font-medium text-muted-foreground">Project Breakdown</th>
+                          <th className="px-4 h-9 text-center text-[11px] font-medium text-amber-600">Unassigned</th>
+                          <th className="px-4 h-9 text-center text-[11px] font-medium text-emerald-700">Present Days</th>
+                          <th className="px-4 h-9 text-right text-[11px] font-medium text-muted-foreground">Est. Cost (AED)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/40">
+                        {ccRows.map(({ emp, projDays, unassigned, totalPresent }) => {
+                          const dailyRate = (emp.totalSalary || (emp.basicSalary + emp.allowances)) / workDays;
+                          const totalCost = totalPresent * dailyRate;
                           return (
-                            <div key={idx} className="flex items-center gap-2 flex-wrap">
-                              <select
-                                value={a.projectId}
-                                onChange={e => setAlloc(emp.id, idx, { projectId: e.target.value })}
-                                className="h-8 flex-1 max-w-[220px] border border-border rounded-md px-2 text-[12px] bg-background focus:outline-none focus:ring-2 focus:ring-primary/20">
-                                <option value="">— Select project —</option>
-                                {projects.map(p => <option key={p.id} value={p.id}>{p.projectCode} — {p.projectName}</option>)}
-                              </select>
-
-                              {/* Day range */}
-                              <div className="flex items-center gap-1.5 bg-muted/30 border border-border/60 rounded-lg px-2.5 py-1">
-                                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Day</span>
-                                <input
-                                  type="number" min="1" max={daysInMon} step="1"
-                                  value={a.fromDay || ''}
-                                  placeholder="1"
-                                  onChange={e => setAlloc(emp.id, idx, { fromDay: Math.max(1, parseInt(e.target.value)||1) })}
-                                  className="w-10 h-6 text-center text-[12px] border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-primary/30 tabular-nums"
-                                />
-                                <span className="text-[11px] text-muted-foreground">→</span>
-                                <input
-                                  type="number" min="1" max={daysInMon} step="1"
-                                  value={a.toDay || ''}
-                                  placeholder={String(workDays)}
-                                  onChange={e => setAlloc(emp.id, idx, { toDay: Math.min(daysInMon, parseInt(e.target.value)||workDays) })}
-                                  className="w-10 h-6 text-center text-[12px] border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-primary/30 tabular-nums"
-                                />
-                              </div>
-
-                              {/* Computed days badge */}
-                              {a.fromDay > 0 && a.toDay >= a.fromDay ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-semibold tabular-nums">
-                                  {a.days} days
-                                  {a.fromDay && a.toDay && (
-                                    <span className="text-[10px] text-primary/60 font-normal">
-                                      ({dayLabel(year, month, a.fromDay)} – {dayLabel(year, month, a.toDay)})
-                                    </span>
+                            <tr key={emp.id} className="hover:bg-muted/20 transition-colors">
+                              <td className="px-4 py-2.5">
+                                <span className="font-mono text-[12px] font-semibold text-primary mr-2">{emp.empCode}</span>
+                                <span className="text-[12px]">{emp.name}</span>
+                              </td>
+                              <td className="px-4 py-2.5">
+                                <div className="flex items-center gap-1 flex-wrap">
+                                  {Object.entries(projDays).map(([pid, days]) => {
+                                    const proj = projects.find(p => p.id === pid);
+                                    return (
+                                      <span key={pid} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold"
+                                        style={{ background: projColorMap[pid] || '#e2e8f0' }}>
+                                        {proj?.projectCode} · {days}d
+                                      </span>
+                                    );
+                                  })}
+                                  {Object.keys(projDays).length === 0 && (
+                                    <span className="text-[11px] text-muted-foreground italic">All unassigned</span>
                                   )}
-                                </span>
-                              ) : (
-                                <input
-                                  type="number" min="0" max={net} step="1"
-                                  value={a.days || ''}
-                                  placeholder="days"
-                                  onChange={e => setAlloc(emp.id, idx, { days: parseInt(e.target.value)||0 })}
-                                  className="w-14 h-8 text-center text-[12px] border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 tabular-nums"
-                                />
-                              )}
-
-                              {proj && cost > 0 && (
-                                <span className="text-[11px] text-muted-foreground">= {fmt(cost)} AED</span>
-                              )}
-
-                              <button onClick={() => removeAlloc(emp.id, idx)}
-                                className="p-1 rounded-md hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors">
-                                <X className="size-3.5" />
-                              </button>
-                            </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-2.5 text-center">
+                                {unassigned > 0
+                                  ? <span className="text-[12px] font-semibold tabular-nums text-amber-600">{unassigned}</span>
+                                  : <span className="text-[11px] text-muted-foreground">—</span>}
+                              </td>
+                              <td className="px-4 py-2.5 text-center text-[13px] font-semibold tabular-nums text-emerald-700">{totalPresent}</td>
+                              <td className="px-4 py-2.5 text-right text-[12px] font-semibold tabular-nums text-primary">{fmt(totalCost)}</td>
+                            </tr>
                           );
                         })}
-                        <button onClick={() => addAlloc(emp.id)}
-                          className="flex items-center gap-1 text-[12px] text-primary hover:text-primary/80 transition-colors mt-1">
-                          <Plus className="size-3.5" /> Add project
-                        </button>
-                      </div>
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })}
 
-                      {/* Balance indicator */}
-                      <div className={cn('text-[12px] font-semibold tabular-nums pt-1 min-w-20 text-right',
-                        diff === 0 ? 'text-emerald-600' : diff > 0 ? 'text-amber-600' : 'text-red-600')}>
-                        {allocTotal}/{net} days
-                        {diff !== 0 && <div className="text-[10px] font-normal">{diff > 0 ? `${diff} unassigned` : `${Math.abs(diff)} over`}</div>}
-                        {diff === 0 && allocTotal > 0 && <div className="text-[10px] font-normal text-emerald-600">✓ balanced</div>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-
-          {/* Project Cost Summary */}
-          {projectCosts.length > 0 && (
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
-              <div className="px-4 py-2.5 bg-muted/40 border-b border-border flex items-center gap-2">
-                <FolderOpen className="size-3.5 text-muted-foreground" />
-                <span className="text-[11px] font-semibold uppercase tracking-[0.12em]">Project Cost Summary — {MONTHS[month]} {year}</span>
-              </div>
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border bg-muted/10">
-                    <th className="px-4 h-9 text-left text-[11px] font-medium text-muted-foreground">Project</th>
-                    <th className="px-4 h-9 text-center text-[11px] font-medium text-muted-foreground">Employees</th>
-                    <th className="px-4 h-9 text-center text-[11px] font-medium text-muted-foreground">Total Days</th>
-                    <th className="px-4 h-9 text-right text-[11px] font-medium text-muted-foreground">Labor Cost (AED)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/40">
-                  {projectCosts.map(({ project, totalDays, totalCost, employees: empList }) => (
-                    <>
-                      <tr key={project.id} className="bg-muted/10">
-                        <td className="px-4 py-2.5" colSpan={2}>
-                          <div className="font-mono text-[12px] font-semibold text-primary">{project.projectCode}</div>
-                          <div className="text-[11px] text-muted-foreground">{project.projectName}</div>
-                        </td>
-                        <td className="px-4 py-2.5 text-center text-[12px] font-bold tabular-nums">{totalDays} days</td>
-                        <td className="px-4 py-2.5 text-right text-[13px] font-bold tabular-nums text-primary">{fmt(totalCost)} AED</td>
-                      </tr>
-                      {empList.map(({ emp, days, cost, fromDay, toDay }) => (
-                        <tr key={emp.id} className="hover:bg-muted/20 transition-colors">
-                          <td className="pl-8 pr-4 py-2 border-l-2 border-primary/20">
-                            <span className="font-mono text-[11px] text-primary/70 mr-2">{emp.empCode}</span>
-                            <span className="text-[12px]">{emp.name}</span>
+              {/* Project Cost Summary */}
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
+                <div className="px-4 py-2.5 bg-muted/40 border-b border-border flex items-center gap-2">
+                  <FolderOpen className="size-3.5 text-muted-foreground" />
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.12em]">Project Cost Summary — {MONTHS[month]} {year}</span>
+                </div>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/10">
+                      <th className="px-4 h-9 text-left text-[11px] font-medium text-muted-foreground">Project</th>
+                      <th className="px-4 h-9 text-center text-[11px] font-medium text-muted-foreground">Employees</th>
+                      <th className="px-4 h-9 text-center text-[11px] font-medium text-muted-foreground">Man-Days</th>
+                      <th className="px-4 h-9 text-right text-[11px] font-medium text-muted-foreground">Labor Cost (AED)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {dailyProjectSummary.map(({ project, empDays, cost, employees: empList }) => (
+                      <>
+                        <tr key={project.id} className="bg-muted/10">
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center gap-2">
+                              <span className="w-3 h-3 rounded-sm inline-block shrink-0" style={{ background: projColorMap[project.id] }} />
+                              <span className="font-mono text-[12px] font-semibold text-primary">{project.projectCode}</span>
+                              <span className="text-[11px] text-muted-foreground">{project.projectName}</span>
+                            </div>
                           </td>
-                          <td className="px-4 py-2 text-center">
-                            {fromDay > 0 && toDay > 0 ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
-                                {dayLabel(year, month, fromDay)} → {dayLabel(year, month, toDay)}
-                              </span>
-                            ) : <span className="text-[11px] text-muted-foreground">—</span>}
-                          </td>
-                          <td className="px-4 py-2 text-center text-[11px] tabular-nums text-muted-foreground">{days} days</td>
-                          <td className="px-4 py-2 text-right text-[12px] tabular-nums text-muted-foreground">{fmt(cost)}</td>
+                          <td className="px-4 py-2.5 text-center text-[12px] font-semibold tabular-nums">{empList.length}</td>
+                          <td className="px-4 py-2.5 text-center text-[12px] font-bold tabular-nums">{empDays}</td>
+                          <td className="px-4 py-2.5 text-right text-[13px] font-bold tabular-nums text-primary">{fmt(cost)} AED</td>
                         </tr>
-                      ))}
-                    </>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-border bg-muted/20">
-                    <td colSpan={2} className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase">Total</td>
-                    <td className="px-4 py-2.5 text-center text-[12px] font-bold tabular-nums">
-                      {projectCosts.reduce((s, p) => s + p.totalDays, 0)}
-                    </td>
-                    <td className="px-4 py-2.5 text-right text-[13px] font-bold tabular-nums text-primary">
-                      {fmt(projectCosts.reduce((s, p) => s + p.totalCost, 0))} AED
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+                        {empList.map(({ emp, days, cost: empCost }) => (
+                          <tr key={emp.id} className="hover:bg-muted/20 transition-colors">
+                            <td className="pl-8 pr-4 py-2 border-l-2 border-primary/20">
+                              <span className="font-mono text-[11px] text-primary/70 mr-2">{emp.empCode}</span>
+                              <span className="text-[12px]">{emp.name}</span>
+                            </td>
+                            <td className="px-4 py-2 text-center" />
+                            <td className="px-4 py-2 text-center text-[11px] tabular-nums text-muted-foreground">{days} days</td>
+                            <td className="px-4 py-2 text-right text-[12px] tabular-nums text-muted-foreground">{fmt(empCost)}</td>
+                          </tr>
+                        ))}
+                      </>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-border bg-muted/20">
+                      <td colSpan={2} className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase">Total</td>
+                      <td className="px-4 py-2.5 text-center text-[12px] font-bold tabular-nums">
+                        {dailyProjectSummary.reduce((s, p) => s + p.empDays, 0)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-[13px] font-bold tabular-nums text-primary">
+                        {fmt(dailyProjectSummary.reduce((s, p) => s + p.cost, 0))} AED
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </>
           )}
         </div>
       )}
