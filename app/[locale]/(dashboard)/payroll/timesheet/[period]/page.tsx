@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useRouter } from 'next/navigation';
 import { Save, Loader2, ChevronLeft, ChevronRight, Check, X, FolderOpen, Settings, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -1083,45 +1084,55 @@ export default function TimesheetPage() {
         </div>
       )}
 
-      {/* ── Fill all fixed dropdown (escapes overflow containers) ── */}
-      {fillMenu && (
-        <div
-          style={{
-            position: 'fixed',
-            left:  fillMenu.x,
-            top:   fillMenu.y,
-            transform: fillMenu.above ? 'translateY(-100%)' : undefined,
-            zIndex: 9999,
-          }}
-          className="bg-card border border-border rounded-lg shadow-2xl p-1 min-w-48 max-h-80 overflow-y-auto"
-          onClick={e => e.stopPropagation()}
-        >
-          {/* Hours per day */}
-          <div className="flex items-center gap-2 px-2 py-1.5 mb-1 border-b border-border sticky top-0 bg-card">
-            <span className="text-[10px] text-muted-foreground whitespace-nowrap flex-1">Hours / day</span>
-            <input
-              type="number" min="1" max="24" step="0.5"
-              value={fillHours}
-              onChange={e => setFillHours(parseFloat(e.target.value) || 8)}
-              onClick={e => e.stopPropagation()}
-              className="w-14 h-6 text-center text-[12px] font-bold border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-primary/30 tabular-nums"
-            />
-          </div>
-          {projects.map(p => (
-            <button key={p.id}
-              onClick={() => { fillAll(fillMenu.empId, p.id); setFillMenu(null); }}
-              className="flex items-center gap-2 w-full text-left px-2 py-1.5 text-[11px] hover:bg-muted/60 rounded transition-colors">
-              <span className="w-3 h-3 rounded-sm inline-block shrink-0" style={{ background: projColorMap[p.id] }} />
-              <span className="font-mono font-semibold text-primary">{p.projectCode}</span>
-              <span className="text-muted-foreground truncate">{p.projectName}</span>
+      {/* ── Fill all portal dropdown (rendered in document.body) ── */}
+      {fillMenu && createPortal(
+        <>
+          {/* backdrop — closes on outside click */}
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+            onClick={() => setFillMenu(null)}
+          />
+          <div
+            style={{
+              position: 'fixed',
+              left:      fillMenu.x,
+              top:       fillMenu.y,
+              transform: fillMenu.above ? 'translateY(-100%)' : undefined,
+              zIndex:    9999,
+              minWidth:  200,
+              maxHeight: 340,
+            }}
+            className="bg-card border border-border rounded-lg shadow-2xl p-1 overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Hours per day */}
+            <div className="flex items-center gap-2 px-2 py-1.5 mb-1 border-b border-border sticky top-0 bg-card">
+              <span className="text-[10px] text-muted-foreground whitespace-nowrap flex-1">Hours / day</span>
+              <input
+                type="number" min="1" max="24" step="0.5"
+                value={fillHours}
+                onChange={e => setFillHours(parseFloat(e.target.value) || 8)}
+                onClick={e => e.stopPropagation()}
+                className="w-14 h-6 text-center text-[12px] font-bold border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-primary/30 tabular-nums"
+              />
+            </div>
+            {projects.map(p => (
+              <button key={p.id}
+                onClick={() => { fillAll(fillMenu.empId, p.id); setFillMenu(null); }}
+                className="flex items-center gap-2 w-full text-left px-2 py-1.5 text-[11px] hover:bg-muted/60 rounded transition-colors">
+                <span className="w-3 h-3 rounded-sm inline-block shrink-0" style={{ background: projColorMap[p.id] }} />
+                <span className="font-mono font-semibold text-primary">{p.projectCode}</span>
+                <span className="text-muted-foreground truncate">{p.projectName}</span>
+              </button>
+            ))}
+            <button
+              onClick={() => { fillAll(fillMenu.empId, ''); setFillMenu(null); }}
+              className="flex items-center gap-2 w-full text-left px-2 py-1.5 text-[11px] text-muted-foreground hover:bg-muted/60 rounded transition-colors border-t border-border mt-1 pt-1">
+              Clear all
             </button>
-          ))}
-          <button
-            onClick={() => { fillAll(fillMenu.empId, ''); setFillMenu(null); }}
-            className="flex items-center gap-2 w-full text-left px-2 py-1.5 text-[11px] text-muted-foreground hover:bg-muted/60 rounded transition-colors border-t border-border mt-1 pt-1">
-            Clear all
-          </button>
-        </div>
+          </div>
+        </>,
+        document.body
       )}
     </div>
   );
