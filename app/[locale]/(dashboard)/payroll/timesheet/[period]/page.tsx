@@ -1013,8 +1013,16 @@ export default function TimesheetPage() {
                         <span className="font-semibold tabular-nums">{totalHours}h</span>
                       </div>
                       <div className="flex justify-between items-center pt-2 mt-1 border-t border-border/60">
-                        <span className="text-[11px] text-muted-foreground">Cost</span>
+                        <span className="text-[11px] text-muted-foreground">Actual</span>
                         <span className="text-[15px] font-bold tabular-nums text-primary">{fmt(cost)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="text-muted-foreground">Avg/worker</span>
+                        <span className="font-semibold tabular-nums text-muted-foreground">{fmt(headCount > 0 ? cost / headCount : 0)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="text-muted-foreground">Avg/hour</span>
+                        <span className="font-semibold tabular-nums text-muted-foreground">{fmt(totalHours > 0 ? cost / totalHours : 0)}</span>
                       </div>
                     </div>
                   </div>

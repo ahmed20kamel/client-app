@@ -50,9 +50,9 @@ export async function GET(
       const salary     = e.employee.totalSalary || (e.employee.basicSalary + e.employee.allowances);
       const hpd        = e.employee.hoursPerDay || 8;
       const hourlyRate = calDays > 0 ? salary / calDays / hpd : 0;
-      const dayRate    = hourlyRate * hours; // actual hours worked × hourly rate
-      const calDay  = e.day - 300;
-      const hours   = e.hours ?? 8;
+      const calDay     = e.day - 300;
+      const hours      = e.hours ?? 8;
+      const dayRate    = hourlyRate * hours;
 
       // Per-employee aggregation
       if (!monthMap[key].employees[e.employeeId]) {
