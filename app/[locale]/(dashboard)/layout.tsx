@@ -80,6 +80,17 @@ export default async function DashboardLayout({
       ],
     },
     {
+      label: 'Procurement',
+      items: [
+        { href: `/${locale}/procurement`,     label: 'Overview',         icon: 'LayoutDashboard', perm: null },
+        { href: `/${locale}/procurement/requests`,   label: 'PR Requests',      icon: 'FileText',        perm: null },
+        { href: `/${locale}/procurement/quotations`, label: 'Quotations',       icon: 'FileSearch',      perm: null },
+        { href: `/${locale}/procurement/receipts`,   label: 'Goods Receipts',   icon: 'Truck',           perm: null },
+        { href: `/${locale}/procurement/invoices`,   label: 'Vendor Invoices',  icon: 'Receipt',         perm: null },
+        { href: `/${locale}/procurement/payments`,   label: 'Payments',         icon: 'CreditCard',      perm: null },
+      ],
+    },
+    {
       label: 'Finance',
       items: [
         { href: `/${locale}/payments`, label: t('navigation.payments'), icon: 'CreditCard', perm: 'page.payments' },

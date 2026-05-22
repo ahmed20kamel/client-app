@@ -55,6 +55,11 @@ model User {
   createdClients         Client[]             @relation("ClientCreator")
   createdTaxPayments     TaxInvoicePayment[]  @relation("TaxPaymentCreator")
   createdWorkOrders      WorkOrder[]          @relation("WorkOrderCreator")
+  requestedPRs           PurchaseRequest[]    @relation("PRRequester")
+  approvedPRs            PurchaseRequest[]    @relation("PRApprover")
+  receivedGRNs           GoodsReceipt[]       @relation("GRNReceiver")
+  createdVendorInvoices  VendorInvoice[]      @relation("VendorInvoiceCreator")
+  procurementPayments    ProcurementPayment[] @relation("ProcurementPaymentCreator")
 }
 
 model Role {
@@ -540,10 +545,14 @@ model Product {
   createdBy       User             @relation("ProductCreator", fields: [createdById], references: [id])
   stockMovements  StockMovement[]
   suppliers       ProductSupplier[]
-  quotationItems     QuotationItem[]
-  purchaseOrderItems PurchaseOrderItem[]
-  taxInvoiceItems    TaxInvoiceItem[]
-  deliveryNoteItems  DeliveryNoteItem[]
+  quotationItems         QuotationItem[]
+  purchaseOrderItems     PurchaseOrderItem[]
+  taxInvoiceItems        TaxInvoiceItem[]
+  deliveryNoteItems      DeliveryNoteItem[]
+  purchaseRequestItems   PurchaseRequestItem[]
+  supplierQuotationItems SupplierQuotationItem[]
+  goodsReceiptItems      GoodsReceiptItem[]
+  vendorInvoiceItems     VendorInvoiceItem[]
 
   @@index([categoryId])
   @@index([createdById])
@@ -583,12 +592,20 @@ model Supplier {
   email         String?
   address       String?
   notes         String?
+  trn           String?
+  website       String?
+  bankName      String?
+  iban          String?
+  category      String?
   status        String   @default("ACTIVE") // ACTIVE, INACTIVE
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  products        ProductSupplier[]
-  purchaseOrders  PurchaseOrder[]
+  products             ProductSupplier[]
+  purchaseOrders       PurchaseOrder[]
+  supplierQuotations   SupplierQuotation[]
+  vendorInvoices       VendorInvoice[]
+  procurementPayments  ProcurementPayment[]
 
   @@index([status])
   @@index([createdAt])
@@ -878,36 +895,43 @@ model DeliveryNoteItem {
 // ==========================================
 
 model PurchaseOrder {
-  id              String              @id @default(uuid())
-  poNumber        String              @unique
-  supplierId      String
-  subject         String?
-  notes           String?
-  terms           String?
-  expectedDate    DateTime?
-  subtotal        Float               @default(0)
-  discountPercent Float               @default(0)
-  discountAmount  Float               @default(0)
-  taxPercent      Float               @default(5)
-  taxAmount       Float               @default(0)
-  total           Float               @default(0)
-  status          String              @default("DRAFT") // DRAFT, SENT, CONFIRMED, PARTIALLY_RECEIVED, RECEIVED, CANCELLED
-  sentAt          DateTime?
-  confirmedAt     DateTime?
-  receivedAt      DateTime?
-  createdById     String
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  id                  String              @id @default(uuid())
+  poNumber            String              @unique
+  supplierId          String
+  purchaseRequestId   String?
+  supplierQuotationId String?             @unique
+  subject             String?
+  notes               String?
+  terms               String?
+  expectedDate        DateTime?
+  subtotal            Float               @default(0)
+  discountPercent     Float               @default(0)
+  discountAmount      Float               @default(0)
+  taxPercent          Float               @default(5)
+  taxAmount           Float               @default(0)
+  total               Float               @default(0)
+  status              String              @default("DRAFT") // DRAFT, SENT, CONFIRMED, PARTIALLY_RECEIVED, RECEIVED, CANCELLED
+  sentAt              DateTime?
+  confirmedAt         DateTime?
+  receivedAt          DateTime?
+  createdById         String
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
-  supplier        Supplier            @relation(fields: [supplierId], references: [id])
-  createdBy       User                @relation("PurchaseOrderCreator", fields: [createdById], references: [id])
-  items           PurchaseOrderItem[]
+  supplier            Supplier            @relation(fields: [supplierId], references: [id])
+  createdBy           User                @relation("PurchaseOrderCreator", fields: [createdById], references: [id])
+  purchaseRequest     PurchaseRequest?    @relation(fields: [purchaseRequestId], references: [id])
+  supplierQuotation   SupplierQuotation?  @relation(fields: [supplierQuotationId], references: [id])
+  items               PurchaseOrderItem[]
+  goodsReceipts       GoodsReceipt[]
+  vendorInvoices      VendorInvoice[]
 
   @@index([supplierId])
   @@index([createdById])
   @@index([status])
   @@index([createdAt])
   @@index([poNumber])
+  @@index([purchaseRequestId])
 }
 
 model PurchaseOrderItem {
@@ -921,11 +945,241 @@ model PurchaseOrderItem {
   total           Float         @default(0)
   sortOrder       Int           @default(0)
 
-  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-  product         Product?      @relation(fields: [productId], references: [id])
+  purchaseOrder      PurchaseOrder      @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product            Product?           @relation(fields: [productId], references: [id])
+  goodsReceiptItems  GoodsReceiptItem[]
+  vendorInvoiceItems VendorInvoiceItem[]
 
   @@index([purchaseOrderId])
   @@index([productId])
+}
+
+// ==========================================
+// Procurement Cycle
+// ==========================================
+
+model PurchaseRequest {
+  id              String                @id @default(uuid())
+  prNumber        String                @unique
+  title           String
+  description     String?
+  requiredDate    DateTime?
+  projectRef      String?
+  status          String                @default("DRAFT")
+  notes           String?
+  rejectionReason String?
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  requestedById   String
+  approvedById    String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  requestedBy     User                  @relation("PRRequester", fields: [requestedById], references: [id])
+  approvedBy      User?                 @relation("PRApprover", fields: [approvedById], references: [id])
+  items           PurchaseRequestItem[]
+  supplierQuotes  SupplierQuotation[]
+  purchaseOrders  PurchaseOrder[]
+
+  @@index([requestedById])
+  @@index([approvedById])
+  @@index([status])
+  @@index([createdAt])
+  @@index([prNumber])
+}
+
+model PurchaseRequestItem {
+  id                String                @id @default(uuid())
+  purchaseRequestId String
+  productId         String?
+  description       String
+  quantity          Float                 @default(1)
+  unit              String?
+  estimatedPrice    Float?
+  notes             String?
+  sortOrder         Int                   @default(0)
+
+  purchaseRequest   PurchaseRequest       @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+  product           Product?              @relation(fields: [productId], references: [id])
+  quotationItems    SupplierQuotationItem[]
+
+  @@index([purchaseRequestId])
+  @@index([productId])
+}
+
+model SupplierQuotation {
+  id                String                  @id @default(uuid())
+  sqNumber          String                  @unique
+  purchaseRequestId String
+  supplierId        String
+  validUntil        DateTime?
+  notes             String?
+  paymentTerms      String?
+  deliveryDays      Int?
+  subtotal          Float                   @default(0)
+  taxPercent        Float                   @default(5)
+  taxAmount         Float                   @default(0)
+  total             Float                   @default(0)
+  status            String                  @default("RECEIVED")
+  receivedAt        DateTime                @default(now())
+  acceptedAt        DateTime?
+  rejectedAt        DateTime?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  purchaseRequest   PurchaseRequest         @relation(fields: [purchaseRequestId], references: [id])
+  supplier          Supplier                @relation(fields: [supplierId], references: [id])
+  items             SupplierQuotationItem[]
+  purchaseOrder     PurchaseOrder?
+
+  @@index([purchaseRequestId])
+  @@index([supplierId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([sqNumber])
+}
+
+model SupplierQuotationItem {
+  id                    String               @id @default(uuid())
+  supplierQuotationId   String
+  purchaseRequestItemId String?
+  productId             String?
+  description           String
+  quantity              Float                @default(1)
+  unit                  String?
+  unitPrice             Float                @default(0)
+  total                 Float                @default(0)
+  sortOrder             Int                  @default(0)
+
+  supplierQuotation     SupplierQuotation    @relation(fields: [supplierQuotationId], references: [id], onDelete: Cascade)
+  purchaseRequestItem   PurchaseRequestItem? @relation(fields: [purchaseRequestItemId], references: [id])
+  product               Product?             @relation(fields: [productId], references: [id])
+
+  @@index([supplierQuotationId])
+  @@index([purchaseRequestItemId])
+}
+
+model GoodsReceipt {
+  id              String             @id @default(uuid())
+  grnNumber       String             @unique
+  purchaseOrderId String
+  notes           String?
+  status          String             @default("PENDING")
+  receivedAt      DateTime?
+  receivedById    String
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  purchaseOrder   PurchaseOrder      @relation(fields: [purchaseOrderId], references: [id])
+  receivedBy      User               @relation("GRNReceiver", fields: [receivedById], references: [id])
+  items           GoodsReceiptItem[]
+
+  @@index([purchaseOrderId])
+  @@index([receivedById])
+  @@index([status])
+  @@index([createdAt])
+  @@index([grnNumber])
+}
+
+model GoodsReceiptItem {
+  id                  String             @id @default(uuid())
+  goodsReceiptId      String
+  purchaseOrderItemId String?
+  productId           String?
+  description         String
+  orderedQty          Float              @default(0)
+  receivedQty         Float              @default(0)
+  unit                String?
+  notes               String?
+  sortOrder           Int                @default(0)
+
+  goodsReceipt        GoodsReceipt       @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  purchaseOrderItem   PurchaseOrderItem? @relation(fields: [purchaseOrderItemId], references: [id])
+  product             Product?           @relation(fields: [productId], references: [id])
+
+  @@index([goodsReceiptId])
+  @@index([purchaseOrderItemId])
+}
+
+model VendorInvoice {
+  id              String               @id @default(uuid())
+  ourRef          String               @unique
+  vendorInvoiceNo String?
+  purchaseOrderId String
+  supplierId      String
+  invoiceDate     DateTime
+  dueDate         DateTime?
+  subtotal        Float                @default(0)
+  taxPercent      Float                @default(5)
+  taxAmount       Float                @default(0)
+  total           Float                @default(0)
+  paidAmount      Float                @default(0)
+  notes           String?
+  status          String               @default("RECEIVED")
+  matchedAt       DateTime?
+  approvedAt      DateTime?
+  createdById     String
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  purchaseOrder   PurchaseOrder        @relation(fields: [purchaseOrderId], references: [id])
+  supplier        Supplier             @relation(fields: [supplierId], references: [id])
+  createdBy       User                 @relation("VendorInvoiceCreator", fields: [createdById], references: [id])
+  items           VendorInvoiceItem[]
+  payments        ProcurementPayment[]
+
+  @@index([purchaseOrderId])
+  @@index([supplierId])
+  @@index([createdById])
+  @@index([status])
+  @@index([createdAt])
+  @@index([ourRef])
+}
+
+model VendorInvoiceItem {
+  id                  String             @id @default(uuid())
+  vendorInvoiceId     String
+  purchaseOrderItemId String?
+  productId           String?
+  description         String
+  quantity            Float              @default(1)
+  unit                String?
+  unitPrice           Float              @default(0)
+  total               Float              @default(0)
+  sortOrder           Int                @default(0)
+
+  vendorInvoice       VendorInvoice      @relation(fields: [vendorInvoiceId], references: [id], onDelete: Cascade)
+  purchaseOrderItem   PurchaseOrderItem? @relation(fields: [purchaseOrderItemId], references: [id])
+  product             Product?           @relation(fields: [productId], references: [id])
+
+  @@index([vendorInvoiceId])
+  @@index([purchaseOrderItemId])
+}
+
+model ProcurementPayment {
+  id              String        @id @default(uuid())
+  vendorInvoiceId String
+  supplierId      String
+  amount          Float
+  method          String        @default("Bank Transfer")
+  paymentDate     DateTime
+  reference       String?
+  notes           String?
+  status          String        @default("PENDING")
+  createdById     String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  vendorInvoice   VendorInvoice @relation(fields: [vendorInvoiceId], references: [id])
+  supplier        Supplier      @relation(fields: [supplierId], references: [id])
+  createdBy       User          @relation("ProcurementPaymentCreator", fields: [createdById], references: [id])
+
+  @@index([vendorInvoiceId])
+  @@index([supplierId])
+  @@index([createdById])
+  @@index([status])
+  @@index([createdAt])
 }
 
 // ==========================================
