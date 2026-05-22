@@ -7,6 +7,7 @@ const tabs = [
   { label: 'Overview',   href: '' },
   { label: 'Requests',   href: '/requests' },
   { label: 'Quotations', href: '/quotations' },
+  { label: 'Orders',     href: '/orders' },
   { label: 'Receipts',   href: '/receipts' },
   { label: 'Invoices',   href: '/invoices' },
   { label: 'Payments',   href: '/payments' },

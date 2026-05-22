@@ -16,8 +16,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     if (sq.status === 'ACCEPTED') return NextResponse.json({ error: 'Already accepted' }, { status: 400 });
 
     const count = await prisma.purchaseOrder.count();
-    const year = new Date().getFullYear().toString().slice(-2);
-    const poNumber = `PO-${year}-${String(count + 1).padStart(3, '0')}`;
+    const poNumber = `LPO-${11745 + count + 1}`;
 
     const [, , po] = await prisma.$transaction([
       prisma.supplierQuotation.update({

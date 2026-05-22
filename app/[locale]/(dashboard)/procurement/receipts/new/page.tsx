@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -25,6 +25,8 @@ interface ReceiptItem {
 export default function NewReceiptPage() {
   const { locale } = useParams() as { locale: string };
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedPOId = searchParams.get('poId') || '';
   const [saving, setSaving] = useState(false);
   const [pos, setPOs] = useState<PO[]>([]);
   const [selectedPO, setSelectedPO] = useState<PO | null>(null);
@@ -40,8 +42,24 @@ export default function NewReceiptPage() {
           ['SENT', 'CONFIRMED', 'PARTIALLY_RECEIVED'].includes(p.status)
         );
         setPOs(list);
+        if (preselectedPOId) {
+          const found = list.find(p => p.id === preselectedPOId);
+          if (found) {
+            setSelectedPOId(found.id);
+            setSelectedPO(found);
+            if (found.items) {
+              setItems(found.items.map(item => ({
+                purchaseOrderItemId: item.id,
+                description: item.description,
+                orderedQty: String(item.quantity),
+                receivedQty: String(item.quantity - item.receivedQty),
+                unit: item.unit || '',
+              })));
+            }
+          }
+        }
       });
-  }, []);
+  }, [preselectedPOId]);
 
   const handlePOSelect = (poId: string) => {
     setSelectedPOId(poId);

@@ -53,3 +53,10 @@ next-env.d.ts
 /app/generated/prisma
 
 .vercel
+.env*
+
+# source docs (Excel, PDF, images uploaded for reference)
+*.pdf
+*.xlsx
+*.xls
+aaaaa/

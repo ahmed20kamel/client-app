@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { FileText, ShoppingCart, Truck, Receipt, CreditCard, ArrowRight } from 'lucide-react';
+import { FileText, ShoppingCart, Truck, Receipt, CreditCard, ArrowRight, Users, Package } from 'lucide-react';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-AE', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
@@ -43,7 +43,7 @@ export default function ProcurementOverview() {
 
   const cards = [
     { label: 'Awaiting Approval', value: stats.openPRs, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50', href: `/${locale}/procurement/requests` },
-    { label: 'Active POs', value: stats.activePOs, icon: ShoppingCart, color: 'text-violet-600', bg: 'bg-violet-50', href: `/${locale}/purchase-orders` },
+    { label: 'Active LPOs', value: stats.activePOs, icon: ShoppingCart, color: 'text-violet-600', bg: 'bg-violet-50', href: `/${locale}/procurement/orders` },
     { label: 'Pending GRNs', value: stats.pendingGRNs, icon: Truck, color: 'text-orange-600', bg: 'bg-orange-50', href: `/${locale}/procurement/receipts` },
     { label: 'Unpaid Invoices', value: `AED ${fmt(stats.unpaidInvoicesTotal)}`, icon: Receipt, color: 'text-red-600', bg: 'bg-red-50', href: `/${locale}/procurement/invoices` },
     { label: 'Pending Payments', value: stats.pendingPayments, icon: CreditCard, color: 'text-emerald-600', bg: 'bg-emerald-50', href: `/${locale}/procurement/payments` },
@@ -74,6 +74,28 @@ export default function ProcurementOverview() {
             <p className="text-[12px] text-muted-foreground mt-0.5">{card.label}</p>
           </Link>
         ))}
+      </div>
+
+      {/* Quick links */}
+      <div className="grid grid-cols-2 gap-3">
+        <Link href={`/${locale}/suppliers`} className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:border-primary/40 transition-colors">
+          <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
+            <Users className="size-5 text-blue-600" />
+          </div>
+          <div>
+            <p className="text-[14px] font-semibold">Supplier List</p>
+            <p className="text-[11px] text-muted-foreground">Manage vendors &amp; suppliers</p>
+          </div>
+        </Link>
+        <Link href={`/${locale}/inventory`} className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:border-primary/40 transition-colors">
+          <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center">
+            <Package className="size-5 text-emerald-600" />
+          </div>
+          <div>
+            <p className="text-[14px] font-semibold">Materials List</p>
+            <p className="text-[11px] text-muted-foreground">Products &amp; stock catalogue</p>
+          </div>
+        </Link>
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
