@@ -11,6 +11,7 @@ export async function GET(_req: NextRequest) {
       include: {
         requestedBy: { select: { id: true, fullName: true } },
         approvedBy: { select: { id: true, fullName: true } },
+        project: { select: { id: true, projectCode: true, projectName: true } },
         _count: { select: { items: true, supplierQuotes: true, purchaseOrders: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
         title: body.title,
         description: body.description || null,
         requiredDate: body.requiredDate ? new Date(body.requiredDate) : null,
+        projectId: body.projectId || null,
         projectRef: body.projectRef || null,
         notes: body.notes || null,
         requestedById: session.user.id,

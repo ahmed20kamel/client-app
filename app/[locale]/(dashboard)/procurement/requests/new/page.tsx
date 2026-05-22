@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -13,15 +13,21 @@ interface Item {
   estimatedPrice: string;
   notes: string;
 }
+interface Project { id: string; projectCode: string; projectName: string; status: string; }
 
 export default function NewPRPage() {
   const { locale } = useParams() as { locale: string };
   const router = useRouter();
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', requiredDate: '', projectRef: '', notes: '' });
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [form, setForm] = useState({ title: '', description: '', requiredDate: '', projectId: '', notes: '' });
   const [items, setItems] = useState<Item[]>([
     { description: '', quantity: '1', unit: '', estimatedPrice: '', notes: '' },
   ]);
+
+  useEffect(() => {
+    fetch('/api/payroll/projects').then(r => r.json()).then(res => setProjects(res.data || []));
+  }, []);
 
   const addItem = () =>
     setItems(p => [...p, { description: '', quantity: '1', unit: '', estimatedPrice: '', notes: '' }]);
@@ -36,7 +42,7 @@ export default function NewPRPage() {
     const res = await fetch('/api/procurement/requests', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, items }),
+      body: JSON.stringify({ ...form, projectId: form.projectId || null, items }),
     });
     if (res.ok) {
       const { data } = await res.json();
@@ -84,13 +90,17 @@ export default function NewPRPage() {
             />
           </div>
           <div>
-            <label className="block text-[12px] font-medium text-muted-foreground mb-1.5">Project Reference</label>
-            <input
+            <label className="block text-[12px] font-medium text-muted-foreground mb-1.5">Project *</label>
+            <select
               className={inp}
-              value={form.projectRef}
-              onChange={e => setForm(p => ({ ...p, projectRef: e.target.value }))}
-              placeholder="e.g. SC-P83"
-            />
+              value={form.projectId}
+              onChange={e => setForm(p => ({ ...p, projectId: e.target.value }))}
+            >
+              <option value="">— Select Project —</option>
+              {projects.filter(p => p.status === 'ONGOING' || p.status === 'MOBILIZING').map(p => (
+                <option key={p.id} value={p.id}>{p.projectCode} — {p.projectName}</option>
+              ))}
+            </select>
           </div>
           <div className="md:col-span-2">
             <label className="block text-[12px] font-medium text-muted-foreground mb-1.5">Description</label>

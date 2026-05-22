@@ -13,6 +13,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       include: {
         requestedBy: { select: { id: true, fullName: true } },
         approvedBy: { select: { id: true, fullName: true } },
+        project: { select: { id: true, projectCode: true, projectName: true } },
         items: { orderBy: { sortOrder: 'asc' } },
         supplierQuotes: {
           include: {

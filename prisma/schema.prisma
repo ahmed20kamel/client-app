@@ -964,6 +964,7 @@ model PurchaseRequest {
   title           String
   description     String?
   requiredDate    DateTime?
+  projectId       String?
   projectRef      String?
   status          String                @default("DRAFT")
   notes           String?
@@ -978,12 +979,14 @@ model PurchaseRequest {
 
   requestedBy     User                  @relation("PRRequester", fields: [requestedById], references: [id])
   approvedBy      User?                 @relation("PRApprover", fields: [approvedById], references: [id])
+  project         PayrollProject?       @relation(fields: [projectId], references: [id])
   items           PurchaseRequestItem[]
   supplierQuotes  SupplierQuotation[]
   purchaseOrders  PurchaseOrder[]
 
   @@index([requestedById])
   @@index([approvedById])
+  @@index([projectId])
   @@index([status])
   @@index([createdAt])
   @@index([prNumber])
@@ -1331,7 +1334,8 @@ model PayrollProject {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  timesheetEntries PayrollTimesheetEntry[]
+  timesheetEntries  PayrollTimesheetEntry[]
+  purchaseRequests  PurchaseRequest[]
 
   @@index([status])
   @@index([projectCode])

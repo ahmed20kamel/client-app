@@ -70,7 +70,7 @@ export default function ReceiptsListPage() {
             <table className="w-full text-[13px]">
               <thead className="bg-muted/30 border-b border-border">
                 <tr>
-                  {['GRN Number', 'PO Number', 'Supplier', 'Received By', 'Date', 'Items', 'Status'].map(h => (
+                  {['GRN Number', 'LLPO Number', 'Supplier', 'Received By', 'Date', 'Items', 'Status'].map(h => (
                     <th key={h} className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">{h}</th>
                   ))}
                 </tr>

@@ -77,7 +77,7 @@ export default function InvoicesListPage() {
             <table className="w-full text-[13px]">
               <thead className="bg-muted/30 border-b border-border">
                 <tr>
-                  {['Our Ref', 'Vendor Invoice No', 'PO Number', 'Supplier', 'Date', 'Total', 'Paid', 'Balance', 'Status'].map(h => (
+                  {['Our Ref', 'Vendor Invoice No', 'LLPO Number', 'Supplier', 'Date', 'Total', 'Paid', 'Balance', 'Status'].map(h => (
                     <th key={h} className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">{h}</th>
                   ))}
                 </tr>

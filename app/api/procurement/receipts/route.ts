@@ -35,34 +35,66 @@ export async function POST(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const allReceived = items.every((i: any) => parseFloat(i.receivedQty) >= parseFloat(i.orderedQty));
     const status = allReceived ? 'FULLY_RECEIVED' : 'PARTIALLY_RECEIVED';
-    const grn = await prisma.goodsReceipt.create({
-      data: {
-        grnNumber,
-        purchaseOrderId: body.purchaseOrderId,
-        notes: body.notes || null,
-        status,
-        receivedAt: new Date(),
-        receivedById: session.user.id,
-        items: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          create: items.map((item: any, i: number) => ({
-            description: item.description,
-            orderedQty: parseFloat(item.orderedQty) || 0,
-            receivedQty: parseFloat(item.receivedQty) || 0,
-            unit: item.unit || null,
-            purchaseOrderItemId: item.purchaseOrderItemId || null,
-            notes: item.notes || null,
-            sortOrder: i,
-          })),
+    const grn = await prisma.$transaction(async (tx) => {
+      const created = await tx.goodsReceipt.create({
+        data: {
+          grnNumber,
+          purchaseOrderId: body.purchaseOrderId,
+          notes: body.notes || null,
+          status,
+          receivedAt: new Date(),
+          receivedById: session.user.id,
+          items: {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            create: items.map((item: any, i: number) => ({
+              description: item.description,
+              orderedQty: parseFloat(item.orderedQty) || 0,
+              receivedQty: parseFloat(item.receivedQty) || 0,
+              unit: item.unit || null,
+              purchaseOrderItemId: item.purchaseOrderItemId || null,
+              notes: item.notes || null,
+              sortOrder: i,
+            })),
+          },
         },
-      },
-      include: { items: true },
+        include: { items: true },
+      });
+
+      // Auto-update inventory for items linked to a Product
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const item of items as any[]) {
+        if (item.productId && parseFloat(item.receivedQty) > 0) {
+          const qty = Math.round(parseFloat(item.receivedQty));
+          const product = await tx.product.findUnique({ where: { id: item.productId } });
+          if (product) {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { currentStock: { increment: qty } },
+            });
+            await tx.stockMovement.create({
+              data: {
+                productId: item.productId,
+                type: 'IN',
+                quantity: qty,
+                previousStock: product.currentStock,
+                newStock: product.currentStock + qty,
+                reason: 'GRN',
+                reference: grnNumber,
+                createdById: session.user.id,
+              },
+            });
+          }
+        }
+      }
+
+      if (status === 'FULLY_RECEIVED') {
+        await tx.purchaseOrder.update({ where: { id: body.purchaseOrderId }, data: { status: 'RECEIVED', receivedAt: new Date() } });
+      } else {
+        await tx.purchaseOrder.update({ where: { id: body.purchaseOrderId }, data: { status: 'PARTIALLY_RECEIVED' } });
+      }
+
+      return created;
     });
-    if (status === 'FULLY_RECEIVED') {
-      await prisma.purchaseOrder.update({ where: { id: body.purchaseOrderId }, data: { status: 'RECEIVED', receivedAt: new Date() } });
-    } else {
-      await prisma.purchaseOrder.update({ where: { id: body.purchaseOrderId }, data: { status: 'PARTIALLY_RECEIVED' } });
-    }
     return NextResponse.json({ data: grn }, { status: 201 });
   } catch (error) {
     logError('Create GRN error:', error);
