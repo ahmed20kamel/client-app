@@ -63,7 +63,7 @@ export default function GRNDetailPage({ params }: { params: Promise<{ id: string
             </span>
           </div>
           <p className="text-[13px] text-muted-foreground mt-0.5">
-            PO: <Link href={`/${locale}/purchase-orders/${grn.purchaseOrder.id}`} className="text-primary hover:underline">{grn.purchaseOrder.poNumber}</Link>
+            PO: <Link href={`/${locale}/procurement/orders/${grn.purchaseOrder.id}`} className="text-primary hover:underline">{grn.purchaseOrder.poNumber}</Link>
             {' '}— {grn.purchaseOrder.supplier.name}
           </p>
         </div>

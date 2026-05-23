@@ -131,6 +131,11 @@ export default function PRDetailPage({ params }: { params: Promise<{ id: string;
           {pr.status === 'DRAFT' && (
             <Button size="sm" onClick={submit} disabled={acting}>Submit for Approval</Button>
           )}
+          {pr.status === 'REJECTED' && (
+            <Button size="sm" variant="outline" onClick={submit} disabled={acting}>
+              Resubmit for Approval
+            </Button>
+          )}
           {pr.status === 'SUBMITTED' && (
             <>
               <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => approve('approve')} disabled={acting}>
@@ -185,7 +190,7 @@ export default function PRDetailPage({ params }: { params: Promise<{ id: string;
               {pr.purchaseOrders.map(po => (
                 <Link
                   key={po.id}
-                  href={`/${locale}/purchase-orders/${po.id}`}
+                  href={`/${locale}/procurement/orders/${po.id}`}
                   className="flex items-center justify-between p-3 rounded-lg border border-border hover:border-primary/40 transition-colors"
                 >
                   <div className="flex items-center gap-2">

@@ -149,7 +149,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
             </div>
             <p className="text-[13px] text-muted-foreground mt-0.5">
               {inv.supplier.name} — PO:{' '}
-              <Link href={`/${locale}/purchase-orders/${inv.purchaseOrder.id}`} className="text-primary hover:underline">
+              <Link href={`/${locale}/procurement/orders/${inv.purchaseOrder.id}`} className="text-primary hover:underline">
                 {inv.purchaseOrder.poNumber}
               </Link>
             </p>

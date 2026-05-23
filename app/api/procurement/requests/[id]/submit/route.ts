@@ -10,10 +10,16 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     const { id } = await params;
     const pr = await prisma.purchaseRequest.findUnique({ where: { id } });
     if (!pr) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    if (pr.status !== 'DRAFT') return NextResponse.json({ error: 'Already submitted' }, { status: 400 });
+    if (!['DRAFT', 'REJECTED'].includes(pr.status)) return NextResponse.json({ error: 'Cannot submit from current status' }, { status: 400 });
     const updated = await prisma.purchaseRequest.update({
       where: { id },
-      data: { status: 'SUBMITTED', submittedAt: new Date() },
+      data: {
+        status: 'SUBMITTED',
+        submittedAt: new Date(),
+        rejectedAt: null,
+        rejectionReason: null,
+        approvedById: null,
+      },
     });
     return NextResponse.json({ data: updated });
   } catch (error) {
