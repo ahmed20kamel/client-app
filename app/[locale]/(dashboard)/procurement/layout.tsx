@@ -4,13 +4,14 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
 const tabs = [
-  { label: 'Overview',   href: '' },
-  { label: 'Requests',   href: '/requests' },
-  { label: 'Quotations', href: '/quotations' },
-  { label: 'Orders',     href: '/orders' },
-  { label: 'Receipts',   href: '/receipts' },
-  { label: 'Invoices',   href: '/invoices' },
-  { label: 'Payments',   href: '/payments' },
+  { label: 'Overview',        href: '' },
+  { label: 'Requests',        href: '/requests' },
+  { label: 'Quotations',      href: '/quotations' },
+  { label: 'Orders',          href: '/orders' },
+  { label: 'Receipts',        href: '/receipts' },
+  { label: 'Invoices',        href: '/invoices' },
+  { label: 'Payments',        href: '/payments' },
+  { label: 'Materials List',  href: '/materials' },
 ];
 
 export default function ProcurementLayout({ children }: { children: React.ReactNode }) {

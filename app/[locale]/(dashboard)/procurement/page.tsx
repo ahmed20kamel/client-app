@@ -87,13 +87,13 @@ export default function ProcurementOverview() {
             <p className="text-[11px] text-muted-foreground">Manage vendors &amp; suppliers</p>
           </div>
         </Link>
-        <Link href={`/${locale}/inventory`} className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:border-primary/40 transition-colors">
+        <Link href={`/${locale}/procurement/materials`} className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:border-primary/40 transition-colors">
           <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center">
             <Package className="size-5 text-emerald-600" />
           </div>
           <div>
             <p className="text-[14px] font-semibold">Materials List</p>
-            <p className="text-[11px] text-muted-foreground">Products &amp; stock catalogue</p>
+            <p className="text-[11px] text-muted-foreground">Construction materials catalogue</p>
           </div>
         </Link>
       </div>
