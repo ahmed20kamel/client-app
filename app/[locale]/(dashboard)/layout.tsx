@@ -75,7 +75,6 @@ export default async function DashboardLayout({
       label: 'Inventory',
       items: [
         { href: `/${locale}/inventory`,       label: t('navigation.inventory'),      icon: 'Package',     perm: 'page.inventory' },
-        { href: `/${locale}/suppliers`,       label: t('navigation.suppliers'),      icon: 'Truck',       perm: 'page.suppliers' },
         { href: `/${locale}/purchase-orders`, label: t('navigation.purchaseOrders'), icon: 'ShoppingCart', perm: 'page.purchase-orders' },
       ],
     },

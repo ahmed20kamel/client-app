@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Plus, Search, Pencil, Trash2, Package } from 'lucide-react';
@@ -10,8 +9,6 @@ interface Material {
   sku: string;
   name: string;
   unitOfMeasure: string;
-  currentStock: number;
-  status: string;
 }
 
 function AddMaterialModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
@@ -23,16 +20,19 @@ function AddMaterialModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
     setSaving(true);
 
     // Get next SKU
-    const res = await fetch('/api/inventory?limit=1000&status=ACTIVE');
+    const res = await fetch('/api/procurement/materials');
     const data = await res.json();
-    const matItems: Material[] = (data.data || []).filter((m: Material) => m.sku.startsWith('MAT-'));
-    const nextNum = matItems.length + 1;
-    const sku = `MAT-${String(nextNum).padStart(3, '0')}`;
+    const items: Material[] = data.data || [];
+    const maxNum = items.reduce((max, m) => {
+      const n = parseInt(m.sku.replace('MAT-', '')) || 0;
+      return n > max ? n : max;
+    }, 0);
+    const sku = `MAT-${String(maxNum + 1).padStart(3, '0')}`;
 
-    const r = await fetch('/api/inventory', {
+    const r = await fetch('/api/procurement/materials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: form.name, sku, unitOfMeasure: form.unitOfMeasure, status: 'ACTIVE' }),
+      body: JSON.stringify({ name: form.name, sku, unitOfMeasure: form.unitOfMeasure }),
     });
     if (r.ok) {
       toast.success('Material added');
@@ -97,7 +97,6 @@ function AddMaterialModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
 }
 
 export default function ProcurementMaterialsPage() {
-  useParams() as { locale: string };
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -107,12 +106,9 @@ export default function ProcurementMaterialsPage() {
 
   const load = () => {
     setLoading(true);
-    fetch('/api/inventory?limit=500&status=ACTIVE')
+    fetch('/api/procurement/materials')
       .then(r => r.json())
-      .then(res => {
-        setMaterials((res.data || []).filter((m: Material) => m.sku.startsWith('MAT-')));
-        setLoading(false);
-      });
+      .then(res => { setMaterials(res.data || []); setLoading(false); });
   };
 
   useEffect(() => { load(); }, []);
@@ -123,7 +119,7 @@ export default function ProcurementMaterialsPage() {
 
   const saveEdit = async (id: string) => {
     if (!editName.trim()) return;
-    const r = await fetch(`/api/inventory/${id}`, {
+    const r = await fetch(`/api/procurement/materials/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: editName }),
@@ -134,9 +130,9 @@ export default function ProcurementMaterialsPage() {
 
   const del = async (id: string, name: string) => {
     if (!confirm(`Delete "${name}"?`)) return;
-    const r = await fetch(`/api/inventory/${id}`, { method: 'DELETE' });
+    const r = await fetch(`/api/procurement/materials/${id}`, { method: 'DELETE' });
     if (r.ok) { toast.success('Deleted'); load(); }
-    else toast.error('Cannot delete — may be linked to existing requests');
+    else toast.error('Cannot delete');
   };
 
   const inp = 'w-full h-8 px-2 text-[13px] border border-primary rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20';
@@ -155,7 +151,6 @@ export default function ProcurementMaterialsPage() {
         </Button>
       </div>
 
-      {/* Search */}
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
         <input
@@ -166,7 +161,6 @@ export default function ProcurementMaterialsPage() {
         />
       </div>
 
-      {/* Table */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-[13px] text-muted-foreground">Loading...</div>

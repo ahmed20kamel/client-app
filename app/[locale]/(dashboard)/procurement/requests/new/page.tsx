@@ -105,8 +105,8 @@ export default function NewPRPage() {
 
   useEffect(() => {
     fetch('/api/payroll/projects').then(r => r.json()).then(res => setProjects(res.data || []));
-    fetch('/api/inventory?limit=200&status=ACTIVE').then(r => r.json()).then(res =>
-      setMaterials((res.data || []).filter((m: Material) => m.sku.startsWith('MAT-')))
+    fetch('/api/procurement/materials').then(r => r.json()).then(res =>
+      setMaterials(res.data || [])
     );
   }, []);
 

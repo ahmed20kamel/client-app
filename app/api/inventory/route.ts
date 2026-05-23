@@ -18,6 +18,8 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const categoryId = searchParams.get('categoryId') || '';
     const status = searchParams.get('status') || '';
+    const excludePrefix = searchParams.get('excludePrefix') || '';
+    const skuPrefix = searchParams.get('skuPrefix') || '';
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
@@ -36,6 +38,14 @@ export async function GET(request: NextRequest) {
 
     if (status) {
       where.status = status;
+    }
+
+    if (excludePrefix) {
+      where.sku = { not: { startsWith: excludePrefix } };
+    }
+
+    if (skuPrefix) {
+      where.sku = { startsWith: skuPrefix };
     }
 
     const total = await prisma.product.count({ where });

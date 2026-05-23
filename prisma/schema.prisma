@@ -1457,3 +1457,20 @@ model AttendanceSetting {
   timezone      String   @default("Asia/Dubai")
   updatedAt     DateTime @updatedAt
 }
+
+// ==========================================
+// Procurement Materials Catalogue
+// ==========================================
+
+model ProcurementMaterial {
+  id            String   @id @default(uuid())
+  sku           String   @unique
+  name          String
+  unitOfMeasure String   @default("Nos")
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status])
+  @@index([sku])
+}
