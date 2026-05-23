@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
             unit: item.unit || null,
             estimatedPrice: item.estimatedPrice ? parseFloat(item.estimatedPrice) : null,
             notes: item.notes || null,
+            materialId: item.materialId || null,
             sortOrder: i,
           })),
         },

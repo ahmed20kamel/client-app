@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Printer } from 'lucide-react';
+import { AttachmentPanel } from '@/components/procurement/AttachmentPanel';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -216,6 +217,9 @@ export default function LPODetailPage() {
           </Button>
         </div>
       )}
+
+      {/* Attachments */}
+      <AttachmentPanel entityType="PO" entityId={lpo.id} />
     </div>
   );
 }

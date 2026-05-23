@@ -12,6 +12,7 @@ interface Item {
   unit: string;
   estimatedPrice: string;
   notes: string;
+  materialId: string;
 }
 interface Project { id: string; projectCode: string; projectName: string; status: string; }
 interface Material { id: string; name: string; sku: string; unitOfMeasure: string; }
@@ -26,7 +27,7 @@ function MaterialInput({
   value: string;
   unit: string;
   materials: Material[];
-  onChange: (description: string, unit: string) => void;
+  onChange: (description: string, unit: string, materialId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value);
@@ -58,7 +59,7 @@ function MaterialInput({
         placeholder="Search or type material..."
         onChange={e => {
           setQuery(e.target.value);
-          onChange(e.target.value, unit);
+          onChange(e.target.value, unit, '');
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
@@ -76,7 +77,7 @@ function MaterialInput({
                 onMouseDown={e => {
                   e.preventDefault();
                   setQuery(m.name);
-                  onChange(m.name, m.unitOfMeasure || unit);
+                  onChange(m.name, m.unitOfMeasure || unit, m.id);
                   setOpen(false);
                 }}
               >
@@ -100,7 +101,7 @@ export default function NewPRPage() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [form, setForm] = useState({ title: '', description: '', requiredDate: '', projectId: '', notes: '' });
   const [items, setItems] = useState<Item[]>([
-    { description: '', quantity: '1', unit: '', estimatedPrice: '', notes: '' },
+    { description: '', quantity: '1', unit: '', estimatedPrice: '', notes: '', materialId: '' },
   ]);
 
   useEffect(() => {
@@ -111,12 +112,12 @@ export default function NewPRPage() {
   }, []);
 
   const addItem = () =>
-    setItems(p => [...p, { description: '', quantity: '1', unit: '', estimatedPrice: '', notes: '' }]);
+    setItems(p => [...p, { description: '', quantity: '1', unit: '', estimatedPrice: '', notes: '', materialId: '' }]);
   const removeItem = (i: number) => setItems(p => p.filter((_, idx) => idx !== i));
   const updateItem = (i: number, k: keyof Item, v: string) =>
     setItems(p => p.map((it, idx) => (idx === i ? { ...it, [k]: v } : it)));
-  const updateItemDescUnit = (i: number, description: string, unit: string) =>
-    setItems(p => p.map((it, idx) => (idx === i ? { ...it, description, unit: unit || it.unit } : it)));
+  const updateItemDescUnit = (i: number, description: string, unit: string, materialId: string) =>
+    setItems(p => p.map((it, idx) => (idx === i ? { ...it, description, unit: unit || it.unit, materialId } : it)));
 
   const submit = async () => {
     if (!form.title.trim()) return toast.error('Title is required');
@@ -233,7 +234,7 @@ export default function NewPRPage() {
                   value={item.description}
                   unit={item.unit}
                   materials={materials}
-                  onChange={(desc, unit) => updateItemDescUnit(i, desc, unit)}
+                  onChange={(desc, unit, matId) => updateItemDescUnit(i, desc, unit, matId)}
                 />
               </div>
               <div className="col-span-2">

@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ShoppingCart, Search, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Search, ChevronRight, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const STATUS_COLOR: Record<string, string> = {
   DRAFT: 'bg-gray-100 text-gray-700',
@@ -53,6 +54,11 @@ export default function ProcurementOrdersPage() {
           <h1 className="text-xl font-bold">LPO / Purchase Orders</h1>
           <p className="text-[12px] text-muted-foreground mt-0.5">Local Purchase Orders issued to suppliers</p>
         </div>
+        <Button size="sm" asChild>
+          <Link href={`/${locale}/procurement/orders/new`}>
+            <Plus className="size-3.5 mr-1" /> New LPO
+          </Link>
+        </Button>
       </div>
 
       {/* Filters */}

@@ -996,6 +996,7 @@ model PurchaseRequestItem {
   id                String                @id @default(uuid())
   purchaseRequestId String
   productId         String?
+  materialId        String?
   description       String
   quantity          Float                 @default(1)
   unit              String?
@@ -1005,10 +1006,12 @@ model PurchaseRequestItem {
 
   purchaseRequest   PurchaseRequest       @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
   product           Product?              @relation(fields: [productId], references: [id])
+  material          ProcurementMaterial?  @relation(fields: [materialId], references: [id])
   quotationItems    SupplierQuotationItem[]
 
   @@index([purchaseRequestId])
   @@index([productId])
+  @@index([materialId])
 }
 
 model SupplierQuotation {
@@ -1471,6 +1474,22 @@ model ProcurementMaterial {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  requestItems  PurchaseRequestItem[]
+
   @@index([status])
   @@index([sku])
+}
+
+model ProcurementAttachment {
+  id           String   @id @default(uuid())
+  entityType   String   // PR, PO, GRN, INVOICE
+  entityId     String
+  title        String
+  url          String?
+  notes        String?
+  createdById  String
+  createdAt    DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdById])
 }

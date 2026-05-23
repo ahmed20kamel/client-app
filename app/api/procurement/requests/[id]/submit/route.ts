@@ -11,6 +11,15 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     const pr = await prisma.purchaseRequest.findUnique({ where: { id } });
     if (!pr) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     if (!['DRAFT', 'REJECTED'].includes(pr.status)) return NextResponse.json({ error: 'Cannot submit from current status' }, { status: 400 });
+
+    // On resubmit, cancel pending quotations from the previous cycle
+    if (pr.status === 'REJECTED') {
+      await prisma.supplierQuotation.updateMany({
+        where: { purchaseRequestId: id, status: 'RECEIVED' },
+        data: { status: 'REJECTED', rejectedAt: new Date() },
+      });
+    }
+
     const updated = await prisma.purchaseRequest.update({
       where: { id },
       data: {

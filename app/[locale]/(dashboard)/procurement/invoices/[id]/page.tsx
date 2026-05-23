@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, CheckCircle, AlertTriangle, XCircle, CreditCard } from 'lucide-react';
+import { ChevronLeft, CheckCircle, AlertTriangle, XCircle, CreditCard, Trash2 } from 'lucide-react';
+import { AttachmentPanel } from '@/components/procurement/AttachmentPanel';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -60,6 +61,13 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   const [matchResult, setMatchResult] = useState<{ matched: boolean; details: MatchDetail[] } | null>(null);
   const [showPayForm, setShowPayForm] = useState(false);
   const [payForm, setPayForm] = useState({ amount: '', method: 'Bank Transfer', paymentDate: new Date().toISOString().split('T')[0], reference: '', notes: '' });
+
+  const deletePayment = async (payId: string) => {
+    if (!confirm('Reverse this payment?')) return;
+    const res = await fetch(`/api/procurement/payments/${payId}`, { method: 'DELETE' });
+    if (res.ok) { toast.success('Payment reversed'); load(); }
+    else toast.error('Failed to reverse payment');
+  };
 
   const load = () => {
     fetch(`/api/procurement/invoices/${id}`)
@@ -376,7 +384,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
           <table className="w-full text-[13px]">
             <thead className="bg-muted/30 border-b border-border">
               <tr>
-                {['Date', 'Amount', 'Method', 'Reference', 'Status'].map(h => (
+                {['Date', 'Amount', 'Method', 'Reference', 'Status', ''].map(h => (
                   <th key={h} className="px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground">{h}</th>
                 ))}
               </tr>
@@ -393,12 +401,42 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                       {pay.status}
                     </span>
                   </td>
+                  <td className="px-4 py-2.5 text-center">
+                    <button
+                      onClick={() => deletePayment(pay.id)}
+                      className="p-1 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
+                      title="Reverse payment"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+      {/* Audit Trail */}
+      <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+        <h2 className="text-[13px] font-semibold text-muted-foreground uppercase tracking-wide">Activity</h2>
+        <div className="space-y-2">
+          {[
+            { label: 'Invoice Created', date: inv.invoiceDate, color: 'bg-gray-400' },
+            inv.matchedAt ? { label: 'Matched (3-Way)', date: inv.matchedAt, color: 'bg-blue-500' } : null,
+            inv.approvedAt ? { label: 'Approved', date: inv.approvedAt, color: 'bg-violet-500' } : null,
+            inv.paidAmount >= inv.total && inv.total > 0 ? { label: 'Fully Paid', date: null, color: 'bg-green-500' } : null,
+          ].filter(Boolean).map((ev, i) => ev && (
+            <div key={i} className="flex items-center gap-3 text-[12px]">
+              <div className={`w-2 h-2 rounded-full shrink-0 ${ev.color}`} />
+              <span className="font-medium text-foreground">{ev.label}</span>
+              {ev.date && <span className="text-muted-foreground">{new Date(ev.date).toLocaleDateString('en-AE')}</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Attachments */}
+      <AttachmentPanel entityType="INVOICE" entityId={inv.id} />
     </div>
   );
 }

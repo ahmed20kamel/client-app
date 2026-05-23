@@ -3,6 +3,7 @@ import { useState, useEffect, use } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Plus, CheckCircle, XCircle, ShoppingCart, ExternalLink } from 'lucide-react';
+import { AttachmentPanel } from '@/components/procurement/AttachmentPanel';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -331,6 +332,33 @@ export default function PRDetailPage({ params }: { params: Promise<{ id: string;
           </div>
         )}
       </div>
+
+      {/* Audit Trail */}
+      <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+        <h2 className="text-[13px] font-semibold text-muted-foreground uppercase tracking-wide">Activity</h2>
+        <div className="space-y-2">
+          {[
+            { label: 'Request Created', date: null, color: 'bg-gray-400' },
+            pr.submittedAt ? { label: 'Submitted for Approval', date: pr.submittedAt, color: 'bg-blue-500' } : null,
+            pr.approvedAt ? { label: `Approved by ${pr.approvedBy?.fullName || '—'}`, date: pr.approvedAt, color: 'bg-green-500' } : null,
+            pr.rejectedAt ? { label: 'Rejected', date: pr.rejectedAt, color: 'bg-red-500' } : null,
+          ].filter(Boolean).map((ev, i) => ev && (
+            <div key={i} className="flex items-center gap-3 text-[12px]">
+              <div className={`w-2 h-2 rounded-full shrink-0 ${ev.color}`} />
+              <span className="font-medium text-foreground">{ev.label}</span>
+              {ev.date && <span className="text-muted-foreground">{new Date(ev.date).toLocaleDateString('en-AE')}</span>}
+            </div>
+          ))}
+          {pr.rejectionReason && (
+            <div className="ml-5 text-[12px] text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+              Reason: {pr.rejectionReason}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Attachments */}
+      <AttachmentPanel entityType="PR" entityId={pr.id} />
     </div>
   );
 }

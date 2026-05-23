@@ -2,6 +2,7 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
+import { AttachmentPanel } from '@/components/procurement/AttachmentPanel';
 
 const STATUS_COLOR: Record<string, string> = {
   PENDING: 'bg-gray-100 text-gray-700',
@@ -116,6 +117,8 @@ export default function GRNDetailPage({ params }: { params: Promise<{ id: string
           </tbody>
         </table>
       </div>
+      {/* Attachments */}
+      <AttachmentPanel entityType="GRN" entityId={grn.id} />
     </div>
   );
 }
