@@ -82,12 +82,15 @@ export default async function DashboardLayout({
     {
       label: 'Procurement',
       items: [
-        { href: `/${locale}/procurement`,     label: 'Overview',         icon: 'LayoutDashboard', perm: null },
-        { href: `/${locale}/procurement/requests`,   label: 'PR Requests',      icon: 'FileText',        perm: null },
-        { href: `/${locale}/procurement/quotations`, label: 'Quotations',       icon: 'FileSearch',      perm: null },
-        { href: `/${locale}/procurement/receipts`,   label: 'Goods Receipts',   icon: 'Truck',           perm: null },
-        { href: `/${locale}/procurement/invoices`,   label: 'Vendor Invoices',  icon: 'Receipt',         perm: null },
-        { href: `/${locale}/procurement/payments`,   label: 'Payments',         icon: 'CreditCard',      perm: null },
+        { href: `/${locale}/procurement`,                    label: 'Overview',        icon: 'LayoutDashboard', perm: null },
+        { href: `/${locale}/procurement/requests`,         label: 'PR Requests',     icon: 'FileText',        perm: null },
+        { href: `/${locale}/procurement/quotations`,       label: 'Quotations',      icon: 'FileSearch',      perm: null },
+        { href: `/${locale}/procurement/orders`,           label: 'LPO Orders',      icon: 'ShoppingCart',    perm: null },
+        { href: `/${locale}/procurement/receipts`,         label: 'Goods Receipts',  icon: 'Truck',           perm: null },
+        { href: `/${locale}/procurement/invoices`,         label: 'Vendor Invoices', icon: 'Receipt',         perm: null },
+        { href: `/${locale}/procurement/payments`,         label: 'Payments',        icon: 'CreditCard',      perm: null },
+        { href: `/${locale}/procurement/materials`,        label: 'Materials List',  icon: 'Package',         perm: null },
+        { href: `/${locale}/suppliers`,                    label: 'Supplier List',   icon: 'Building2',       perm: null },
       ],
     },
     {
