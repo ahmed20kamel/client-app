@@ -1,6 +1,22 @@
-# CRM System - Professional Customer Relationship Management
+# CRM System — Professional Customer Relationship Management
 
-A modern, full-featured CRM system built with Next.js, PostgreSQL, and Prisma. Features include multi-language support (Arabic/English), role-based access control, customer management, task tracking, and comprehensive reporting.
+A production-ready, full-featured CRM system built with Next.js 14, TypeScript, PostgreSQL, and Prisma. Features multi-language support (Arabic/English) with full RTL, role-based access control, customer management, task tracking, and comprehensive reporting.
+
+**Live demo:** https://crm-pro-iota.vercel.app
+
+## Tech Stack
+
+- **Frontend:** Next.js 14, TypeScript, Tailwind CSS v4, shadcn/ui
+- **Backend / Data:** Prisma ORM, PostgreSQL
+- **Auth:** Auth.js (NextAuth v5), bcrypt password hashing, rate-limited auth endpoints
+- **i18n:** next-intl (Arabic + English, full RTL support)
+
+## Architecture Highlights
+
+- **Scope-based access control:** admins see system-wide data, employees see only their own records
+- **Soft delete + audit logging:** customers can be soft-deleted/restored, with sensitive actions tracked
+- **Five reports with CSV export:** overdue tasks, customers with no follow-up, new customers, task completion rate, and customer status funnel
+- **Rate-limited authentication:** login and password-reset endpoints are rate-limited
 
 ## 🎉 Current Status
 
